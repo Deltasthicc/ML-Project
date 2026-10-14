@@ -51,7 +51,7 @@ python scripts/train.py --exp A_unet --seed 0 --evaluate --set train.num_workers
 python scripts/train.py --exp E_tglitenet --seed 0 --evaluate --set train.num_workers=12 --out results/timing/E
 ```
 Look at `results/timing/*/train_log.csv` (`time_s` column) and the console. Then: total ≈ 20 × t(U-Net run) [A,B,C,X_unet_dg × 5 seeds]
-+ 25 × t(lite run) [D,E,X_lite_* × 5 seeds] + 18 × t(lite run) [topology + width, 3 seeds] + evaluation (≈ 1–3 min per run, MC passes included).
++ 25 × t(lite run) [D,E,X_lite_* × 5 seeds] + 21 × t(lite run) [topology + width, 3 seeds] + evaluation (≈ 1–3 min per run, MC passes included).
 If it is too slow: lower `train.iters` (e.g. 3000) *for every stage* with `--set train.iters=3000` (never for only some stages), or use 3 seeds (`--seeds 0 1 2`).
 GPU memory: U-Net at batch 8 × 256² with fp16 needs roughly 6–8 GB; on a smaller card use `--set train.batch_size=4` (again for all stages).
 If the GPU sits idle, the CPU data pipeline is the bottleneck → increase `train.num_workers`.

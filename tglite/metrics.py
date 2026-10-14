@@ -6,6 +6,7 @@ Topology  : clDice, Betti-0 / Betti-1 errors (connected components / loops), com
 from __future__ import annotations
 
 import numpy as np
+from scipy import ndimage as ndi
 from skimage.measure import euler_number, label
 from skimage.morphology import skeletonize
 from sklearn.metrics import roc_auc_score
@@ -53,6 +54,29 @@ def cldice_score(pred: np.ndarray, gt: np.ndarray) -> float:
     return float(2 * tprec * tsens / (tprec + tsens))
 
 
+def cbdice_score(pred: np.ndarray, gt: np.ndarray) -> float:
+    """cbDice (cl-MIN-Dice, Shi et al. MICCAI 2024, 2-D) on binary masks: clDice with radius-aware weights.
+
+    Tprec = sum_{S_P} D_L/r_P / (|S_P minus S_L| + sum_{S_P and S_L} r_L/r_P), Tsens symmetric; D = Euclidean distance to the
+    background, r = D on the skeleton, D clipped at R_max (largest skeleton radius).  Boundary-aware: a predicted centreline that is displaced from
+    the true one (but still inside the vessel) scores lower than under clDice, which stays ~1 (paper, Fig. 3a).  Our re-implementation from the paper's equations.
+    """
+    p, g = pred > 0, gt > 0
+    if not p.any() or not g.any():
+        return 0.0
+    sp, sg = skeletonize(p), skeletonize(g)
+    dp, dg = ndi.distance_transform_edt(p), ndi.distance_transform_edt(g)
+    rmax = max(dp[sp].max(), dg[sg].max(), 1.0)
+    dpc, dgc = np.minimum(dp, rmax), np.minimum(dg, rmax)
+    rp, rl = np.maximum(dp, 1.0), np.maximum(dg, 1.0)           # only used where the matching skeleton is set (D >= 1 there)
+    eps = 1e-8
+    prec_den = (sp & ~sg).sum() + (rl[sp & sg] / rp[sp & sg]).sum()
+    sens_den = (sg & ~sp).sum() + (rp[sg & sp] / rl[sg & sp]).sum()
+    tprec = ((dgc[sp] / rp[sp]).sum() + eps) / (prec_den + eps)
+    tsens = ((dpc[sg] / rl[sg]).sum() + eps) / (sens_den + eps)
+    return float(2 * tprec * tsens / (tprec + tsens))
+
+
 def betti_numbers(mask: np.ndarray) -> tuple[int, int]:
     """(beta0, beta1) of a binary 2-D mask: components (8-conn.) and independent loops via the Euler characteristic."""
     m = mask > 0
@@ -69,6 +93,7 @@ def topology_metrics(pred: np.ndarray, gt: np.ndarray, fov: np.ndarray) -> dict:
     g0, g1 = betti_numbers(g)
     return {
         "cldice": cldice_score(p, g),
+        "cbdice": cbdice_score(p, g),
         "betti0_err": abs(p0 - g0),
         "betti1_err": abs(p1 - g1),
         "betti0_pred": p0, "betti0_gt": g0, "betti1_pred": p1, "betti1_gt": g1,

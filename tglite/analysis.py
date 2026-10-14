@@ -21,9 +21,9 @@ from .uncertainty import image_risk_coverage
 
 CORE_TARGETS = ["stare", "chase_db1", "hrf"]
 SEG = ["dice", "iou", "sens", "spec", "auc"]
-TOPO = ["cldice", "betti0_err", "betti1_err"]
+TOPO = ["cldice", "cbdice", "betti0_err", "betti1_err"]
 METRICS = SEG + TOPO
-GAP_METRICS = ["dice", "iou", "auc", "cldice"]          # Betti counts are not comparable across image sizes
+GAP_METRICS = ["dice", "iou", "auc", "cldice", "cbdice"]          # Betti counts are not comparable across image sizes
 LOWER_IS_BETTER = {"betti0_err", "betti1_err", "gap_dice", "gap_cldice", "gap_iou", "gap_auc"}
 
 
@@ -117,7 +117,7 @@ def welch_delta(a: np.ndarray, b: np.ndarray) -> tuple[float, float, float]:
 
 
 def stage_deltas(run_tab: pd.DataFrame, pairs: list[tuple[tuple[str, str], tuple[str, str]]],
-                 datasets=("drive", "unseen", "gap_unseen"), metrics=("dice", "cldice", "betti0_err", "auc")) -> pd.DataFrame:
+                 datasets=("drive", "unseen", "gap_unseen"), metrics=("dice", "cldice", "cbdice", "betti0_err", "auc")) -> pd.DataFrame:
     """Differences (second minus first) between methods, each given as (exp, mode)."""
     rows = []
     for (e1, m1), (e2, m2) in pairs:

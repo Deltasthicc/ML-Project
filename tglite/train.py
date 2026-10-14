@@ -83,7 +83,7 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
 
     best, best_path = -1.0, run_dir / "best.pt"
     log_path = run_dir / "train_log.csv"
-    fields = ["iter", "lr", "loss", "val_dice", "val_auc", "val_cldice", "time_s"] + ["t_" + k for k in ("dice", "bce", "cldice", "srl", "skel_head", "cons")]
+    fields = ["iter", "lr", "loss", "val_dice", "val_auc", "val_cldice", "time_s"] + ["t_" + k for k in ("dice", "bce", "cldice", "cbdice", "srl", "skel_head", "cons")]
     t0 = time.time()
     with open(log_path, "w", newline="", encoding="utf-8") as fh:
         wr = csv.DictWriter(fh, fieldnames=fields)
@@ -100,13 +100,15 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
                     xx = torch.cat([x, batch["x_dg"].to(device, non_blocking=True)])
                     out = model(xx, with_skeleton=model.has_skeleton_head)
                     rep = lambda t: torch.cat([t, t])  # noqa: E731
-                    terms = criterion.supervised(out, rep(y), rep(fov), rep(skel))
+                    dist = batch["dist"].to(device, non_blocking=True) if "dist" in batch else None
+                    terms = criterion.supervised(out, rep(y), rep(fov), rep(skel), rep(dist) if dist is not None else None)
                     logits = out[0] if isinstance(out, tuple) else out
                     n = x.shape[0]
                     terms["cons"] = criterion.lc * criterion.consistency(logits[n:], logits[:n], fov)
                 else:
                     out = model(x, with_skeleton=model.has_skeleton_head)
-                    terms = criterion.supervised(out, y, fov, skel)
+                    dist = batch["dist"].to(device, non_blocking=True) if "dist" in batch else None
+                    terms = criterion.supervised(out, y, fov, skel, dist)
                 loss = sum(terms.values())
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()

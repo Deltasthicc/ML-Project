@@ -4,7 +4,7 @@ CSD361 *Introduction to Machine Learning* — final project (Shiv Nadar Institut
 Abhiraj Agarwal (2510110002) · Shashwat Rajan (2510111019) · Tanish Shitanshu (2510110008)
 
 A compact depthwise-separable encoder–decoder trained on **one** source dataset (DRIVE) and evaluated on **three
-never-seen** datasets (STARE, CHASE_DB1, HRF; optionally FIVES) for **accuracy** (Dice/IoU/AUC), **topology** (clDice,
+never-seen** datasets (STARE, CHASE_DB1, HRF; optionally FIVES) for **accuracy** (Dice/IoU/AUC), **topology** (clDice, cbDice,
 Betti-0/1 error), **generalisation gap**, **deployment cost** (params, FLOPs, latency, memory) and **uncertainty**
 (MC-dropout variance vs. error, risk–coverage). It is a *trade-off study*, not a new SOTA claim — see `report/main.tex`.
 
@@ -12,7 +12,7 @@ Betti-0/1 error), **generalisation gap**, **deployment cost** (params, FLOPs, la
 A  U-Net baseline (Dice+BCE)  →  B  + topology loss (soft-clDice + skeleton head)  →  C  + DG augmentation + consistency
                               →  D  + compact backbone (≈0.2 M params)           →  E  TG-LiteNet = D + MC-dropout uncertainty
 ```
-plus a full 2×2×2 factorial design (backbone × topology × DG), topology-loss variants (Skeleton Recall) and a width sweep.
+plus a full 2×2×2 factorial design (backbone × topology × DG), topology-loss variants (cbDice, Skeleton Recall) and a width sweep.
 
 ## 1. Repository layout
 
@@ -74,14 +74,14 @@ python scripts/run_experiments.py --groups primary --quick
 # the real thing (resumable: finished runs are skipped). See RUNBOOK.md for timing and ordering.
 python scripts/tune_lambdas.py                                   # optional: choose lambda_2/lambda_3 on DRIVE-val
 python scripts/run_experiments.py --groups primary --native-eval             # A-E x 5 seeds
-python scripts/run_experiments.py --groups factorial topology width          # remaining ablations (4+2+4 configs)
+python scripts/run_experiments.py --groups factorial topology width          # remaining ablations (4+3+4 configs)
 python scripts/run_experiments.py --groups primary --datasets drive stare chase_db1 hrf fives   # if FIVES is prepared
 
 # single run / custom config
 python scripts/train.py --exp E_tglitenet --seed 0 --evaluate --set train.iters=8000 train.num_workers=12
 ```
 Experiments (see `tglite/experiments.py`): `A_unet`, `B_unet_topo`, `C_unet_topo_dg`, `D_lite_topo_dg`, `E_tglitenet` (primary);
-`X_unet_dg`, `X_lite_plain`, `X_lite_topo`, `X_lite_dg` (factorial); `V_lite_srl`, `V_lite_cldice_srl` (topology variants);
+`X_unet_dg`, `X_lite_plain`, `X_lite_topo`, `X_lite_dg` (factorial); `V_lite_cbdice`, `V_lite_srl`, `V_lite_cldice_srl` (topology variants);
 `W_lite_w{8,24,32,48}` (width; w=16 is stage D). Defaults: 5 seeds for primary/factorial, 3 for the rest.
 
 ## 5. From results to the paper
@@ -112,7 +112,7 @@ hardware), `preds/` (probability/uncertainty PNGs for seed 0, used by the qualit
 ## 8. Limitations (also in the paper)
 
 Small training set (16 images); FOV masks for four datasets are estimated; first-observer labels only; DRIVE and CHASE_DB1 come from
-mirrors; cbDice was **not** re-implemented (only soft-clDice and Skeleton Recall); source-only results are not comparable to
+mirrors; soft-clDice, Skeleton Recall and cbDice are our own re-implementations from the papers (not the authors' code); source-only results are not comparable to
 multi-source or test-time-adaptation papers.
 
 ## 9. References / licences

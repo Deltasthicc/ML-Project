@@ -18,6 +18,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
+from scipy import ndimage as ndi
 from skimage.morphology import skeletonize
 from torch.utils.data import Dataset
 
@@ -179,6 +180,8 @@ class TrainDataset(Dataset):
             "fov": torch.from_numpy(fp.astype(np.float32))[None],
             "skel": torch.from_numpy(skel)[None],
         }
+        if self.cfg.loss.topo == "cbdice":                        # exact distance-to-boundary map of the (augmented) label
+            out["dist"] = torch.from_numpy(ndi.distance_transform_edt(yp > 0).astype(np.float32))[None]
         if x2p is not None:
             out["x_dg"] = torch.from_numpy(np.ascontiguousarray(x2p, dtype=np.float32))[None]
         return out

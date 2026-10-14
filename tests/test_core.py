@@ -195,9 +195,80 @@ def test_config_overrides_and_registry():
     assert e.model.dropout > 0 and e.dg.enabled and e.loss.topo == "cldice" and e.model.backbone == "lite"
     a = make_config("A_unet")
     assert a.model.dropout == 0 and not a.dg.enabled and a.loss.topo == "none" and not a.model.skeleton_head
-    assert len(REGISTRY) == 5 + 4 + 2 + 4
+    assert len(REGISTRY) == 5 + 4 + 3 + 4
 
 
 def test_flop_counter_orders_models():
     assert count_flops(LiteNet(width=8), (64, 64))["flops"] < count_flops(LiteNet(width=16), (64, 64))["flops"] \
         < count_flops(UNet(base_ch=16), (64, 64))["flops"]
+
+
+# ----------------------------------------------------------------------------------------------- cbDice
+def _strip(width, h=64, w=64):
+    m = np.zeros((h, w), np.uint8)
+    c = h // 2
+    m[c - width // 2: c - width // 2 + width, 4:-4] = 1
+    return m
+
+
+def _shifted_strip(width, shift, h=64, w=64):
+    m = np.zeros((h, w), np.uint8)
+    c = h // 2 + shift
+    m[c - width // 2: c - width // 2 + width, 4:-4] = 1
+    return m
+
+
+def test_cbdice_metric_is_boundary_aware():
+    from tglite.metrics import cbdice_score, cldice_score
+    gt = _strip(7)
+    assert cbdice_score(gt, gt) > 0.99
+    # a centreline displaced by 2 px but still inside the vessel: clDice is blind to it, cbDice is not (paper, Fig. 3a)
+    shifted = _shifted_strip(7, 2)
+    assert cldice_score(shifted, gt) > 0.95
+    assert cbdice_score(shifted, gt) < cldice_score(shifted, gt) - 0.1
+    assert cbdice_score(_shifted_strip(7, 1), gt) > cbdice_score(shifted, gt)      # more displacement -> lower score
+    assert cbdice_score(np.zeros_like(gt), gt) == 0.0
+
+
+def test_soft_depth_matches_distance_transform_on_strips():
+    from scipy import ndimage as ndi
+    from tglite.losses import soft_depth
+    m = _strip(9)
+    d = soft_depth(torch.from_numpy(m.astype(np.float32))[None, None], 10)[0, 0].numpy()
+    e = ndi.distance_transform_edt(m)
+    c = 32
+    assert abs(d[c, 32] - e[c, 32]) < 0.5                         # centre pixel: radius + 1
+
+
+def test_cbdice_loss_prefers_centred_prediction_and_has_gradient():
+    from scipy import ndimage as ndi
+    from skimage.morphology import skeletonize
+    from tglite.losses import cbdice_loss
+    gt = _strip(7)
+    sk = torch.from_numpy(skeletonize(gt > 0).astype(np.float32))[None, None]
+    dist = torch.from_numpy(ndi.distance_transform_edt(gt).astype(np.float32))[None, None]
+    fov = torch.ones(1, 1, 64, 64)
+    def loss(pred):
+        return cbdice_loss(torch.from_numpy(pred.astype(np.float32))[None, None], torch.from_numpy(gt.astype(np.float32))[None, None], fov, sk, dist, 10).item()
+    exact, shifted = loss(gt), loss(_shifted_strip(7, 2))
+    assert exact < 0.1 and shifted > exact + 0.1
+    p = torch.full((1, 1, 64, 64), 0.2, requires_grad=True)       # (depth stays below the R_max clip, so gradients exist)
+    cbdice_loss(p, torch.from_numpy(gt.astype(np.float32))[None, None], fov, sk, dist, 10).backward()
+    assert p.grad is not None and p.grad.abs().sum() > 0
+
+
+def test_tgloss_cbdice_term_and_dataset_provides_distance():
+    from tglite.losses import TGLoss
+    cfg = make_config("V_lite_cbdice")
+    assert cfg.loss.topo == "cbdice" and cfg.model.skeleton_head
+    t = torch.from_numpy(_strip(5).astype(np.float32))[None, None]
+    fov = torch.ones_like(t)
+    terms = TGLoss(cfg).supervised((torch.randn(1, 1, 64, 64), torch.randn(1, 1, 64, 64)), t, fov, t, t * 3)
+    assert "cbdice" in terms
+    from test_data import _sample
+    from tglite.data.datasets import TrainDataset
+    cfg.data.patch_size = 96
+    ds = TrainDataset([_sample()], cfg, dg=True, length=20)
+    items = [ds[i] for i in range(20)]
+    assert all(it["dist"].shape == (1, 96, 96) for it in items)
+    assert max(float(it["dist"].max()) for it in items) > 0           # (a random crop can miss every vessel)

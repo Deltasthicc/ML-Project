@@ -6,7 +6,7 @@ primary    Staged ablation of the paper (Table II):  A -> B -> C -> D -> E, each
 factorial  The remaining cells of the 2 (backbone) x 2 (topology) x 2 (DG) full-factorial design, so interaction
            effects (e.g. "does topology supervision still help a compact network under shift?", survey gap 4) can
            be read off.  Together with A-D they give all 8 cells.
-topology   Topology-loss variants on the stage-D recipe: soft-clDice (= D), Skeleton Recall, both.
+topology   Topology-loss variants on the stage-D recipe: soft-clDice (= D), radius-aware cbDice, Skeleton Recall, clDice + Skeleton Recall.
 width      Capacity sweep of the lite backbone on the stage-D recipe (accuracy / topology / gap vs params, FLOPs, latency).
 """
 from __future__ import annotations
@@ -37,6 +37,7 @@ REGISTRY: dict[str, dict] = {
     # ---- topology-loss variants (stage-D recipe) ---------------------------------------------------------
     "V_lite_srl": _e("lite", "skeleton_recall", dg=True),
     "V_lite_cldice_srl": _e("lite", "cldice_skeleton_recall", dg=True),
+    "V_lite_cbdice": _e("lite", "cbdice", dg=True),
 }
 for _w in (8, 24, 32, 48):                                   # width 16 is stage D itself
     REGISTRY[f"W_lite_w{_w}"] = _e("lite", "cldice", dg=True, width=_w)
@@ -44,7 +45,7 @@ for _w in (8, 24, 32, 48):                                   # width 16 is stage
 GROUPS: dict[str, list[str]] = {
     "primary": ["A_unet", "B_unet_topo", "C_unet_topo_dg", "D_lite_topo_dg", "E_tglitenet"],
     "factorial": ["X_unet_dg", "X_lite_plain", "X_lite_topo", "X_lite_dg"],
-    "topology": ["V_lite_srl", "V_lite_cldice_srl"],
+    "topology": ["V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl"],
     "width": [f"W_lite_w{w}" for w in (8, 24, 32, 48)],
 }
 # default number of seeds per group (small, cheap models can afford more seeds)

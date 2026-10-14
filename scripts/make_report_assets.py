@@ -82,18 +82,18 @@ def savefig(fig, name: str) -> None:
 def table_main(summ, eff) -> str:
     """Table III: accuracy / topology / generalisation / cost of the staged ablation."""
     cols = [("drive", "dice", "Dice", False), ("drive", "cldice", "clDice", False), ("unseen", "dice", "Dice", False),
-            ("unseen", "cldice", "clDice", False), ("unseen", "betti0_err", "$\\beta_0$ err", True),
-            ("gap_unseen", "dice", "$\\Delta$Dice", True)]
+            ("unseen", "cldice", "clDice", False), ("unseen", "cbdice", "cbDice", False),
+            ("unseen", "betti0_err", "$\\beta_0$ err", True), ("gap_unseen", "dice", "$\\Delta$Dice", True)]
     best = []
     for ds, met, _, low in cols:
         best.append(best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low))
     lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, "
              "CHASE\\_DB1 and HRF (never used for training or model selection); $\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). "
              "FLOPs and latency are for one $512{\\times}512$ image; E (MC) needs $T$ forward passes. Best per column in bold.}",
-             "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc cccc rr}", "\\toprule",
-             " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{4}{c}{Unseen domains} & & \\\\",
-             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-7}",
-             "Stage & Dice & clDice & Dice & clDice & $\\beta_0$ err & $\\Delta$Dice & Params (M) & GFLOPs \\\\", "\\midrule"]
+             "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rr}", "\\toprule",
+             " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & \\\\",
+             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}",
+             "Stage & Dice & clDice & Dice & clDice & cbDice & $\\beta_0$ err & $\\Delta$Dice & Params (M) & GFLOPs \\\\", "\\midrule"]
     for r, (exp, mode, lab) in enumerate(STAGES):
         cells = []
         for k, (ds, met, _, _) in enumerate(cols):
@@ -191,7 +191,7 @@ def table_factorial(summ) -> str:
 
 
 def table_variants(summ, eff) -> str:
-    rows = [("D_lite_topo_dg", "soft-clDice (D)"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skeleton Recall")]
+    rows = [("D_lite_topo_dg", "soft-clDice (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skeleton Recall")]
     wrows = [("W_lite_w8", 8), ("D_lite_topo_dg", 16), ("W_lite_w24", 24), ("W_lite_w32", 32), ("W_lite_w48", 48)]
     lines = ["\\begin{table}[t]", "\\centering", "\\caption{Supplementary studies on the stage-D recipe. Top: topology-loss variant. Bottom: lite-backbone width "
              "(capacity) sweep.}", "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
