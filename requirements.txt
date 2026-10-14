@@ -1,0 +1,18 @@
+# PyTorch is NOT listed here on purpose: install the build that matches your CUDA driver first
+# (see https://pytorch.org/get-started/locally/), e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+# Tested with torch 2.14 (CPU build, Python 3.12). Needs torch >= 2.3 (torch.amp.GradScaler).
+numpy
+scipy
+scikit-image
+scikit-learn
+opencv-python-headless
+pillow
+tifffile
+pandas
+pyyaml
+tqdm
+matplotlib
+requests
+pyarrow
+pytest

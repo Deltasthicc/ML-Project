@@ -1,0 +1,346 @@
+% TG-LiteNet -- CSD361 final report (IEEE conference format, <= 8 pages).
+% Build:   python scripts/make_report_assets.py   (fills report/generated/ from results/)   then   pdflatex main; bibtex-free (thebibliography inline).
+% Set \drafttrue -> \draftfalse before submitting: it hides every red TODO marker.
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{adjustbox}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125em X}}
+
+% ---------------------------------------------------------------- draft helpers
+\newif\ifdraft \drafttrue
+\newcommand{\todo}[1]{\ifdraft{\color{red}[TODO: #1]}\fi}
+\newcommand{\safefig}[3]{% width, file (no extension), caption-less placeholder text
+  \IfFileExists{figures/#2.pdf}{\includegraphics[width=#1]{figures/#2.pdf}}{%
+  \IfFileExists{figures/#2.png}{\includegraphics[width=#1]{figures/#2.png}}{%
+  \fbox{\parbox{#1}{\centering\footnotesize\color{red}[figure \detokenize{#2} missing -- run scripts/make\_report\_assets.py]}}}}\par}
+\input{generated/numbers.tex}            % \srcDiceA, \unDiceE, \paramsE, ... (XX until results exist)
+\IfFileExists{generated/numbers.tex}{}{\typeout{numbers.tex missing}}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\cl}{\mathrm{clDice}}
+
+\begin{document}
+
+\title{TG-LiteNet: A Topology-Preserving, Domain-Generalizable and Lightweight Framework for Retinal Vessel Segmentation in Resource-Constrained Screening Settings\\
+\large CSD361 -- Introduction to Machine Learning, Final Project Report}
+
+\author{\IEEEauthorblockN{Abhiraj Agarwal}
+\IEEEauthorblockA{Roll No.\ 2510110002}
+\and
+\IEEEauthorblockN{Shashwat Rajan}
+\IEEEauthorblockA{Roll No.\ 2510111019}
+\and
+\IEEEauthorblockN{Tanish Shitanshu}
+\IEEEauthorblockA{Roll No.\ 2510110008}
+\\
+\IEEEauthorblockA{Department of Computer Science and Engineering, Shiv Nadar Institution of Eminence, Delhi NCR, India}}
+
+\maketitle
+
+% =============================================================================== ABSTRACT
+\begin{abstract}
+Retinal vessel segmentation underpins screening for diabetic retinopathy, glaucoma and hypertensive retinopathy, but a model deployed in a rural screening camp must (i) keep thin vessels \emph{connected}, (ii) work on cameras it was never trained on, and (iii) run on modest hardware. Published work usually optimises at most two of these three properties and rarely reports them together under one protocol. We study the three-way trade-off with \emph{TG-LiteNet}, a compact depthwise-separable encoder--decoder trained on a single source dataset (DRIVE) with a soft-clDice topology loss, an auxiliary skeleton head, lightweight style-and-structure augmentation with a consistency loss, and Monte-Carlo-dropout uncertainty. A staged ablation (U-Net $\rightarrow$ +topology $\rightarrow$ +DG $\rightarrow$ +compact backbone $\rightarrow$ +uncertainty) with \nSeeds\ seeds per stage, a full $2{\times}2{\times}2$ factorial design and capacity/loss-variant sweeps are evaluated on three never-seen datasets (STARE, CHASE\_DB1, HRF) using Dice, clDice, Betti-number error, the source-to-target gap, parameters, FLOPs, latency and uncertainty--error correlation. TG-LiteNet has \paramsE\,M parameters and \gflopsE\,GFLOPs (U-Net: \paramsA\,M, \gflopsA\,GFLOPs; a factor of \paramRatio\ in parameters and \flopRatio\ in FLOPs) and reaches an unseen-domain Dice of \unDiceE\ and clDice of \unClE, versus \unDiceA\ and \unClA\ for the U-Net baseline. \todo{finish the last sentence of the abstract with the headline conclusion once final numbers are in (e.g.\ whether uncertainty-based rejection reduces error on unseen domains).} All numbers are produced by the released code; no target-domain image or label is used for training, tuning or model selection.
+\end{abstract}
+
+\begin{IEEEkeywords}
+retinal vessel segmentation, topology-preserving loss, domain generalization, lightweight networks, uncertainty estimation, DRIVE
+\end{IEEEkeywords}
+
+% =============================================================================== I. INTRODUCTION
+\section{Introduction}
+Segmenting the retinal vascular tree from fundus photographs supports the measurement of vessel calibre, tortuosity and branching used in screening for diabetic retinopathy, glaucoma and hypertensive retinopathy~\cite{liu2025review}. Since U-Net~\cite{ronneberger2015} such networks are trained and tested on small public datasets, typically DRIVE~\cite{staal2004}, STARE~\cite{hoover2000}, CHASE\_DB1~\cite{fraz2012} and HRF~\cite{budai2013}. Overlap scores hide topological errors: a single severed centreline barely changes Dice but changes the connectivity that downstream biomarkers rely on~\cite{shit2021,shi2024,kirchhoff2024}.
+
+\textbf{Motivation.} A model that is useful in a low-resource screening programme must satisfy three constraints \emph{simultaneously}: it must preserve vessel \emph{topology}; it must tolerate camera and population \emph{shift}, ideally without target labels, because performance falls when a model meets a new database~\cite{galdran2022,fadugba2024}; and it must be small and fast enough for \emph{edge} hardware~\cite{sobhan2026}, as in screening camps with limited compute and connectivity. Recent papers each address part of this, so our contribution is not a simple ``combination of the three''.
+
+\textbf{Problem statement.} Let $f_\theta$ be trained on a labelled source domain $\mathcal S$ (DRIVE) and evaluated, with no access to target images or labels, on unseen domains $\mathcal T=\{\text{STARE, CHASE\_DB1, HRF}\}$. For a metric $m$ the \emph{target gap} is $\Delta_m(\mathcal T)=m(\mathcal S)-m(\mathcal T)$. The goal is to keep $\Delta_m$ small for both overlap and topology metrics under a compact parameter and latency budget, and to flag unreliable predictions with an uncertainty estimate.
+
+\textbf{Objectives.} (O1) Build a reproducible \emph{source-only} pipeline for topology-aware vessel segmentation; (O2) quantify what each component (topology loss, DG augmentation, compact backbone, uncertainty) contributes to accuracy, topology, cross-domain gap and cost in one controlled ablation; (O3) test whether MC-dropout uncertainty can triage unreliable predictions, especially on unseen domains.
+
+\textbf{Approach and contributions.} We propose \emph{TG-LiteNet}, a depthwise-separable encoder--decoder with a mask head and an auxiliary skeleton head. Our contributions are: (1) a staged ablation and a full $2{\times}2{\times}2$ factorial study (backbone $\times$ topology loss $\times$ DG augmentation) measured with repeated seeds and confidence intervals; (2) a unified evaluation that reports Dice/IoU, clDice, Betti-0/1 error, the source-to-target gap, total parameters, FLOPs, CPU/GPU latency and uncertainty quality \emph{together}; (3) an uncertainty-based triage analysis at pixel and image level, separately for the source and each unseen domain; and (4) open code that regenerates every number in this paper. We do not claim a new loss or a new architecture family, and we make no state-of-the-art claim.
+
+% =============================================================================== II. RELATED WORK
+\section{Related Work}
+\textbf{Base paper: clDice.} Shit et al.~\cite{shit2021} compare the skeleton of a prediction with the ground-truth mask (topology precision) and the skeleton of the ground truth with the predicted mask (topology sensitivity); their harmonic mean is clDice. They prove that maximising clDice preserves topology up to homotopy equivalence for binary tubular structures and give a differentiable \emph{soft-clDice} based on iterated soft morphological opening. On five datasets, including DRIVE, clDice-trained networks reduce Betti errors at a small training-time overhead. cbDice~\cite{shi2024} observes that clDice favours large vessels (``diameter imbalance'') and adds radius and boundary information; Skeleton Recall Loss~\cite{kirchhoff2024} computes the skeleton once, offline, with cheap CPU operations; earlier work used persistent homology~\cite{hu2019}. None of these is evaluated for source-only robustness under dataset shift.
+
+\textbf{Domain generalisation and adaptation.} ``Cross-dataset'' covers four protocols: source-only transfer, multi-source DG, test-time adaptation (TTA) and fine-tuning with target labels. DGSSA~\cite{liu2026dgssa} synthesises vessel trees by space colonisation and adds style augmentation (multi-source); WaveRNet~\cite{wang2026wavernet} separates illumination-robust low frequencies with a SAM backbone; Hu et al.~\cite{hu2024hessian} and GraphSeg~\cite{liu2025graphseg} use a Hessian vector field and a deformable graph prior. A benchmark~\cite{fadugba2024} finds that, with enough training data, a plain U-Net generalises well.
+
+\textbf{Lightweight networks.} Galdran et al.~\cite{galdran2022} show that U-Nets with $\sim$34K and W-Nets with $\sim$68K parameters are competitive; DSAE-Net~\cite{zeng2025} (78K parameters, skeleton-distance loss) and LightVesselNet~\cite{sobhan2026} (75K parameters) report cross-dataset Dice but no connectivity metrics or uncertainty; a reverse-attention U-Net~\cite{hernandez2025} targets embedded use.
+
+\textbf{Topology under shift; uncertainty.} TFFM~\cite{ahmed2026} (source-only transfer), TopoTTA~\cite{zhou2025}, TopoLoRA-SAM~\cite{khazem2026} and TAPDecoderFT~\cite{huang2026} report clDice/Betti after zero-shot, test-time or fine-tuned transfer, but with large or unspecified models and no latency. Topology-aware uncertainty~\cite{gupta2023} scores whole structures; MC dropout~\cite{gal2016} is a cheap pixel-level alternative whose quality degrades under dataset shift~\cite{ovadia2019}.
+
+\textbf{Research gap.} Table~\ref{tab:gap} summarises what the closest works report. No work we reviewed evaluates a truly compact \emph{source-only} model for topology, total deployment cost and uncertainty quality in one controlled protocol with repeated runs. This project fills exactly that gap, as a trade-off \emph{study} rather than a new method.
+
+\begin{table}[t]
+\centering
+\caption{Evidence reported by the closest reviewed works (\checkmark: reported, $\sim$: partial/indirect, --: not reported). Protocol: SO = source-only, MS = multi-source DG, TTA, FT = fine-tuning on labelled target data.}
+\label{tab:gap}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l c c c c c}
+\toprule
+Work & Protocol & Topo.\ loss & Topo.\ metrics & Total cost & Uncert. \\
+\midrule
+clDice / SRL~\cite{shit2021,kirchhoff2024} & none & \checkmark & \checkmark & $\sim$ & -- \\
+DGSSA, WaveRNet~\cite{liu2026dgssa,wang2026wavernet} & MS & -- & -- & -- & -- \\
+Minimal., DSAE, LightVessel~\cite{galdran2022,zeng2025,sobhan2026} & train 1, test many & $\sim$ & -- & \checkmark & -- \\
+TFFM~\cite{ahmed2026} & SO & \checkmark & \checkmark & -- & -- \\
+TopoTTA~\cite{zhou2025} & TTA & $\sim$ & \checkmark & n/v & -- \\
+TopoLoRA-SAM, TAPDecoderFT~\cite{khazem2026,huang2026} & FT & \checkmark & \checkmark & $\sim$ & -- \\
+Topology-aware unc.~\cite{gupta2023} & -- & -- & $\sim$ & n/v & \checkmark \\
+\midrule
+\textbf{TG-LiteNet (this work)} & SO & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}\end{adjustbox}
+\end{table}
+
+% =============================================================================== III. PROBLEM FORMULATION
+\section{Problem Formulation and Research Questions}
+Given a fundus image $I$ with field-of-view (FOV) mask $F$, predict a binary vessel mask $M\in\{0,1\}^{H\times W}$. Models are trained on DRIVE only; STARE, CHASE\_DB1, HRF (and optionally FIVES) are never used for training, tuning or model selection. We ask:
+\begin{itemize}
+\item \textbf{RQ1 (topology).} Does topology supervision (soft-clDice + skeleton head) improve clDice and Betti error relative to Dice+BCE without an unacceptable loss of overlap?
+\item \textbf{RQ2 (generalisation).} Does lightweight style-plus-structure augmentation with a consistency loss reduce $\Delta_m$ from DRIVE to the unseen targets?
+\item \textbf{RQ3 (trade-off).} What accuracy and topology cost does a $\le$2M-parameter budget incur relative to the savings in parameters, FLOPs and latency?
+\item \textbf{RQ4 (uncertainty).} Does MC-dropout uncertainty rank high-error cases and support selective rejection, more so on unseen domains than on the source domain?
+\end{itemize}
+
+% =============================================================================== IV. METHOD
+\section{Proposed Methodology}
+\subsection{Overview}
+Fig.~\ref{fig:pipeline} shows the pipeline. A fundus image is rescaled so that its FOV has a fixed width, reduced to the CLAHE-enhanced, standardised green channel, and passed through an encoder--decoder with a mask head (and, during training only, a skeleton head). The loss combines region, pixel, topology and consistency terms. At test time, $T$ stochastic forward passes give a mean probability map and a variance map used as uncertainty.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, node distance=5mm and 6mm,
+  box/.style={draw, rounded corners=2pt, minimum height=8mm, align=center, fill=gray!8},
+  tr/.style={draw, dashed, rounded corners=2pt, minimum height=8mm, align=center, fill=yellow!12},
+  arr/.style={-{Stealth[length=1.8mm]}, thick}]
+  \node[box] (img) {Fundus image\\+ FOV};
+  \node[box, right=of img] (pre) {FOV-scale norm.\\green, CLAHE,\\standardise};
+  \node[box, right=of pre] (net) {Depthwise-sep.\\encoder--decoder\\(dropout $p$)};
+  \node[box, above right=2mm and 8mm of net] (mask) {Mask head};
+  \node[tr, below right=2mm and 8mm of net] (skel) {Skeleton head\\(train only)};
+  \node[box, right=8mm of mask] (mc) {MC dropout\\mean $\bar p$, var $u$};
+  \node[tr, below=7mm of pre] (dg) {Style + structure\\augmentation};
+  \node[tr, right=8mm of skel] (loss) {$\mathcal L_{\mathrm{Dice}}{+}\lambda_1\mathcal L_{\mathrm{BCE}}{+}\lambda_2\mathcal L_{\mathrm{topo}}{+}\lambda_3\mathcal L_{\mathrm{cons}}$};
+  \draw[arr] (img) -- (pre); \draw[arr] (pre) -- (net);
+  \draw[arr] (net) -- (mask); \draw[arr] (net) -- (skel);
+  \draw[arr] (mask) -- (mc);
+  \draw[arr, dashed] (dg) -- (pre);
+  \draw[arr, dashed] (skel) -- (loss);
+  \draw[arr, dashed] (mask.south east) to[out=-30,in=100] (loss.north);
+\end{tikzpicture}}
+\caption{TG-LiteNet pipeline. Dashed/yellow elements are used only during training; one fixed model is evaluated on every target.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Preprocessing and scale normalisation}
+Cameras differ strongly in resolution (HRF images are $\sim$6$\times$ wider than DRIVE's), so the pixel width of vessels, to which a convolutional model is very sensitive, changes with the dataset. Every image is rescaled so that its FOV is $W_F{=}527$\,px wide (DRIVE's median), which uses neither labels nor any statistic of the target \emph{dataset}. We then take the green channel (best vessel contrast), replace the outside of the FOV by the FOV mean, apply CLAHE~\cite{zuiderveld1994} with a fixed tile size in pixels, standardise inside the FOV, and set the outside to zero. The same deterministic function is used in training and testing.
+
+\subsection{Architectures}
+\textbf{Baseline U-Net}~\cite{ronneberger2015}: four 2$\times$2 max-pool stages, double 3$\times$3 conv+BN+ReLU blocks, transposed-convolution up-sampling, base width 64 ($\approx$\paramsA\,M parameters).
+
+\textbf{TG-LiteNet backbone.} Every 3$\times$3 convolution is replaced by a depthwise 3$\times$3 followed by a pointwise 1$\times$1 convolution (BN, ReLU6), as in MobileNets~\cite{howard2017}. A block has two such layers and a 1$\times$1 residual shortcut. Encoder widths are $(w,2w,4w,8w,8w)$ with $w{=}16$; the decoder uses bilinear up-sampling, skip concatenation and one separable block per level. A $1{\times}1$ mask head outputs vessel logits; an auxiliary $1{\times}1$ skeleton head (training only, no inference cost) predicts the 1-px-dilated skeleton of the label. Spatial dropout ($p{=}0.1$) after the bottleneck and each decoder block is used only in stage E. The width $w$ is the single capacity knob; Section~\ref{sec:ablation} sweeps it.
+
+\subsection{Objective}
+For a prediction $P=\sigma(z)\in[0,1]^{H\times W}$, label $G$ and FOV $F$, the total loss is
+\begin{equation}
+\mathcal L=\mathcal L_{\mathrm{Dice}}+\lambda_1\mathcal L_{\mathrm{BCE}}+\lambda_2\mathcal L_{\mathrm{topo}}+\lambda_3\mathcal L_{\mathrm{cons}},
+\label{eq:loss}
+\end{equation}
+with all terms computed inside $F$. $\mathcal L_{\mathrm{Dice}}$ and $\mathcal L_{\mathrm{BCE}}$ are the usual soft-Dice and binary cross-entropy.
+
+\emph{Topology term.} With $S(\cdot)$ the (soft) morphological skeleton, topology precision and sensitivity are
+$T_{\mathrm{prec}}=\frac{\sum S(P)\odot G}{\sum S(P)}$, $T_{\mathrm{sens}}=\frac{\sum S(G)\odot P}{\sum S(G)}$, and
+\begin{equation}
+\mathcal L_{\mathrm{clDice}}=1-\frac{2\,T_{\mathrm{prec}}T_{\mathrm{sens}}}{T_{\mathrm{prec}}+T_{\mathrm{sens}}}.
+\end{equation}
+$S(P)$ is the differentiable skeleton obtained by iterating soft erosion/opening (10 iterations, enough for vessels up to 10\,px radius at our scale); $S(G)$ is the exact skeleton of the (augmented) label, computed in the data loader. The skeleton head adds $\mathcal L_{\mathrm{skel}}=\mathrm{Dice}+\mathrm{BCE}$ against the dilated skeleton, so $\mathcal L_{\mathrm{topo}}=\mathcal L_{\mathrm{clDice}}+\gamma\mathcal L_{\mathrm{skel}}$. As supplementary variants we implemented the binary Skeleton Recall loss~\cite{kirchhoff2024}, $\mathcal L_{\mathrm{SR}}=1-\sum P\odot\mathcal T(S(G))/\sum\mathcal T(S(G))$ with $\mathcal T$ a 3$\times$3 dilation, and their sum. The radius-aware cbDice~\cite{shi2024} is not re-implemented (see Sec.~\ref{sec:limits}).
+
+\emph{Consistency term (DG).} For each patch we build a perturbed view $\tilde x$ (below) that is pixel-aligned with the clean view $x$:
+$\mathcal L_{\mathrm{cons}}=\frac{1}{|F|}\sum_F\big(\sigma(f(\tilde x))-\mathrm{sg}[\sigma(f(x))]\big)^2$, where $\mathrm{sg}$ stops gradients. Both views are also supervised.
+
+\subsection{Domain-generalisation augmentation}
+All stages use the same standard geometric augmentation (random crop at a FOV pixel, flips, free rotation, isotropic scaling in $[0.8,1.25]$). Stage C onwards additionally applies, \emph{only at training time}: \textbf{style} --- random gain/gamma/contrast/brightness, smooth multiplicative illumination field, Gaussian blur, noise and JPEG compression of the green channel before CLAHE; and \textbf{structure} --- an elastic deformation applied identically to both views and the label, and local intensity dropout (soft ellipses with attenuated contrast, view 2 only). Because CLAHE and standardisation follow the colour/gamma/contrast jitter, those three perturbations are largely neutralised by design (the same pipeline runs at test time); the effective style perturbations are the illumination field, blur, noise and JPEG. A DG stage processes two views per patch (clean and perturbed), i.e.\ twice the forward passes of stages A/B for the same number of iterations and patches; the elastic warp is capped so that it never folds (positive Jacobian). This is deliberately much simpler than synthesising vessel trees~\cite{liu2026dgssa}.
+
+\subsection{Uncertainty and triage}
+With dropout kept active (BatchNorm in evaluation mode), $T$ passes give $p_t=\sigma(f_t(x))$, the mean $\bar p=\frac1T\sum_t p_t$ and the variance $u=\frac1T\sum_t p_t^2-\bar p^2$~\cite{gal2016}. We compare $u$ with the predictive entropy $H(\bar p)$, which is also available for deterministic models. For triage, an image is scored by its mean $u$ inside $F$; the images (or pixels) with the largest score are rejected first.
+
+\begin{algorithm}[t]
+\caption{Training one TG-LiteNet configuration (one seed)}
+\label{alg:train}
+\footnotesize
+\begin{algorithmic}[1]
+\STATE Pre-compute standardised green+CLAHE inputs of the 16 training images (DRIVE, scale-normalised)
+\FOR{iteration $=1,\dots,N$}
+  \STATE sample $B$ patches: random affine crop of $x$, label $G$, FOV $F$, exact skeleton $S(G)$
+  \IF{DG enabled}\STATE $\tilde x\leftarrow$ style($x$) with the same crop/elastic warp; local intensity dropout\ENDIF
+  \STATE forward ($x$ [and $\tilde x$]) $\rightarrow$ mask logits [and skeleton logits]
+  \STATE $\mathcal L\leftarrow$ Eq.~\eqref{eq:loss} (terms enabled by the stage)
+  \STATE AdamW step (cosine schedule, gradient clipping)
+  \IF{iteration $\bmod$ $v=0$}\STATE evaluate Dice on the 4 DRIVE \emph{validation} images; keep the best checkpoint\ENDIF
+\ENDFOR
+\STATE \textbf{test:} evaluate the checkpoint on DRIVE-test, STARE, CHASE\_DB1, HRF (fixed threshold 0.5)
+\end{algorithmic}
+\end{algorithm}
+
+% =============================================================================== V. EXPERIMENTAL SETUP
+\section{Experimental Setup}\label{sec:setup}
+\subsection{Datasets and preprocessing}
+Table~\ref{tab:data} lists the datasets. DRIVE provides 20 training and 20 test images; we split the training images once (seed 2026) into 16 for training and 4 for validation (model selection and, if used, hyper-parameter selection), and use the 20 test images as the in-domain test set. STARE (20), CHASE\_DB1 (28) and HRF (45) are used only for testing; the code also supports FIVES~\cite{jin2022fives} (test split, 200 images) as an optional fourth target. \todo{state whether FIVES was used in the final runs; if not, delete this clause and the FIVES row/reference.} Ground truth is the first human observer. HRF and (when available) official DRIVE masks provide the FOV; for DRIVE (mirror), STARE and CHASE\_DB1 the FOV is estimated by thresholding, keeping the largest component and eroding it by 1\% (checked visually, Fig.~\ref{fig:data}). The vessel fraction is 9--13\% in every dataset, i.e.\ about 1:8 class imbalance; there are no missing values or categorical attributes in this task. The exploratory statistics of Table~\ref{tab:data} quantify the domain shift: the mean green-channel intensity ranges from $\approx$55--60 (CHASE\_DB1, HRF, FIVES) to $\approx$110 (STARE), and while the vessel calibre after FOV normalisation is $\approx$3.5\,px for DRIVE, STARE and CHASE\_DB1, it is only $\approx$1.4\,px for HRF: HRF's reference annotations are thin relative to its field of view, so HRF measures an annotation-style shift in addition to the camera shift (we therefore also report results without rescaling, Sec.~\ref{sec:ablation}). We make no use of pixels outside the FOV in training or evaluation. DRIVE and CHASE\_DB1 were obtained from public mirrors (see \texttt{README.md}), STARE and HRF from the official sites; sources and checksums are recorded in \texttt{data/MANIFEST.json}.
+
+\input{generated/tab_datasets_info.tex}
+
+\begin{figure}[t]
+\centering
+\safefig{\columnwidth}{data_overview}
+\caption{Exploratory view of the datasets: vessel labels (green) and FOV outlines (red). Camera, colour balance, field of view and resolution differ markedly between datasets, which is the domain shift studied here.}
+\label{fig:data}
+\end{figure}
+
+\subsection{Implementation and procedure}
+Everything is implemented in Python with PyTorch~\cite{paszke2019} (\hwTorch), OpenCV, scikit-image~\cite{vanderwalt2014} (Zhang--Suen thinning~\cite{zhang1984} for skeletons, connected components, Euler number) and scikit-learn. Training and efficiency measurements ran on \hwGPU\ (CPU: \hwCPU). All stages share the optimiser, schedule and data pipeline (Table~\ref{tab:hparams}); stages differ only in the switches of Table~\ref{tab:stages}. We train each stage with \nSeeds\ seeds and report mean$\pm$std (95\% Student-$t$ intervals over seeds are in the released CSV files).
+
+\input{generated/tab_hparams.tex}
+
+\begin{table}[t]
+\centering
+\caption{Staged ablation: each row adds exactly one component.}
+\label{tab:stages}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l c c c c}
+\toprule
+Stage & Topology loss & DG aug.+cons. & Compact backbone & MC dropout \\
+\midrule
+A: U-Net baseline & -- & -- & -- & -- \\
+B: + topology & \checkmark & -- & -- & -- \\
+C: + DG & \checkmark & \checkmark & -- & -- \\
+D: + compact backbone & \checkmark & \checkmark & \checkmark & -- \\
+E: TG-LiteNet (full) & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}\end{adjustbox}
+\end{table}
+
+\subsection{Evaluation metrics}
+All metrics are computed inside the FOV on the binarised prediction (threshold 0.5, fixed before seeing any target) against the \emph{native-resolution} ground truth: the model runs at the normalised scale and its probability map is resampled (bilinear) to the label resolution, because down-scaling thin labels (HRF contains 1--2\,px lines) fragments them and inflates Betti-0. Histogram-based AUC (4096 bins) is used for images above 2\,MP (HRF). \textbf{Accuracy:} Dice, IoU, sensitivity, specificity, accuracy and AUC. \textbf{Topology:} clDice (computed with exact skeletons) and the Betti-0 / Betti-1 errors, i.e.\ the absolute difference in the number of connected components ($\beta_0$, 8-connectivity) and loops ($\beta_1=\beta_0-\chi$ from the Euler number). \textbf{Generalisation:} $\Delta_m=m(\text{DRIVE})-m(\text{target})$; ``unseen'' is the macro average over the three targets. \textbf{Cost:} total parameters, FLOPs (2$\times$MACs, PyTorch FLOP counter) and median latency for one $512{\times}512$ image (CPU with 1 and 4 threads, GPU), plus peak GPU memory. \textbf{Uncertainty:} per-image Spearman correlation between pixel uncertainty and misclassification ($\rho_{px}$), Spearman correlation between image-mean uncertainty and $1-$Dice ($\rho_{img}$), pixel- and image-level risk--coverage curves and the area under the image-level curve (AURC) with random and oracle references.
+
+% =============================================================================== VI. RESULTS
+\section{Experimental Results and Discussion}
+\input{generated/tab_main.tex}
+
+\subsection{Main results (staged ablation)}
+Table~\ref{tab:main} gives the staged ablation and Table~\ref{tab:datasets} the per-dataset breakdown; Fig.~\ref{fig:ablation} visualises both.
+\todo{Write 1--2 paragraphs from results/findings.md: for each step A$\rightarrow$B$\rightarrow$C$\rightarrow$D$\rightarrow$E state the change in source/unseen Dice, clDice, $\beta_0$ error and $\Delta$Dice with the confidence interval, and say whether it supports RQ1, RQ2 and RQ3. Explain \emph{why} (e.g.\ clDice supervision targets centrelines, so thin-vessel recall and $\beta_0$ change more than Dice; style augmentation matters most for the dataset with the largest colour/illumination shift).}
+
+\begin{figure}[t]
+\centering
+\safefig{\columnwidth}{fig_ablation}
+\caption{Dice and clDice per dataset for each stage (mean$\pm$std over seeds).}
+\label{fig:ablation}
+\end{figure}
+
+\input{generated/tab_datasets.tex}
+
+\subsection{Efficiency and the trade-off (RQ3)}
+\input{generated/tab_efficiency.tex}
+\begin{figure}[t]
+\centering
+\safefig{\columnwidth}{fig_tradeoff}
+\caption{Accuracy, topology and generalisation gap against FLOPs for all trained configurations (stages, factorial cells and width sweep).}
+\label{fig:tradeoff}
+\end{figure}
+\todo{Discuss Table~\ref{tab:eff} and Fig.~\ref{fig:tradeoff}: what Dice/clDice is given up for the reduction in parameters/FLOPs/latency; is the U-Net's advantage on unseen domains larger or smaller than on DRIVE; note that MC dropout multiplies inference cost by $T$.}
+
+\subsection{Uncertainty (RQ4)}
+\input{generated/tab_uncertainty.tex}
+\begin{figure}[t]
+\centering
+\safefig{\columnwidth}{fig_risk_coverage}
+\caption{Risk--coverage of TG-LiteNet on each domain: pixel error after rejecting the most uncertain pixels (left; solid = MC variance, dashed = entropy) and mean $1-$Dice of the retained images when the most uncertain images are rejected (right).}
+\label{fig:risk}
+\end{figure}
+\todo{Interpret Table~\ref{tab:unc} and Fig.~\ref{fig:risk}: is $\rho$ larger on unseen domains than on DRIVE (RQ4)? does image-level AURC beat random rejection? is MC variance better than entropy? Note that the number of images per domain (20--45) limits the precision of image-level statistics.}
+
+\subsection{Qualitative results and error analysis}
+\begin{figure*}[t]
+\centering
+\safefig{0.92\textwidth}{fig_qualitative}
+\caption{Qualitative results (seed 0): image, ground truth, error maps of stages A, D and E, and the MC-dropout uncertainty of E.}
+\label{fig:qual}
+\end{figure*}
+\todo{Describe typical failure modes seen in Fig.~\ref{fig:qual} (e.g.\ broken thin vessels, false vessels at lesions/optic disc, central light reflex in CHASE\_DB1, very thin capillaries in HRF) and whether uncertainty highlights them.}
+
+% =============================================================================== VII. ABLATION
+\section{Ablation Analysis}\label{sec:ablation}
+\input{generated/tab_factorial.tex}
+\todo{From Table~\ref{tab:factorial}: main effect of each factor and the topology$\times$backbone interaction (survey gap~4: does topology supervision still help a $\le$2M network under shift?). Use results/tables/stage\_deltas.csv for confidence intervals.}
+\input{generated/tab_variants.tex}
+\todo{From Table~\ref{tab:variants}: does Skeleton Recall or the combination beat soft-clDice? where does capacity stop paying off (width sweep)? Also mention results/tables/native\_summary.csv (no scale normalisation): how much of the cross-dataset behaviour is explained by the FOV rescaling alone.}
+\begin{figure}[t]
+\centering
+\safefig{0.85\columnwidth}{fig_training}
+\caption{DRIVE validation Dice during training (mean and range over seeds).}
+\label{fig:train}
+\end{figure}
+
+\subsection{Limitations and threats to validity}\label{sec:limits}
+(i) The training set has only 16 images; seed-to-seed variation can be as large as small reported gains, which is why every number carries a spread over \nSeeds\ seeds. (ii) The unseen-domain average gives the same weight to three datasets of very different size and difficulty (HRF is the highest resolution; CHASE\_DB1 contains children's retinas); Betti counts grow with image size, so the unseen-average $\beta_0$ error is dominated by HRF and the per-dataset values should be preferred when comparing topology. (iii) FOV scale normalisation is part of the pipeline; we report no-rescale results separately. (iv) The labels are the first observer only and four of the five FOV sets are estimated. (v) We re-implemented soft-clDice and Skeleton Recall from the papers; the radius-aware cbDice~\cite{shi2024} was not re-implemented, so cbDice is a compared method only in the related-work discussion. (vi) Latency is hardware-dependent; the machine is stated with the numbers. (vii) Source-only evaluation is a harder protocol than multi-source or test-time adaptation, so our absolute numbers are not comparable with such papers~\cite{liu2026dgssa,wang2026wavernet,zhou2025}.
+
+% =============================================================================== VIII. CONCLUSION
+\section{Conclusion and Future Work}
+We built and evaluated TG-LiteNet, a compact, source-only-trained vessel segmenter, with a staged ablation, a full factorial design, capacity and loss variants, an efficiency report and an uncertainty-triage analysis on three unseen datasets. \todo{State: which objectives (O1--O3) and RQs (RQ1--RQ4) were achieved, with the key numbers from Tables~\ref{tab:main}, \ref{tab:eff}, \ref{tab:unc}; keep it to what the data show.}
+\textbf{Limitations} are listed in Sec.~\ref{sec:limits}. \textbf{Future work:} radius-aware topology loss (cbDice) and persistent-homology metrics; structural augmentation by synthetic vessel trees; adding FIVES and multi-source DG as reference protocols; test-time adaptation as an upper bound; INT8 quantisation and measurements on a real edge device; calibrating uncertainty (e.g.\ temperature scaling) before using it for referral decisions.
+
+\section*{Acknowledgment}
+The authors thank the CSD361 course staff, and the creators of the DRIVE, STARE, CHASE\_DB1, HRF and FIVES datasets for making them available.
+
+% =============================================================================== REFERENCES
+\begin{thebibliography}{99}
+\bibitem{liu2025review} Z. Liu, M. S. Sunar, T. S. Tan, and W. H. Wan Hitam, ``Deep learning for retinal vessel segmentation: a systematic review of techniques and applications,'' \emph{Med. Biol. Eng. Comput.}, vol. 63, no. 8, pp. 2191--2208, 2025.
+\bibitem{ronneberger2015} O. Ronneberger, P. Fischer, and T. Brox, ``U-Net: Convolutional networks for biomedical image segmentation,'' in \emph{Proc. MICCAI}, 2015, pp. 234--241.
+\bibitem{staal2004} J. Staal, M. D. Abr\`amoff, M. Niemeijer, M. A. Viergever, and B. van Ginneken, ``Ridge-based vessel segmentation in color images of the retina,'' \emph{IEEE Trans. Med. Imag.}, vol. 23, no. 4, pp. 501--509, 2004.
+\bibitem{hoover2000} A. Hoover, V. Kouznetsova, and M. Goldbaum, ``Locating blood vessels in retinal images by piecewise threshold probing of a matched filter response,'' \emph{IEEE Trans. Med. Imag.}, vol. 19, no. 3, pp. 203--210, 2000.
+\bibitem{fraz2012} M. M. Fraz \emph{et al.}, ``An ensemble classification-based approach applied to retinal blood vessel segmentation,'' \emph{IEEE Trans. Biomed. Eng.}, vol. 59, no. 9, pp. 2538--2548, 2012.
+\bibitem{budai2013} A. Budai, R. Bock, A. Maier, J. Hornegger, and G. Michelson, ``Robust vessel segmentation in fundus images,'' \emph{Int. J. Biomed. Imaging}, vol. 2013, 2013.
+\bibitem{jin2022fives} K. Jin \emph{et al.}, ``FIVES: A fundus image dataset for artificial intelligence based vessel segmentation,'' \emph{Sci. Data}, vol. 9, art. 475, 2022.
+\bibitem{shit2021} S. Shit \emph{et al.}, ``clDice --- a novel topology-preserving loss function for tubular structure segmentation,'' in \emph{Proc. IEEE/CVF CVPR}, 2021, pp. 16\,560--16\,569.
+\bibitem{shi2024} P. Shi, J. Hu, Y. Yang, Z. Gao, W. Liu, and T. Ma, ``Centerline boundary Dice loss for vascular segmentation,'' in \emph{Proc. MICCAI}, LNCS 15008, 2024, pp. 46--56.
+\bibitem{kirchhoff2024} Y. Kirchhoff \emph{et al.}, ``Skeleton recall loss for connectivity conserving and resource efficient segmentation of thin tubular structures,'' in \emph{Proc. ECCV}, LNCS 15135, 2024, pp. 218--234.
+\bibitem{hu2019} X. Hu, F. Li, D. Samaras, and C. Chen, ``Topology-preserving deep image segmentation,'' in \emph{Proc. NeurIPS}, 2019.
+\bibitem{huang2026} Y. Huang, T. Miyazaki, K. Xu, X. Liu, Y. Fan, and S. Omachi, ``Topology-aware parameter-efficient adaptation for cross-dataset retinal vessel segmentation,'' arXiv:2609.26189, 2026.
+\bibitem{galdran2022} A. Galdran \emph{et al.}, ``State-of-the-art retinal vessel segmentation with minimalistic models,'' \emph{Sci. Rep.}, vol. 12, art. 6174, 2022.
+\bibitem{fadugba2024} J. Fadugba, P. K\"ohler, L. Koch, P. Manescu, and P. Berens, ``Benchmarking retinal blood vessel segmentation models for cross-dataset and cross-disease generalization,'' arXiv:2406.14994, 2024.
+\bibitem{sobhan2026} S. Sobhan and F. Jalil, ``LightVesselNet: An ultra-lightweight sub-100K parameter network for retinal blood vessel segmentation,'' arXiv:2606.05354, 2026.
+\bibitem{liu2026dgssa} B. Liu, Y. Zhang, S. Wang, S. Li, and J. Hong, ``DGSSA: Domain generalization with structural and stylistic augmentation for retinal vessel segmentation,'' \emph{Neural Netw.}, vol. 194, art. 108118, 2026.
+\bibitem{wang2026wavernet} C. Wang, Y. Wang, Q. Xu, and G. Chen, ``WaveRNet: Wavelet-guided frequency learning for multi-source domain-generalized retinal vessel segmentation,'' arXiv:2601.05942, 2026.
+\bibitem{hu2024hessian} D. Hu, H. Li, H. Liu, and I. Oguz, ``Domain generalization for retinal vessel segmentation via Hessian-based vector field,'' \emph{Med. Image Anal.}, vol. 95, art. 103164, 2024.
+\bibitem{liu2025graphseg} K. Liu, S. Gao, Y. Fu, and S. Gao, ``Towards generalizable retina vessel segmentation with deformable graph priors,'' in \emph{Proc. NeurIPS}, 2025.
+\bibitem{zeng2025} Z. Zeng, J. Liu, X. Huang, K. Luo, X. Yuan, and Y. Zhu, ``Efficient retinal vessel segmentation with 78K parameters,'' \emph{J. Imaging}, vol. 11, no. 9, art. 306, 2025.
+\bibitem{hernandez2025} F. D. Hernandez-Gutierrez \emph{et al.}, ``Retinal vessel segmentation based on a lightweight U-Net and reverse attention,'' \emph{Mathematics}, vol. 13, no. 13, art. 2203, 2025.
+\bibitem{ahmed2026} I. Ahmed, S. Absar, A. A. Sami, S. Sakib, D. Biswas, and S. A. M. Mostafa, ``TFFM: Topology-aware feature fusion module via latent graph reasoning for retinal vessel segmentation,'' in \emph{Proc. IEEE/CVF WACV Workshops}, 2026.
+\bibitem{zhou2025} J. Zhou \emph{et al.}, ``TopoTTA: Topology-enhanced test-time adaptation for tubular structure segmentation,'' in \emph{Proc. IEEE/CVF ICCV}, 2025, pp. 24\,123--24\,134.
+\bibitem{khazem2026} S. Khazem, ``TopoLoRA-SAM: Topology-aware parameter-efficient adaptation of foundation segmenters for thin-structure and cross-domain binary semantic segmentation,'' arXiv:2601.02273, 2026.
+\bibitem{gupta2023} S. Gupta, Y. Zhang, X. Hu, P. Prasanna, and C. Chen, ``Topology-aware uncertainty for image segmentation,'' in \emph{Proc. NeurIPS}, 2023.
+\bibitem{gal2016} Y. Gal and Z. Ghahramani, ``Dropout as a Bayesian approximation: Representing model uncertainty in deep learning,'' in \emph{Proc. ICML}, 2016, pp. 1050--1059.
+\bibitem{ovadia2019} Y. Ovadia \emph{et al.}, ``Can you trust your model's uncertainty? Evaluating predictive uncertainty under dataset shift,'' in \emph{Proc. NeurIPS}, 2019.
+\bibitem{zuiderveld1994} K. Zuiderveld, ``Contrast limited adaptive histogram equalization,'' in \emph{Graphics Gems IV}. Academic Press, 1994, pp. 474--485.
+\bibitem{howard2017} A. G. Howard \emph{et al.}, ``MobileNets: Efficient convolutional neural networks for mobile vision applications,'' arXiv:1704.04861, 2017.
+\bibitem{paszke2019} A. Paszke \emph{et al.}, ``PyTorch: An imperative style, high-performance deep learning library,'' in \emph{Proc. NeurIPS}, 2019.
+\bibitem{vanderwalt2014} S. van der Walt \emph{et al.}, ``scikit-image: image processing in Python,'' \emph{PeerJ}, vol. 2, art. e453, 2014.
+\bibitem{zhang1984} T. Y. Zhang and C. Y. Suen, ``A fast parallel algorithm for thinning digital patterns,'' \emph{Commun. ACM}, vol. 27, no. 3, pp. 236--239, 1984.
+\end{thebibliography}
+
+\end{document}

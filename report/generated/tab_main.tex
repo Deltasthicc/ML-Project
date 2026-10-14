@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering
+\caption{Staged ablation (mean$\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, CHASE\_DB1 and HRF (never used for training or model selection); $\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). FLOPs and latency are for one $512{\times}512$ image; E (MC) needs $T$ forward passes. Best per column in bold.}
+\label{tab:main}
+\small
+\begin{adjustbox}{max width=\textwidth}\begin{tabular}{l cc cccc rr}
+\toprule
+ & \multicolumn{2}{c}{Source (DRIVE)} & \multicolumn{4}{c}{Unseen domains} & & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-7}
+Stage & Dice & clDice & Dice & clDice & $\beta_0$ err & $\Delta$Dice & Params (M) & GFLOPs \\
+\midrule
+A & -- & -- & -- & -- & -- & -- & -- & -- \\
+B & -- & -- & -- & -- & -- & -- & -- & -- \\
+C & -- & -- & -- & -- & -- & -- & -- & -- \\
+D & -- & -- & -- & -- & -- & -- & -- & -- \\
+E (det.) & -- & -- & -- & -- & -- & -- & -- & -- \\
+E (MC) & -- & -- & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}\end{adjustbox}
+\end{table*}

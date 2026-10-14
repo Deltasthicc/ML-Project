@@ -1,0 +1,72 @@
+# Defaults shared by every experiment. Stage-specific files in configs/exp/ override only what differs.
+name: base
+seed: 0
+
+paths:
+  processed: data/processed       # output of scripts/prepare_data.py
+  cache: data/cache               # scale-normalised arrays (auto-created)
+  runs: results/runs
+  split_file: splits/drive_split.json
+
+data:
+  fov_target_width: 527           # every image is rescaled so its FOV is this wide (= median DRIVE FOV width)
+  patch_size: 256
+  clahe_clip: 2.0
+  clahe_tile_px: 64               # tile size in *pixels* so full images and crops are treated alike
+  train_dataset: drive
+  eval_datasets: [drive, stare, chase_db1, hrf]   # drive == official DRIVE test split; add `fives` if downloaded
+
+model:
+  backbone: unet                  # unet | lite
+  base_channels: 64               # unet width (64 -> ~31M params, the classic U-Net)
+  width: 16                       # lite width multiplier (see tglite/models/litenet.py)
+  dropout: 0.0                    # Dropout2d prob; >0 enables MC-dropout uncertainty
+  skeleton_head: false            # auxiliary skeleton head (training only)
+
+loss:
+  lambda_bce: 1.0
+  topo: none                      # none | cldice | skeleton_recall | cldice_skeleton_recall
+  lambda_topo: 0.5
+  lambda_skel_head: 0.5
+  lambda_cons: 0.5
+  skel_iters: 10                  # soft-skeleton iterations (>= max vessel radius in pixels)
+
+dg:
+  enabled: false                  # style + structure augmentation and consistency loss
+  p_color: 0.8
+  p_illum: 0.6
+  p_blur: 0.4
+  p_noise: 0.4
+  p_jpeg: 0.3
+  p_dropout: 0.6                  # local intensity dropout (structural perturbation)
+  elastic_alpha: 12.0             # peak displacement (px); also capped so the warp never folds (see augment.elastic_maps)
+  elastic_sigma: 8.0
+  p_elastic: 0.5
+
+train:
+  iters: 5000
+  batch_size: 8
+  lr: 0.001
+  weight_decay: 0.0001
+  warmup_iters: 200
+  grad_clip: 1.0
+  val_every: 250
+  num_workers: 4
+  amp: true                       # only used on CUDA
+  log_every: 50
+
+eval:
+  threshold: 0.5
+  mc_samples: 20                  # T stochastic passes for MC dropout
+  scale_mode: fov                 # fov = FOV-width normalisation, none = native resolution
+  save_preds_seed: 0              # save probability / uncertainty maps for this seed only (null = never)
+  max_eval_pixels: null           # metrics use NATIVE-resolution ground truth (null); set e.g. 2500000 to cap cost (inflates HRF Betti-0)
+  metric_workers: 0               # >0: compute per-image metrics in a process pool (native HRF metrics take ~10 s/image)
+  max_images: null                # cap images per dataset (smoke tests only)
+  uncertainty_pixels: 200000      # random pixel subsample (per image) for Spearman computation
+
+efficiency:
+  input_hw: [512, 512]
+  warmup: 10
+  repeats: 50
+  cpu_threads: 4

@@ -1,0 +1,33 @@
+1 runs on cpu; output -> results\sanity
+
+=== [1/1] D_lite_topo_dg seed 0 
+[D_lite_topo_dg seed=0] backbone=lite params=0.212M device=cpu
+  it    25/600 loss 2.4965 lr 1.25e-04
+  it    50/600 loss 2.1380 lr 2.50e-04
+  it    75/600 loss 1.6947 lr 3.75e-04
+  it   100/600 loss 1.4568 lr 5.00e-04 val_dice 0.7319
+  it   125/600 loss 1.4138 lr 6.25e-04
+  it   150/600 loss 1.3681 lr 7.50e-04
+  it   175/600 loss 1.3613 lr 8.75e-04
+  it   200/600 loss 1.2718 lr 1.00e-03 val_dice 0.7309
+  it   225/600 loss 1.2871 lr 9.91e-04
+  it   250/600 loss 1.3012 lr 9.64e-04
+  it   275/600 loss 1.1854 lr 9.19e-04
+  it   300/600 loss 1.2639 lr 8.58e-04 val_dice 0.7670
+  it   325/600 loss 1.1730 lr 7.83e-04
+  it   350/600 loss 1.1401 lr 6.98e-04
+  it   375/600 loss 1.2013 lr 6.05e-04
+  it   400/600 loss 1.1884 lr 5.09e-04 val_dice 0.7873
+  it   425/600 loss 1.1234 lr 4.12e-04
+  it   450/600 loss 1.1693 lr 3.19e-04
+  it   475/600 loss 1.1485 lr 2.33e-04
+  it   500/600 loss 1.1342 lr 1.58e-04 val_dice 0.7939
+  it   525/600 loss 1.1568 lr 9.56e-05
+  it   550/600 loss 1.2147 lr 4.92e-05
+  it   575/600 loss 1.1608 lr 2.03e-05
+  it   600/600 loss 1.1760 lr 1.00e-05 val_dice 0.7943
+D_lite_topo_dg/s0/drive:   0%|          | 0/5 [00:00<?, ?it/s]D_lite_topo_dg/s0/drive:  20%|##        | 1/5 [00:01<00:07,  1.84s/it]D_lite_topo_dg/s0/drive:  40%|####      | 2/5 [00:03<00:04,  1.62s/it]D_lite_topo_dg/s0/drive:  60%|######    | 3/5 [00:05<00:03,  1.68s/it]D_lite_topo_dg/s0/drive:  80%|########  | 4/5 [00:06<00:01,  1.65s/it]D_lite_topo_dg/s0/drive: 100%|##########| 5/5 [00:08<00:00,  1.65s/it]                                                                      D_lite_topo_dg/s0/stare:   0%|          | 0/5 [00:00<?, ?it/s]D_lite_topo_dg/s0/stare:  20%|##        | 1/5 [00:01<00:06,  1.59s/it]D_lite_topo_dg/s0/stare:  40%|####      | 2/5 [00:03<00:04,  1.61s/it]D_lite_topo_dg/s0/stare:  60%|######    | 3/5 [00:04<00:02,  1.46s/it]D_lite_topo_dg/s0/stare:  80%|########  | 4/5 [00:05<00:01,  1.41s/it]D_lite_topo_dg/s0/stare: 100%|##########| 5/5 [00:07<00:00,  1.47s/it]                                                                      D_lite_topo_dg/s0/chase_db1:   0%|          | 0/5 [00:00<?, ?it/s]D_lite_topo_dg/s0/chase_db1:  20%|##        | 1/5 [00:01<00:05,  1.38s/it]D_lite_topo_dg/s0/chase_db1:  40%|####      | 2/5 [00:02<00:04,  1.45s/it]D_lite_topo_dg/s0/chase_db1:  60%|######    | 3/5 [00:04<00:02,  1.45s/it]D_lite_topo_dg/s0/chase_db1:  80%|########  | 4/5 [00:05<00:01,  1.47s/it]D_lite_topo_dg/s0/chase_db1: 100%|##########| 5/5 [00:07<00:00,  1.46s/it]                                                                            wrote results\sanity\D_lite_topo_dg\seed0\per_image.csv
+  efficiency: 0.212 M params, 5.53 GFLOPs @ [512, 512], cpu 787.2 ms
+    finished in 49.2 min
+
+all done in 49.2 min

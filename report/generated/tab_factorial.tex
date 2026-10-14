@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{Full factorial design (backbone $\times$ topology loss $\times$ DG augmentation). Unseen = macro average over STARE, CHASE\_DB1, HRF.}
+\label{tab:factorial}
+\small
+\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{lcc cc cc}
+\toprule
+Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\Delta$Dice \\
+\midrule
+U-Net & -- & -- & -- & -- & -- & -- \\
+U-Net & -- & \checkmark & -- & -- & -- & -- \\
+U-Net & \checkmark & -- & -- & -- & -- & -- \\
+U-Net & \checkmark & \checkmark & -- & -- & -- & -- \\
+Lite & -- & -- & -- & -- & -- & -- \\
+Lite & -- & \checkmark & -- & -- & -- & -- \\
+Lite & \checkmark & -- & -- & -- & -- & -- \\
+Lite & \checkmark & \checkmark & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}\end{adjustbox}
+\end{table}

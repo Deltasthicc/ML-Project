@@ -1,0 +1,32 @@
+{
+  "params": 211586,
+  "params_m": 0.211586,
+  "input_hw": [
+    512,
+    512
+  ],
+  "flops": 5525995520,
+  "gflops": 5.52599552,
+  "gmacs": 2.76299776,
+  "cpu": {
+    "median_ms": 787.2239999996964,
+    "q1_ms": 758.5020999977132,
+    "q3_ms": 816.2159499916015,
+    "fps": 1.2702864750063332,
+    "threads": 4
+  },
+  "cpu_1thread": {
+    "median_ms": 2727.044200000819,
+    "q1_ms": 2667.196750000585,
+    "q3_ms": 2747.25115000183,
+    "fps": 0.3666973934634795,
+    "threads": 1
+  },
+  "hardware": {
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "torch": "2.14.1+cpu",
+    "cpu_count": 20
+  },
+  "mc_samples": 1
+}

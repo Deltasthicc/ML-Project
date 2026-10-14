@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\caption{Training configuration shared by all stages (generated from \texttt{configs/base.yaml}).}
+\label{tab:hparams}
+\small
+\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{ll}
+\toprule
+Item & Value \\
+\midrule
+Optimiser & AdamW, lr $0.001$, wd $0.0001$ \\
+Schedule & 200 warm-up it., cosine to $1\%$ \\
+Iterations / batch / patch & 5000 / 8 / 256$^2$ px \\
+Loss weights & $\lambda_1{=}1,\ \lambda_2{=}0.5,\ \lambda_3{=}0.5$; skel. head $0.5$ \\
+Soft-skeleton iterations & 10 \\
+CLAHE & clip 2, 64 px tiles \\
+Scale normalisation & FOV width $=527$ px \\
+Lite width $w$ / U-Net base & 16 / 64 \\
+MC dropout (stage E) & $p{=}0.1$, $T{=}20$ passes \\
+Threshold & 0.5 (fixed; never tuned on targets) \\
+\bottomrule
+\end{tabular}\end{adjustbox}
+\end{table}

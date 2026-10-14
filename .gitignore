@@ -1,0 +1,38 @@
+# environments / caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# datasets are never committed (licences + size); see scripts/download_data.py
+data/raw/
+data/processed/
+data/cache/
+data/*.log
+data/*.sh
+
+# heavy run artefacts (keep the small csv/json/log files)
+results/runs/**/*.pt
+results/runs/**/*.npz
+results/smoke/
+results/_*/
+results/tuning/**/*.pt
+results/timing/
+results/sanity/**/*.pt
+results/runs/**/preds/
+report_fake/
+
+# LaTeX build junk
+report/*.aux
+report/*.log
+report/*.out
+report/*.bbl
+report/*.blg
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+
+.DS_Store
+Thumbs.db

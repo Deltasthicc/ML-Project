@@ -1,0 +1,50 @@
+{
+  "fives/FIVES.rar": {
+    "sha256": "be72f9af286b107bcebcc08a9dae7fc55c3fb0959409b689e14c72f9fdc4ad8e",
+    "bytes": 1764974308,
+    "url": "https://ndownloader.figshare.com/files/34969398",
+    "provenance": "official (figshare)"
+  },
+  "hrf/all.zip": {
+    "sha256": "a914d02cda161b7f33f25d0397c276d50e9a6cbc705e9b364a54f0adafed57e4",
+    "bytes": 76317613,
+    "url": "https://www5.cs.fau.de/fileadmin/research/datasets/fundus-images/all.zip",
+    "provenance": "official"
+  },
+  "stare/stare-images.tar": {
+    "sha256": "5f7b509b6067cad4f1be84933145d783de9ec087b3eaaf4db0103dd0144dd433",
+    "bytes": 18674176,
+    "url": "https://cecas.clemson.edu/~ahoover/stare/probing/stare-images.tar",
+    "provenance": "official"
+  },
+  "stare/labels-ah.tar": {
+    "sha256": "ebf2f1e17ca955f24579d9edd990e2dae79a5c82def69f0985d8e24f826ddd2f",
+    "bytes": 241664,
+    "url": "https://cecas.clemson.edu/~ahoover/stare/probing/labels-ah.tar",
+    "provenance": "official"
+  },
+  "stare/labels-vk.tar": {
+    "sha256": "47474a701536b0cfdb369fdce012be36141e9f44d80387f0179446b5cb0f5576",
+    "bytes": 333824,
+    "url": "https://cecas.clemson.edu/~ahoover/stare/probing/labels-vk.tar",
+    "provenance": "official"
+  },
+  "chase_hf/train.parquet": {
+    "sha256": "8e4140e5fc789d19d6a133dd593bb3a2a424913917fda6c27ddc059d2861f998",
+    "bytes": 1899229,
+    "url": "https://huggingface.co/datasets/MedOtter/CHASE_DB1/resolve/main/data/train-00000-of-00001.parquet",
+    "provenance": "Hugging Face mirror MedOtter/CHASE_DB1"
+  },
+  "chase_hf/test.parquet": {
+    "sha256": "ee29365d770676f9a05beab35546cea06f1ddcb25f023143a2d9328797440e6e",
+    "bytes": 736990,
+    "url": "https://huggingface.co/datasets/MedOtter/CHASE_DB1/resolve/main/data/test-00000-of-00001.parquet",
+    "provenance": "Hugging Face mirror MedOtter/CHASE_DB1"
+  },
+  "drive_mirror/drive.zip": {
+    "sha256": "1097cde905f07b3d0ef187f456f4e5df0fe502fa0715ed09a5cfb892461e0ab3",
+    "bytes": 32976648,
+    "url": "https://bj.bcebos.com/paddleseg/dataset/drive/drive.zip",
+    "provenance": "PaddleSeg mirror of DRIVE"
+  }
+}
