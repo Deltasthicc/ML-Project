@@ -90,6 +90,26 @@ def load_sample(name: str, sid: str, cfg, scale_mode: str | None = None) -> dict
     return {"id": sid, "img": img, "mask": mask, "fov": fov, "mask_eval": mask_e, "fov_eval": fov_e}
 
 
+def check_data(cfg, names=None) -> None:
+    """Fail early with a clear message if any dataset needed by this config has not been downloaded/prepared."""
+    problems = []
+    for n in names or ["drive_train", "drive_val", *cfg.data.eval_datasets]:
+        folder = "drive" if n.startswith("drive") else n
+        root = resolve_path(cfg.paths.processed) / folder / "images"
+        if not root.exists():
+            problems.append(f"{n}: {root} does not exist")
+            continue
+        _, ids = split_ids(n, cfg)
+        missing = [i for i in ids if not (root / f"{i}.png").exists()]
+        if missing:
+            problems.append(f"{n}: {len(missing)} of {len(ids)} images missing (e.g. {missing[0]}.png)")
+    if problems:
+        nl = chr(10)
+        raise SystemExit("Data is not ready:" + nl + "  - " + (nl + "  - ").join(problems) + nl +
+                         "Run `python scripts/download_data.py` and then `python scripts/prepare_data.py` "
+                         "(FIVES needs --fives and extraction, see RUNBOOK.md), or remove the dataset from data.eval_datasets.")
+
+
 def load_split(name: str, cfg, scale_mode: str | None = None) -> list[dict]:
     _, ids = split_ids(name, cfg)
     return [load_sample(name, i, cfg, scale_mode) for i in ids]

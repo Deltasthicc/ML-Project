@@ -8,6 +8,7 @@ import argparse
 from pathlib import Path
 
 from tglite.config import resolve_path
+from tglite.data import check_data
 from tglite.evaluate import efficiency_run, evaluate_run
 from tglite.experiments import make_config
 from tglite.train import train
@@ -24,6 +25,7 @@ def main() -> None:
     ap.add_argument("--evaluate", action="store_true", help="also evaluate + measure efficiency after training")
     args = ap.parse_args()
     cfg = make_config(args.exp, args.seed, args.config, args.set)
+    check_data(cfg)
     run_dir = Path(args.out) if args.out else resolve_path(cfg.paths.runs) / args.exp / f"seed{args.seed}"
     train(cfg, run_dir, args.device)
     if args.evaluate:

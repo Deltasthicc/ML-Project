@@ -127,3 +127,17 @@ data pipeline, labels, losses and evaluation are wired correctly. Full runs use 
 | `weights_only` / pickle error on load | use PyTorch ≥ 2.1; `evaluate.py` loads with `weights_only=False` on purpose (the checkpoint stores the config dict) |
 | LaTeX: missing package | `tlmgr install IEEEtran adjustbox collectbox algorithms` or compile on Overleaf |
 | results differ slightly between machines | expected (non-deterministic GPU kernels); the paper reports mean±std over seeds |
+
+## 11. Kaggle / Colab (free GPUs)
+
+```python
+!git clone https://github.com/Deltasthicc/ML-Project.git
+%cd ML-Project
+!pip install -q -r requirements.txt && pip install -q -e .            # keep the preinstalled torch
+!python scripts/download_data.py && python scripts/prepare_data.py    # needs Internet = On; STARE's server has a broken certificate chain,
+                                                                       # the downloader falls back to a checksum-pinned download
+!python -u scripts/run_experiments.py --groups primary --seeds 0 1 2 --set train.num_workers=4 eval.metric_workers=4
+```
+`run_experiments.py` now stops immediately with "Data is not ready" if the datasets were not prepared. Kaggle gives 4 CPU cores, Colab 2 (our augmentation
+runs on the CPU, so set `train.num_workers` accordingly). On Colab write runs to Drive: `--out /content/drive/MyDrive/tglite_runs`.
+Measure latency/memory in one session only (`python scripts/evaluate.py <run_dir> --efficiency`), because the free tiers hand out different GPU models.

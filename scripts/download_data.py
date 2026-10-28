@@ -126,7 +126,7 @@ def download_parallel(url: str, dest: Path, connections: int = 8, segment: int =
     side.unlink(missing_ok=True)
 
 
-def download(url: str, dest: Path, retries: int = 6) -> None:
+def download(url: str, dest: Path, retries: int = 6, expected_sha: str | None = None) -> None:
     """Resumable streaming download with a few retries."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     for attempt in range(retries):
@@ -163,7 +163,21 @@ def download(url: str, dest: Path, retries: int = 6) -> None:
             if not curl:
                 raise RuntimeError(f"TLS verification failed for {url} and curl is not installed: {exc}") from exc
             print("\n  TLS chain not accepted by Python's CA bundle; retrying with curl (OS trust store, still verified)")
-            subprocess.run([curl, "-sSL", "--retry", "5", "-C", "-", "-o", str(dest), url], check=True)
+            r = subprocess.run([curl, "-sSL", "--retry", "5", "-C", "-", "-o", str(dest), url])
+            if r.returncode == 0:
+                return
+            # Last resort (e.g. Linux/Kaggle, where Clemson's incomplete certificate chain is rejected by every client):
+            # skip certificate verification, but ONLY if we hold a pinned SHA-256 of the exact file (data/MANIFEST.json,
+            # committed to the repo) and reject the download unless it matches.
+            if not expected_sha:
+                raise RuntimeError(f"TLS verification failed for {url} and no pinned checksum is available: {exc}") from exc
+            print("  curl could not verify the certificate either; downloading WITHOUT TLS verification but checking the pinned SHA-256")
+            dest.unlink(missing_ok=True)
+            subprocess.run([curl, "-sSLk", "--retry", "5", "-o", str(dest), url], check=True)
+            if sha256(dest) != expected_sha:
+                dest.unlink(missing_ok=True)
+                raise RuntimeError(f"checksum mismatch for {dest.name}: refusing a file fetched without TLS verification") from exc
+            print("  checksum matches the pinned value - OK")
             return
         except Exception as exc:  # noqa: BLE001
             print(f"\n  attempt {attempt + 1}/{retries} failed: {exc}")
@@ -192,7 +206,7 @@ def main() -> None:
                     if note.startswith("official (figshare)") and args.connections > 1:
                         download_parallel(url, dest, args.connections)
                     else:
-                        download(url, dest)
+                        download(url, dest, expected_sha=manifest.get(rel, {}).get("sha256"))
                     break
                 except Exception as exc:  # noqa: BLE001
                     print(f"  {url}: {exc}")

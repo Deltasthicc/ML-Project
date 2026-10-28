@@ -20,6 +20,7 @@ from pathlib import Path
 import torch
 import yaml
 
+from tglite.data import check_data
 from tglite.config import _plain as plain, resolve_path
 from tglite.evaluate import efficiency_run, evaluate_run
 from tglite.experiments import DEFAULT_SEEDS, GROUPS, make_config
@@ -61,6 +62,7 @@ def main() -> None:
         overrides.append(f"data.eval_datasets=[{','.join(args.datasets)}]")
     out_root = Path(args.out) if args.out else resolve_path("results/smoke" if args.quick else "results/runs")
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    check_data(make_config(jobs[0][0], jobs[0][1], overrides=overrides))     # fail once, clearly, instead of once per run
     print(f"{len(jobs)} runs on {device}; output -> {out_root}")
 
     t_all = time.time()
