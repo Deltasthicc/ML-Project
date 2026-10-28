@@ -18,7 +18,7 @@ git clone <your-repo-url> tglite && cd tglite
 python -m venv .venv && source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install torch --index-url https://download.pytorch.org/whl/cu126   # pick the wheel that matches your driver
 pip install -r requirements.txt && pip install -e .
-pytest -q                                                       # all 24 tests must pass
+pytest -q                                                       # all 28 tests must pass
 ```
 
 ## 2. Data
@@ -128,16 +128,24 @@ data pipeline, labels, losses and evaluation are wired correctly. Full runs use 
 | LaTeX: missing package | `tlmgr install IEEEtran adjustbox collectbox algorithms` or compile on Overleaf |
 | results differ slightly between machines | expected (non-deterministic GPU kernels); the paper reports mean±std over seeds |
 
-## 11. Kaggle / Colab (free GPUs)
+## 11. Kaggle / Colab (free GPUs) — the tested route
+
+Measured on a Kaggle Tesla T4 with 4 CPU cores (default config, 5000 iterations, batch 8): U-Net (stage A) 18.5 min per run, TG-LiteNet with
+augmentation (stage E) 13.8 min per run (CPU-bound augmentation), DRIVE-validation Dice ≈ 0.82–0.83 for both. Budget for 3 seeds of stages A–E ≈ 6 h.
+
+Use **Save & Run All (Commit)** (keeps running with the tab closed / offline; the interactive session does not). Two cells:
 
 ```python
 !git clone https://github.com/Deltasthicc/ML-Project.git
-%cd ML-Project
-!pip install -q -r requirements.txt && pip install -q -e .            # keep the preinstalled torch
-!python scripts/download_data.py && python scripts/prepare_data.py    # needs Internet = On; STARE's server has a broken certificate chain,
-                                                                       # the downloader falls back to a checksum-pinned download
-!python -u scripts/run_experiments.py --groups primary --seeds 0 1 2 --set train.num_workers=4 eval.metric_workers=4
+%cd /kaggle/working/ML-Project
+!pip install -q -r requirements.txt && pip install -q -e .
 ```
-`run_experiments.py` now stops immediately with "Data is not ready" if the datasets were not prepared. Kaggle gives 4 CPU cores, Colab 2 (our augmentation
-runs on the CPU, so set `train.num_workers` accordingly). On Colab write runs to Drive: `--out /content/drive/MyDrive/tglite_runs`.
+```python
+!bash scripts/kaggle_run.sh "primary" "0 1 2" 9.5
+```
+`kaggle_run.sh` resumes from earlier notebook outputs attached as inputs, downloads/prepares the data, trains in seed-major order with a wall-clock budget
+(stops starting runs that would not finish in time, so the 12 h limit is never hit), aggregates the tables and writes `/kaggle/working/results_bundle.zip`.
+Continue later (more seeds / groups) by attaching the previous notebook's *output* as an input of the new notebook and running the same command again.
+In the Save dialog choose "Always save output" if the option exists. `NATIVE=1` adds the no-rescale evaluation (slow for the U-Net on HRF). On Colab write to Drive
+(`OUT=/content/drive/MyDrive/tglite_runs`) and use `NW=2`.
 Measure latency/memory in one session only (`python scripts/evaluate.py <run_dir> --efficiency`), because the free tiers hand out different GPU models.

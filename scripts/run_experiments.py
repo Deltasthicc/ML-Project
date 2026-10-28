@@ -44,6 +44,8 @@ def main() -> None:
     ap.add_argument("--quick", action="store_true", help="tiny smoke test (writes to results/smoke)")
     ap.add_argument("--no-train", action="store_true", help="only (re-)evaluate existing checkpoints")
     ap.add_argument("--force", action="store_true", help="re-run even if outputs exist")
+    ap.add_argument("--time-budget-hours", type=float, default=None,
+                    help="stop starting new runs when the next one would not finish inside this budget (e.g. 9.5 for a 12 h Kaggle session); re-run the same command to continue")
     args = ap.parse_args()
 
     jobs: list[tuple[str, int]] = []
@@ -54,6 +56,7 @@ def main() -> None:
         seeds = args.seeds if args.seeds is not None else list(range(5))
         jobs += [(e, s) for s in seeds]
     jobs = list(dict.fromkeys(jobs))
+    jobs.sort(key=lambda j: j[1])        # seed-major: every experiment gets seed 0 first, so an interrupted run still has a full set
     if not jobs:
         ap.error("nothing to run: pass --groups and/or --exp")
 
@@ -67,7 +70,15 @@ def main() -> None:
 
     t_all = time.time()
     mismatched, failed = [], []
+    budget = args.time_budget_hours * 3600 if args.time_budget_hours else None
+    longest = 0.0                                   # longest single run so far (seconds)
     for i, (name, seed) in enumerate(jobs, 1):
+        elapsed = time.time() - t_all
+        if budget and elapsed + 1.15 * longest > budget:
+            print(f"\n>> time budget reached after {elapsed/3600:.2f} h: not starting {len(jobs) - i + 1} remaining run(s). "
+                  f"Re-run the same command (with the saved results available) to continue.")
+            break
+        t_job = time.time()
         cfg = make_config(name, seed, overrides=overrides)
         run_dir = out_root / name / f"seed{seed}"
         exists = (run_dir / "per_image.csv").exists() and (run_dir / "best.pt").exists()
@@ -87,6 +98,7 @@ def main() -> None:
                     train(cfg, run_dir, device)
                 evaluate_run(cfg, run_dir, device)
                 print(f"    finished in {(time.time()-t0)/60:.1f} min")
+                longest = max(longest, time.time() - t_job)
             if not list((out_root / name).glob("seed*/efficiency.json")):     # once per experiment, whichever seed runs first
                 efficiency_run(cfg, run_dir)
             if args.native_eval and name in ("A_unet", "D_lite_topo_dg", "E_tglitenet") and                     (not (run_dir / "per_image_native.csv").exists() or args.force):

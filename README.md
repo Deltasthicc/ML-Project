@@ -36,7 +36,7 @@ python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scri
 pip install torch --index-url https://download.pytorch.org/whl/cu126
 # 2) everything else + the package itself
 pip install -r requirements.txt && pip install -e .
-pytest -q                                                   # 24 tests, ~25 s on CPU
+pytest -q                                                   # 28 tests, ~25 s on CPU
 ```
 Developed with Python 3.12 and PyTorch 2.14 (CPU build for development; the code is device-agnostic and uses CUDA +
 fp16 autocast automatically when available).

@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import csv
+import json
 import math
+import platform
 import random
+import subprocess
 import time
 from pathlib import Path
 
@@ -18,6 +21,22 @@ from .losses import TGLoss
 from .metrics import cldice_score, segmentation_metrics
 from .models import build_model, count_params
 from .predict import predict_prob
+
+
+def write_env_record(run_dir: Path) -> None:
+    """env.json next to every run: code version, library versions and hardware (for the reproducibility statement)."""
+    import sklearn
+    import skimage
+
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10,
+                                cwd=Path(__file__).resolve().parent.parent).stdout.strip() or None
+    except Exception:  # noqa: BLE001 - not a git checkout
+        commit = None
+    rec = {"git_commit": commit, "python": platform.python_version(), "platform": platform.platform(), "torch": torch.__version__,
+           "cuda": torch.version.cuda, "numpy": np.__version__, "opencv": cv2.__version__, "scikit-image": skimage.__version__,
+           "scikit-learn": sklearn.__version__, "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}
+    (run_dir / "env.json").write_text(json.dumps(rec, indent=2), encoding="utf-8")
 
 
 def set_seed(seed: int) -> None:
@@ -58,6 +77,7 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     dump_config(cfg, run_dir / "config.yaml")
+    write_env_record(run_dir)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     set_seed(int(cfg.seed))
     tr = cfg.train
