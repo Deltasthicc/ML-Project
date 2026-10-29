@@ -199,6 +199,23 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
     if cells:
         tabs["factorial_cells"] = pd.DataFrame(cells)
 
+    # paired comparisons used in the ablation section: factor effects within the factorial, and variants / widths vs stage D
+    cell = FACTORIAL_CELLS.get
+    fpairs = []
+    for (bb, topo, dg), exp in FACTORIAL_CELLS.items():
+        if topo != "none" and cell((bb, "none", dg)):                       # effect of the topology loss
+            fpairs.append(((cell((bb, "none", dg)), "det"), (exp, "det")))
+        if dg and cell((bb, topo, False)):                                   # effect of DG augmentation
+            fpairs.append(((cell((bb, topo, False)), "det"), (exp, "det")))
+        if bb == "lite" and cell(("unet", topo, dg)):                        # effect of the compact backbone
+            fpairs.append(((cell(("unet", topo, dg)), "det"), (exp, "det")))
+    fpairs.append((("A_unet", "det"), ("X_lite_dg", "det")))
+    fpairs += [(("D_lite_topo_dg", "det"), (e, "det")) for e in
+               ("V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl", "W_lite_w8", "W_lite_w24", "W_lite_w32", "W_lite_w48")]
+    fpairs = [(a, b) for a, b in fpairs if a in present and b in present]
+    if fpairs:
+        tabs["factorial_deltas"] = stage_deltas(run_tab, fpairs)
+
     nat = load_runs(runs_dir, "native")
     if not nat.empty:
         nt = add_gaps(per_run_table(pd.concat([nat, df[df.dataset == "drive"].assign(scale_mode="fov")], ignore_index=True)))

@@ -3,18 +3,18 @@
 \caption{Per-dataset results (mean$\pm$std over seeds). Betti-0 error is the absolute difference in the number of connected components (lower is better); counts are per image at native label resolution, so they grow with image size.}
 \label{tab:datasets}
 \small
-\begin{adjustbox}{max width=\textwidth}\begin{tabular}{l ccc}
+\begin{adjustbox}{max width=\textwidth}\begin{tabular}{l ccc ccc ccc ccc}
 \toprule
-Stage & \multicolumn{3}{c}{DRIVE} \\
-\cmidrule(lr){2-4}
- & Dice & clDice & $\beta_0$ \\
+Stage & \multicolumn{3}{c}{DRIVE} & \multicolumn{3}{c}{STARE} & \multicolumn{3}{c}{CHASE\_DB1} & \multicolumn{3}{c}{HRF} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+ & Dice & clDice & $\beta_0$ & Dice & clDice & $\beta_0$ & Dice & clDice & $\beta_0$ & Dice & clDice & $\beta_0$ \\
 \midrule
-A & -- & -- & -- \\
-B & -- & -- & -- \\
-C & -- & -- & -- \\
-D & -- & -- & -- \\
-E (det.) & -- & -- & -- \\
-E (MC) & -- & -- & -- \\
+A & \textbf{0.830}{\scriptsize$\pm$0.001} & 0.831{\scriptsize$\pm$0.003} & 52.8 & 0.796{\scriptsize$\pm$0.005} & 0.867{\scriptsize$\pm$0.002} & 32.6 & \textbf{0.774}{\scriptsize$\pm$0.001} & 0.835{\scriptsize$\pm$0.002} & 50.4 & 0.706{\scriptsize$\pm$0.009} & 0.809{\scriptsize$\pm$0.002} & 113.0 \\
+B & 0.827{\scriptsize$\pm$0.001} & 0.845{\scriptsize$\pm$0.001} & 35.1 & 0.793{\scriptsize$\pm$0.003} & 0.874{\scriptsize$\pm$0.004} & \textbf{22.0} & 0.770{\scriptsize$\pm$0.003} & 0.840{\scriptsize$\pm$0.009} & 30.6 & 0.691{\scriptsize$\pm$0.006} & \textbf{0.813}{\scriptsize$\pm$0.009} & \textbf{38.0} \\
+C & 0.826{\scriptsize$\pm$0.001} & \textbf{0.848}{\scriptsize$\pm$0.001} & \textbf{29.0} & \textbf{0.811}{\scriptsize$\pm$0.002} & \textbf{0.875}{\scriptsize$\pm$0.001} & 23.4 & 0.768{\scriptsize$\pm$0.003} & \textbf{0.851}{\scriptsize$\pm$0.001} & \textbf{22.5} & \textbf{0.707}{\scriptsize$\pm$0.001} & 0.812{\scriptsize$\pm$0.000} & 38.0 \\
+D & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 44.6 & 0.801{\scriptsize$\pm$0.004} & 0.868{\scriptsize$\pm$0.004} & 36.0 & 0.763{\scriptsize$\pm$0.001} & 0.844{\scriptsize$\pm$0.001} & 30.2 & 0.706{\scriptsize$\pm$0.005} & 0.789{\scriptsize$\pm$0.004} & 65.9 \\
+E (det.) & 0.822{\scriptsize$\pm$0.000} & 0.840{\scriptsize$\pm$0.001} & 42.9 & 0.801{\scriptsize$\pm$0.004} & 0.869{\scriptsize$\pm$0.002} & 33.4 & 0.762{\scriptsize$\pm$0.004} & 0.844{\scriptsize$\pm$0.003} & 27.5 & 0.702{\scriptsize$\pm$0.003} & 0.788{\scriptsize$\pm$0.002} & 67.2 \\
+E (MC) & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 43.4 & 0.802{\scriptsize$\pm$0.004} & 0.870{\scriptsize$\pm$0.002} & 33.9 & 0.763{\scriptsize$\pm$0.004} & 0.844{\scriptsize$\pm$0.003} & 28.2 & 0.703{\scriptsize$\pm$0.004} & 0.787{\scriptsize$\pm$0.002} & 68.1 \\
 \bottomrule
 \end{tabular}\end{adjustbox}
 \end{table*}

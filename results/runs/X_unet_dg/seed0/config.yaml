@@ -1,0 +1,69 @@
+name: X_unet_dg
+seed: 0
+paths:
+  processed: data/processed
+  cache: data/cache
+  runs: results/runs
+  split_file: splits/drive_split.json
+data:
+  fov_target_width: 527
+  patch_size: 256
+  clahe_clip: 2.0
+  clahe_tile_px: 64
+  train_dataset: drive
+  eval_datasets:
+  - drive
+  - stare
+  - chase_db1
+  - hrf
+model:
+  backbone: unet
+  base_channels: 64
+  width: 16
+  dropout: 0.0
+  skeleton_head: false
+loss:
+  lambda_bce: 1.0
+  topo: none
+  lambda_topo: 0.5
+  lambda_skel_head: 0.5
+  lambda_cons: 0.5
+  skel_iters: 10
+dg:
+  enabled: true
+  p_color: 0.8
+  p_illum: 0.6
+  p_blur: 0.4
+  p_noise: 0.4
+  p_jpeg: 0.3
+  p_dropout: 0.6
+  elastic_alpha: 12.0
+  elastic_sigma: 8.0
+  p_elastic: 0.5
+train:
+  iters: 5000
+  batch_size: 8
+  lr: 0.001
+  weight_decay: 0.0001
+  warmup_iters: 200
+  grad_clip: 1.0
+  val_every: 250
+  num_workers: 4
+  amp: true
+  log_every: 50
+eval:
+  threshold: 0.5
+  mc_samples: 20
+  scale_mode: fov
+  save_preds_seed: 0
+  max_eval_pixels: null
+  metric_workers: 4
+  max_images: null
+  uncertainty_pixels: 200000
+efficiency:
+  input_hw:
+  - 512
+  - 512
+  warmup: 10
+  repeats: 50
+  cpu_threads: 4

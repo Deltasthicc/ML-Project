@@ -36,3 +36,6 @@ report/*.synctex.gz
 
 .DS_Store
 Thumbs.db
+
+# downloaded Kaggle result bundles (large; the small result files are already in results/runs and results/tables)
+results_bundle*.zip

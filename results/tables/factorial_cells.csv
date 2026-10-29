@@ -1,0 +1,9 @@
+backbone,topology,dg,exp
+unet,False,False,A_unet
+unet,True,False,B_unet_topo
+unet,False,True,X_unet_dg
+unet,True,True,C_unet_topo_dg
+lite,False,False,X_lite_plain
+lite,True,False,X_lite_topo
+lite,False,True,X_lite_dg
+lite,True,True,D_lite_topo_dg

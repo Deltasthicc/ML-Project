@@ -1,22 +1,22 @@
 \begin{table}[t]
 \centering
-\caption{Supplementary studies on the stage-D recipe. Top: topology-loss variant. Bottom: lite-backbone width (capacity) sweep.}
+\caption{Supplementary studies on the stage-D recipe. Top: topology-loss variant. Bottom: lite-backbone width (capacity) sweep. The $w{=}16$ / soft-clDice row is stage D (3 seeds); all other rows used 2 seeds.}
 \label{tab:variants}
 \small
 \begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l ccc cc}
 \toprule
  & Src Dice & Unseen Dice & Unseen clDice & Params (M) & GFLOPs \\
 \midrule
-soft-clDice (D) & -- & -- & -- & -- & -- \\
-cbDice & -- & -- & -- & -- & -- \\
-Skeleton Recall & -- & -- & -- & -- & -- \\
-clDice + Skeleton Recall & -- & -- & -- & -- & -- \\
+soft-clDice (D) & 0.822{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.003} & 0.834{\scriptsize$\pm$0.001} & 0.21 & 5.5 \\
+cbDice & 0.818{\scriptsize$\pm$0.001} & 0.745{\scriptsize$\pm$0.003} & 0.834{\scriptsize$\pm$0.003} & 0.21 & 5.5 \\
+Skeleton Recall & 0.814{\scriptsize$\pm$0.002} & 0.740{\scriptsize$\pm$0.003} & 0.829{\scriptsize$\pm$0.000} & 0.21 & 5.5 \\
+clDice + Skeleton Recall & 0.810{\scriptsize$\pm$0.002} & 0.734{\scriptsize$\pm$0.002} & 0.834{\scriptsize$\pm$0.002} & 0.21 & 5.5 \\
 \midrule
-width $w{=}8$ & -- & -- & -- & -- & -- \\
-width $w{=}16$ & -- & -- & -- & -- & -- \\
-width $w{=}24$ & -- & -- & -- & -- & -- \\
-width $w{=}32$ & -- & -- & -- & -- & -- \\
-width $w{=}48$ & -- & -- & -- & -- & -- \\
+width $w{=}8$ & 0.816{\scriptsize$\pm$0.001} & 0.752{\scriptsize$\pm$0.005} & 0.822{\scriptsize$\pm$0.001} & 0.06 & 1.6 \\
+width $w{=}16$ & 0.822{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.003} & 0.834{\scriptsize$\pm$0.001} & 0.21 & 5.5 \\
+width $w{=}24$ & 0.821{\scriptsize$\pm$0.003} & 0.763{\scriptsize$\pm$0.001} & 0.834{\scriptsize$\pm$0.004} & 0.46 & 11.8 \\
+width $w{=}32$ & 0.823{\scriptsize$\pm$0.001} & 0.762{\scriptsize$\pm$0.003} & 0.836{\scriptsize$\pm$0.003} & 0.81 & 20.3 \\
+width $w{=}48$ & 0.823{\scriptsize$\pm$0.001} & 0.760{\scriptsize$\pm$0.008} & 0.838{\scriptsize$\pm$0.000} & 1.81 & 44.4 \\
 \bottomrule
 \end{tabular}\end{adjustbox}
 \end{table}

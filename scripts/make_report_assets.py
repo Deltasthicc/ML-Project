@@ -179,7 +179,8 @@ def table_uncertainty(unc, targets) -> str:
 
 def table_factorial(summ) -> str:
     lines = ["\\begin{table}[t]", "\\centering", "\\caption{Full factorial design (backbone $\\times$ topology loss $\\times$ DG augmentation). "
-             "Unseen = macro average over STARE, CHASE\\_DB1, HRF.}", "\\label{tab:factorial}", "\\small",
+             "Unseen = macro average over STARE, CHASE\\_DB1, HRF. Four cells are stages A--D (3 seeds): "
+             "U-Net plain, U-Net+topo, U-Net+topo+DG and Lite+topo+DG. The other four cells were run with 2 seeds, so their $\\pm$ is only indicative.}", "\\label{tab:factorial}", "\\small",
              "\\begin{tabular}{lcc cc cc}", "\\toprule", "Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\\Delta$Dice \\\\", "\\midrule"]
     tick = lambda b: "\\checkmark" if b else "--"  # noqa: E731
     for (bb, topo, dg), exp in sorted(FACTORIAL_CELLS.items(), key=lambda kv: (kv[0][0] != "unet", kv[0][1] != "none", kv[0][2])):
@@ -194,7 +195,7 @@ def table_variants(summ, eff) -> str:
     rows = [("D_lite_topo_dg", "soft-clDice (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skeleton Recall")]
     wrows = [("W_lite_w8", 8), ("D_lite_topo_dg", 16), ("W_lite_w24", 24), ("W_lite_w32", 32), ("W_lite_w48", 48)]
     lines = ["\\begin{table}[t]", "\\centering", "\\caption{Supplementary studies on the stage-D recipe. Top: topology-loss variant. Bottom: lite-backbone width "
-             "(capacity) sweep.}", "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
+             "(capacity) sweep. The $w{=}16$ / soft-clDice row is stage D (3 seeds); all other rows used 2 seeds.}", "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
              " & Src Dice & Unseen Dice & Unseen clDice & Params (M) & GFLOPs \\\\", "\\midrule"]
     def row(exp, label):
         cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3) for ds, met in (("drive", "dice"), ("unseen", "dice"), ("unseen", "cldice"))]
@@ -222,9 +223,11 @@ def table_dataset_info(cfg) -> str:
              r"Source = train (16) / validation (4) / test (20 official test images); targets are test-only.}",
              r"\label{tab:data}", r"\small", r"\begin{tabular}{l r c r r c c l}", r"\toprule",
              r"Dataset & \# & Size (px) & Vessel \% & FOV (px) & Calibre (px) & G & Role \\", r"\midrule"]
+    summ_f = ROOT / "results" / "tables" / "summary.csv"
+    evaluated = set(pd.read_csv(summ_f).dataset) if summ_f.exists() else set()
     for ds, (name, role) in meta.items():
         f = ROOT / "data" / "processed" / ds / "stats.json"
-        if not f.exists():
+        if not f.exists() or (ds == "fives" and "fives" not in evaluated):   # list only datasets that were actually evaluated
             continue
         st = _json.loads(f.read_text())
         hw = next(iter(st["per_image"].values()))["hw"]
