@@ -7,3 +7,12 @@
 *.ps1 text eol=crlf
 *.png binary
 *.pdf binary
+
+# Left out of `git archive` (the submission zip). Build it with:  git archive -o submission.zip HEAD
+CLAUDE.md export-ignore
+CODEX.md export-ignore
+AGENTS.md export-ignore
+GEMINI.md export-ignore
+.claude export-ignore
+.github export-ignore
+.gitattributes export-ignore
