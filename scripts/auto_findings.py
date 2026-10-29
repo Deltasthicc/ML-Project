@@ -77,7 +77,10 @@ def main() -> None:
 
     text = "\n".join(out) + "\n"
     resolve_path("results/findings.md").write_text(text, encoding="utf-8")
-    print(text)
+    try:                                   # the text contains Unicode minus signs; legacy Windows consoles (cp1252) cannot print them
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", "replace").decode("ascii"))
 
 
 if __name__ == "__main__":

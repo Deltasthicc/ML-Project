@@ -8,6 +8,9 @@ factorial  The remaining cells of the 2 (backbone) x 2 (topology) x 2 (DG) full-
            be read off.  Together with A-D they give all 8 cells.
 topology   Topology-loss variants on the stage-D recipe: soft-clDice (= D), radius-aware cbDice, Skeleton Recall, clDice + Skeleton Recall.
 width      Capacity sweep of the lite backbone on the stage-D recipe (accuracy / topology / gap vs params, FLOPs, latency).
+compact_unet  Plain U-Nets of base width 8 and 16 with the stage-D recipe: the fair "just use fewer channels" baseline for the
+              depthwise-separable backbone (base 8 has about the FLOPs of the lite w=16 model, base 16 about 4x).
+controls   Stage D with one ingredient removed: no skeleton head (clDice only) and no consistency loss (DG views kept).
 """
 from __future__ import annotations
 
@@ -42,14 +45,30 @@ REGISTRY: dict[str, dict] = {
 for _w in (8, 24, 32, 48):                                   # width 16 is stage D itself
     REGISTRY[f"W_lite_w{_w}"] = _e("lite", "cldice", dg=True, width=_w)
 
+# ---- compact plain U-Nets with the stage-D recipe: is the depthwise-separable backbone better than just fewer channels? ----
+for _b in (8, 16):
+    REGISTRY[f"S_unet_b{_b}"] = _e("unet", "cldice", dg=True, base_channels=_b)
+
+
+def _with_loss(entry: dict, **loss) -> dict:
+    entry["loss"].update(loss)
+    return entry
+
+
+# ---- controls on stage D: remove one ingredient of the topology / DG packages at a time -----------------------------------
+REGISTRY["Z_lite_noskel"] = _with_loss(_e("lite", "cldice", dg=True, skeleton_head=False), lambda_skel_head=0.0)   # clDice without the skeleton head
+REGISTRY["Z_lite_nocons"] = _with_loss(_e("lite", "cldice", dg=True), lambda_cons=0.0)                            # DG views, no consistency term
+
 GROUPS: dict[str, list[str]] = {
     "primary": ["A_unet", "B_unet_topo", "C_unet_topo_dg", "D_lite_topo_dg", "E_tglitenet"],
     "factorial": ["X_unet_dg", "X_lite_plain", "X_lite_topo", "X_lite_dg"],
     "topology": ["V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl"],
     "width": [f"W_lite_w{w}" for w in (8, 24, 32, 48)],
+    "compact_unet": ["S_unet_b8", "S_unet_b16"],
+    "controls": ["Z_lite_noskel", "Z_lite_nocons"],
 }
 # default number of seeds per group (small, cheap models can afford more seeds)
-DEFAULT_SEEDS = {"primary": 5, "factorial": 5, "topology": 3, "width": 3}
+DEFAULT_SEEDS = {"primary": 5, "factorial": 5, "topology": 3, "width": 3, "compact_unet": 3, "controls": 3}
 # the stage-D recipe is shared by "primary" and the supplementary groups (referenced by the aggregation script)
 FACTORIAL_CELLS = {
     ("unet", "none", False): "A_unet", ("unet", "cldice", False): "B_unet_topo",

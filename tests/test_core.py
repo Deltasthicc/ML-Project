@@ -195,7 +195,7 @@ def test_config_overrides_and_registry():
     assert e.model.dropout > 0 and e.dg.enabled and e.loss.topo == "cldice" and e.model.backbone == "lite"
     a = make_config("A_unet")
     assert a.model.dropout == 0 and not a.dg.enabled and a.loss.topo == "none" and not a.model.skeleton_head
-    assert len(REGISTRY) == 5 + 4 + 3 + 4
+    assert len(REGISTRY) == 5 + 4 + 3 + 4 + 2 + 2          # primary, factorial, topology, width, compact_unet, controls
 
 
 def test_flop_counter_orders_models():

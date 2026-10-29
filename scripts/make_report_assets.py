@@ -89,11 +89,12 @@ def table_main(summ, eff) -> str:
         best.append(best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low))
     lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, "
              "CHASE\\_DB1 and HRF (never used for training or model selection); $\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). "
-             "FLOPs and latency are for one $512{\\times}512$ image; E (MC) needs $T$ forward passes. Best per column in bold.}",
-             "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rr}", "\\toprule",
-             " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & \\\\",
-             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}",
-             "Stage & Dice & clDice & Dice & clDice & cbDice & $\\beta_0$ err & $\\Delta$Dice & Params (M) & GFLOPs \\\\", "\\midrule"]
+             "FLOPs and latency are for one $512{\\times}512$ image (batch 1; CPU = 4 threads) on the Kaggle machine of Sec.~\\ref{sec:setup}; latency is "
+             "machine-dependent; E (MC) needs $T$ forward passes. Best per column in bold.}",
+             "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rrrr}", "\\toprule",
+             " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & & \\multicolumn{2}{c}{Latency (ms)} \\\\",
+             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}\\cmidrule(lr){11-12}",
+             "Stage & Dice & clDice & Dice & clDice & cbDice & $\\beta_0$ err & $\\Delta$Dice & Params (M) & GFLOPs & CPU & GPU \\\\", "\\midrule"]
     for r, (exp, mode, lab) in enumerate(STAGES):
         cells = []
         for k, (ds, met, _, _) in enumerate(cols):
@@ -102,9 +103,13 @@ def table_main(summ, eff) -> str:
         e = eff[eff.exp == exp] if len(eff) else pd.DataFrame()
         p = f"{e.params_m.iloc[0]:.2f}" if len(e) else "--"
         g = f"{e.gflops.iloc[0]:.1f}" if len(e) else "--"
+        cpu = f"{e.cpu_ms.iloc[0]:.0f}" if len(e) else "--"
+        gpu = f"{e.gpu_ms.iloc[0]:.1f}" if len(e) and "gpu_ms" in e and not pd.isna(e.gpu_ms.iloc[0]) else "--"
         if mode == "mc" and len(e):
-            g += f" $\\times$ {int(e.mc_samples.iloc[0])}"
-        lines.append(f"{lab} & " + " & ".join(cells) + f" & {p} & {g} \\\\")
+            t = int(e.mc_samples.iloc[0])
+            g, cpu = g + f" $\\times$ {t}", cpu + f" $\\times$ {t}"
+            gpu = gpu + f" $\\times$ {t}" if gpu != "--" else gpu
+        lines.append(f"{lab} & " + " & ".join(cells) + f" & {p} & {g} & {cpu} & {gpu} \\\\")
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table*}"]
     return "\n".join(lines)
 
@@ -177,10 +182,33 @@ def table_uncertainty(unc, targets) -> str:
     return "\n".join(lines)
 
 
+def table_confusion(conf, targets) -> str:
+    """Pixel confusion matrix (share of FOV pixels) with precision / recall / F1 / accuracy: TG-LiteNet per dataset, and stages A-E on the unseen average."""
+    lines = ["\\begin{table}[t]", "\\centering",
+             "\\caption{Pixel-level confusion matrix and classification metrics (vessel = positive class, threshold 0.5). TP, FP, FN, TN are shares of the "
+             "FOV pixels in \\%; all values are means over images and seeds. Top: TG-LiteNet (E, deterministic) on every dataset. Bottom: stages A--E on "
+             "the unseen average. F1 equals the per-image Dice.}", "\\label{tab:confusion}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
+             "\\begin{tabular}{l cccc cccc}", "\\toprule",
+             " & TP & FP & FN & TN & Precision & Recall & F1 & Accuracy \\\\", "\\midrule"]
+
+    def row(label, exp, ds, mode="det"):
+        r = conf[(conf.exp == exp) & (conf["mode"] == mode) & (conf.dataset == ds)]
+        if r.empty:
+            return None
+        r = r.iloc[0]
+        cells = [f"{100 * r[k]:.2f}" for k in ("tp", "fp", "fn", "tn")] + [f"{r[k]:.3f}" for k in ("precision", "recall", "f1", "accuracy")]
+        return f"{label} & " + " & ".join(cells) + " \\\\"
+
+    top = [row(NICE[d], "E_tglitenet", d) for d in ["drive"] + list(targets)]
+    bottom = [row(f"{lab}, unseen avg.", e, "unseen") for e, mode, lab in STAGES if mode == "det"]
+    lines += [t for t in top if t] + ["\\midrule"] + [b for b in bottom if b] + ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    return "\n".join(lines)
+
+
 def table_factorial(summ) -> str:
-    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Full factorial design (backbone $\\times$ topology loss $\\times$ DG augmentation). "
-             "Unseen = macro average over STARE, CHASE\\_DB1, HRF. Four cells are stages A--D (3 seeds): "
-             "U-Net plain, U-Net+topo, U-Net+topo+DG and Lite+topo+DG. The other four cells were run with 2 seeds, so their $\\pm$ is only indicative.}", "\\label{tab:factorial}", "\\small",
+    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Full factorial design (backbone $\\times$ topology $\\times$ DG). Unseen = macro average over the three targets. "
+             "U-Net plain, U-Net+topo, U-Net+topo+DG and Lite+topo+DG are stages A--D (3 seeds); the other cells have 2 seeds, so their $\\pm$ is only indicative.}",
+             "\\label{tab:factorial}", "\\small",
              "\\begin{tabular}{lcc cc cc}", "\\toprule", "Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\\Delta$Dice \\\\", "\\midrule"]
     tick = lambda b: "\\checkmark" if b else "--"  # noqa: E731
     for (bb, topo, dg), exp in sorted(FACTORIAL_CELLS.items(), key=lambda kv: (kv[0][0] != "unet", kv[0][1] != "none", kv[0][2])):
@@ -194,8 +222,8 @@ def table_factorial(summ) -> str:
 def table_variants(summ, eff) -> str:
     rows = [("D_lite_topo_dg", "soft-clDice (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skeleton Recall")]
     wrows = [("W_lite_w8", 8), ("D_lite_topo_dg", 16), ("W_lite_w24", 24), ("W_lite_w32", 32), ("W_lite_w48", 48)]
-    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Supplementary studies on the stage-D recipe. Top: topology-loss variant. Bottom: lite-backbone width "
-             "(capacity) sweep. The $w{=}16$ / soft-clDice row is stage D (3 seeds); all other rows used 2 seeds.}", "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
+    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Stage-D variants: topology loss (top) and lite width (bottom). The soft-clDice / $w{=}16$ row is stage D (3 seeds); all others used 2 seeds.}",
+             "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
              " & Src Dice & Unseen Dice & Unseen clDice & Params (M) & GFLOPs \\\\", "\\midrule"]
     def row(exp, label):
         cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3) for ds, met in (("drive", "dice"), ("unseen", "dice"), ("unseen", "cldice"))]
@@ -319,7 +347,14 @@ def fig_ablation(summ, targets):
     savefig(fig, "fig_ablation")
 
 
+SHORT = {"X_unet_dg": "U+DG", "X_lite_plain": "L", "X_lite_topo": "L+T", "X_lite_dg": "L+DG", "V_lite_cbdice": "cbD", "V_lite_srl": "SRL",
+         "V_lite_cldice_srl": "cl+SRL", "W_lite_w8": "w8", "W_lite_w24": "w24", "W_lite_w32": "w32", "W_lite_w48": "w48",
+         "S_unet_b8": "U8", "S_unet_b16": "U16", "Z_lite_noskel": "-head", "Z_lite_nocons": "-cons"}
+LABELLED = {"X_unet_dg", "X_lite_plain", "X_lite_dg", "W_lite_w8", "W_lite_w48", "S_unet_b8", "S_unet_b16", "Z_lite_noskel", "Z_lite_nocons"}
+
+
 def fig_tradeoff(summ, eff):
+    """Two readable panels: unseen Dice vs unseen Betti-0 error (the overlap/connectivity trade-off) and vs CPU latency (the cost)."""
     if summ.empty or not len(eff):
         return
     pts = []
@@ -327,22 +362,29 @@ def fig_tradeoff(summ, eff):
         e = eff[eff.exp == exp]
         if e.empty:
             continue
-        pts.append((exp, e.params_m.iloc[0], e.gflops.iloc[0], val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "cldice"),
-                    val(summ, exp, "gap_unseen", "dice")))
+        pts.append((exp, float(e.cpu_ms.iloc[0]), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "betti0_err")))
     if not pts:
         return
-    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.4))
-    for ax, (k, lab) in zip(axes, [(3, "Unseen Dice"), (4, "Unseen clDice"), (5, "$\\Delta$Dice (src $-$ unseen)")]):
+    fig, axes = plt.subplots(1, 2, figsize=(3.5, 1.95))
+    for ax, (xi, xl, logx) in zip(axes, [(3, "Unseen Betti-0 error (lower is better)", False), (1, "CPU latency, ms (log)", True)]):
         for p in pts:
             stage = next((s for e, m, s in STAGES if e == p[0] and m == "det"), None)
-            ax.scatter(p[2], p[k], s=28, color=COL.get(stage, "#bbbbbb"), edgecolor="k", linewidth=0.4, zorder=3)
-            ax.annotate(stage or p[0].replace("_lite", "").replace("W_", "w").replace("X_", "")[:9], (p[2], p[k]), fontsize=5.5, xytext=(2, 2), textcoords="offset points")
-        ax.set_xscale("log")
-        ax.set_xlabel("GFLOPs @512$^2$ (log)", fontsize=7)
-        ax.set_ylabel(lab, fontsize=7)
-        ax.tick_params(labelsize=6)
+            marker = "s" if ("unet" in p[0] or p[0][0] in "ABC") and not p[0].startswith(("D_", "E_")) else "o"
+            ax.scatter(p[xi], p[2], s=16, marker=marker, color=COL.get(stage, "#bbbbbb"), edgecolor="k", linewidth=0.4, zorder=3)
+            lab = stage if stage and not stage.startswith("E (MC)") else SHORT.get(p[0]) if p[0] in LABELLED else None
+            if lab:
+                ax.annotate(lab.replace(" (det.)", ""), (p[xi], p[2]), fontsize=5.5, xytext=(2, 1.5), textcoords="offset points")
+        if logx:
+            ax.set_xscale("log")
+            ax.set_xticks([100, 300, 1000, 3000])
+            ax.set_xticklabels(["100", "300", "1000", "3000"])
+            ax.minorticks_off()
+            ax.set_xlim(90, 6500)
+        ax.set_xlabel(xl, fontsize=6)
+        ax.tick_params(labelsize=5.5)
         ax.grid(alpha=0.3)
-    fig.tight_layout()
+    axes[0].set_ylabel("Unseen Dice", fontsize=6)
+    fig.tight_layout(pad=0.4)
     savefig(fig, "fig_tradeoff")
 
 
@@ -477,6 +519,9 @@ def main() -> None:
     write("tab_datasets.tex", table_datasets(summ, ["drive"] + targets + extra))
     write("tab_efficiency.tex", table_efficiency(eff))
     write("tab_uncertainty.tex", table_uncertainty(unc, targets + extra))
+    conf = pd.read_csv(tdir / "confusion.csv") if (tdir / "confusion.csv").exists() else pd.DataFrame()
+    if len(conf):
+        write("tab_confusion.tex", table_confusion(conf, targets))
     write("tab_factorial.tex", table_factorial(summ))
     write("tab_variants.tex", table_variants(summ, eff))
     write("tab_datasets_info.tex", table_dataset_info(cfg))

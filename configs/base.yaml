@@ -1,4 +1,4 @@
-# Defaults shared by every experiment. Stage-specific files in configs/exp/ override only what differs.
+# Defaults shared by every experiment. Each experiment overrides only what differs (registry in tglite/experiments.py).
 name: base
 seed: 0
 

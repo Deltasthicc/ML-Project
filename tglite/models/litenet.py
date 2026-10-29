@@ -8,7 +8,7 @@ Design goals (preliminary report, Sec. VIII-A): fixed compact model, <= ~2 M par
  * decoder: bilinear up-sampling + skip concatenation + one separable block per level;
  * heads: mask head (always), auxiliary skeleton head (training only), Dropout2d for MC-dropout uncertainty.
 
-``width`` is the single capacity knob; scripts/width_sweep reports params/FLOPs/latency/accuracy for several values.
+``width`` is the single capacity knob (the paper uses 16; the ``W_lite_w*`` experiments in tglite/experiments.py sweep it).
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ class SepBlock(nn.Module):
 class LiteNet(nn.Module):
     n_down = 4
 
-    def __init__(self, in_ch: int = 1, width: int = 24, dropout: float = 0.0, skeleton_head: bool = False):
+    def __init__(self, in_ch: int = 1, width: int = 16, dropout: float = 0.0, skeleton_head: bool = False):
         super().__init__()
         w = width
         c = [w, 2 * w, 4 * w, 8 * w, 8 * w]

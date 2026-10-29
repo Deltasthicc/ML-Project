@@ -1,20 +1,20 @@
 \begin{table*}[t]
 \centering
-\caption{Staged ablation (mean$\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, CHASE\_DB1 and HRF (never used for training or model selection); $\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). FLOPs and latency are for one $512{\times}512$ image; E (MC) needs $T$ forward passes. Best per column in bold.}
+\caption{Staged ablation (mean$\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, CHASE\_DB1 and HRF (never used for training or model selection); $\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). FLOPs and latency are for one $512{\times}512$ image (batch 1; CPU = 4 threads) on the Kaggle machine of Sec.~\ref{sec:setup}; latency is machine-dependent; E (MC) needs $T$ forward passes. Best per column in bold.}
 \label{tab:main}
 \small
-\begin{adjustbox}{max width=\textwidth}\begin{tabular}{l cc ccccc rr}
+\begin{adjustbox}{max width=\textwidth}\begin{tabular}{l cc ccccc rrrr}
 \toprule
- & \multicolumn{2}{c}{Source (DRIVE)} & \multicolumn{5}{c}{Unseen domains} & & \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-8}
-Stage & Dice & clDice & Dice & clDice & cbDice & $\beta_0$ err & $\Delta$Dice & Params (M) & GFLOPs \\
+ & \multicolumn{2}{c}{Source (DRIVE)} & \multicolumn{5}{c}{Unseen domains} & & & \multicolumn{2}{c}{Latency (ms)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-8}\cmidrule(lr){11-12}
+Stage & Dice & clDice & Dice & clDice & cbDice & $\beta_0$ err & $\Delta$Dice & Params (M) & GFLOPs & CPU & GPU \\
 \midrule
-A & \textbf{0.830}{\scriptsize$\pm$0.001} & 0.831{\scriptsize$\pm$0.003} & 0.759{\scriptsize$\pm$0.005} & 0.837{\scriptsize$\pm$0.001} & \textbf{0.729}{\scriptsize$\pm$0.004} & 65.35{\scriptsize$\pm$6.82} & 0.071{\scriptsize$\pm$0.004} & 31.04 & 384.7 \\
-B & 0.827{\scriptsize$\pm$0.001} & 0.845{\scriptsize$\pm$0.001} & 0.751{\scriptsize$\pm$0.004} & 0.842{\scriptsize$\pm$0.005} & 0.727{\scriptsize$\pm$0.004} & 30.18{\scriptsize$\pm$1.23} & 0.076{\scriptsize$\pm$0.003} & 31.04 & 384.7 \\
-C & 0.826{\scriptsize$\pm$0.001} & \textbf{0.848}{\scriptsize$\pm$0.001} & \textbf{0.762}{\scriptsize$\pm$0.001} & \textbf{0.846}{\scriptsize$\pm$0.001} & 0.729{\scriptsize$\pm$0.002} & \textbf{27.98}{\scriptsize$\pm$2.01} & \textbf{0.065}{\scriptsize$\pm$0.002} & 31.04 & 384.7 \\
-D & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.003} & 0.834{\scriptsize$\pm$0.001} & 0.721{\scriptsize$\pm$0.005} & 44.05{\scriptsize$\pm$4.43} & 0.065{\scriptsize$\pm$0.002} & 0.21 & 5.5 \\
-E (det.) & 0.822{\scriptsize$\pm$0.000} & 0.840{\scriptsize$\pm$0.001} & 0.755{\scriptsize$\pm$0.004} & 0.834{\scriptsize$\pm$0.001} & 0.720{\scriptsize$\pm$0.005} & 42.70{\scriptsize$\pm$3.59} & 0.067{\scriptsize$\pm$0.003} & 0.21 & 5.5 \\
-E (MC) & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.004} & 0.834{\scriptsize$\pm$0.001} & 0.721{\scriptsize$\pm$0.005} & 43.41{\scriptsize$\pm$3.84} & 0.066{\scriptsize$\pm$0.003} & 0.21 & 5.5 $\times$ 20 \\
+A & \textbf{0.830}{\scriptsize$\pm$0.001} & 0.831{\scriptsize$\pm$0.003} & 0.759{\scriptsize$\pm$0.005} & 0.837{\scriptsize$\pm$0.001} & \textbf{0.729}{\scriptsize$\pm$0.004} & 65.35{\scriptsize$\pm$6.82} & 0.071{\scriptsize$\pm$0.004} & 31.04 & 384.7 & 2915 & 91.1 \\
+B & 0.827{\scriptsize$\pm$0.001} & 0.845{\scriptsize$\pm$0.001} & 0.751{\scriptsize$\pm$0.004} & 0.842{\scriptsize$\pm$0.005} & 0.727{\scriptsize$\pm$0.004} & 30.18{\scriptsize$\pm$1.23} & 0.076{\scriptsize$\pm$0.003} & 31.04 & 384.7 & 2886 & 89.6 \\
+C & 0.826{\scriptsize$\pm$0.001} & \textbf{0.848}{\scriptsize$\pm$0.001} & \textbf{0.762}{\scriptsize$\pm$0.001} & \textbf{0.846}{\scriptsize$\pm$0.001} & 0.729{\scriptsize$\pm$0.002} & \textbf{27.98}{\scriptsize$\pm$2.01} & \textbf{0.065}{\scriptsize$\pm$0.002} & 31.04 & 384.7 & 2770 & 89.3 \\
+D & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.003} & 0.834{\scriptsize$\pm$0.001} & 0.721{\scriptsize$\pm$0.005} & 44.05{\scriptsize$\pm$4.43} & 0.065{\scriptsize$\pm$0.002} & 0.21 & 5.5 & 405 & 12.2 \\
+E (det.) & 0.822{\scriptsize$\pm$0.000} & 0.840{\scriptsize$\pm$0.001} & 0.755{\scriptsize$\pm$0.004} & 0.834{\scriptsize$\pm$0.001} & 0.720{\scriptsize$\pm$0.005} & 42.70{\scriptsize$\pm$3.59} & 0.067{\scriptsize$\pm$0.003} & 0.21 & 5.5 & 429 & 12.2 \\
+E (MC) & 0.822{\scriptsize$\pm$0.001} & 0.840{\scriptsize$\pm$0.001} & 0.756{\scriptsize$\pm$0.004} & 0.834{\scriptsize$\pm$0.001} & 0.721{\scriptsize$\pm$0.005} & 43.41{\scriptsize$\pm$3.84} & 0.066{\scriptsize$\pm$0.003} & 0.21 & 5.5 $\times$ 20 & 429 $\times$ 20 & 12.2 $\times$ 20 \\
 \bottomrule
 \end{tabular}\end{adjustbox}
 \end{table*}

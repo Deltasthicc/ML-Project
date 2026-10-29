@@ -133,6 +133,38 @@ def stage_deltas(run_tab: pd.DataFrame, pairs: list[tuple[tuple[str, str], tuple
     return pd.DataFrame(rows)
 
 
+def paired_image_deltas(df: pd.DataFrame, pairs, metrics=("dice", "cldice", "betti0_err"), n_boot: int = 2000, seed: int = 0) -> pd.DataFrame:
+    """Paired comparison on the test *images*: for every image the metric is averaged over the seeds of each method and the
+    second method is compared with the first on that same image.  Reports the mean difference with a percentile bootstrap
+    interval over images, the share of images that got worse/better and a Wilcoxon signed-rank p-value.
+
+    This captures test-set sampling variability only; training randomness is covered by the seed-level Welch intervals of
+    ``stage_deltas``.  ``unseen`` pools the 93 images of STARE, CHASE_DB1 and HRF (image-weighted).  Many comparisons are made
+    without multiplicity correction, so p-values are descriptive.
+    """
+    d = df.assign(key=df.dataset + "/" + df.id.astype(str))
+    rng = np.random.default_rng(seed)
+    rows = []
+    for (e1, m1), (e2, m2) in pairs:
+        for scope, dsets in (("unseen", CORE_TARGETS), ("drive", ["drive"])):
+            for met in metrics:
+                a = d[(d.exp == e1) & (d["mode"] == m1) & d.dataset.isin(dsets)].groupby("key")[met].mean()
+                b = d[(d.exp == e2) & (d["mode"] == m2) & d.dataset.isin(dsets)].groupby("key")[met].mean()
+                diff = (b - a).dropna().to_numpy()
+                if len(diff) < 5:
+                    continue
+                boots = diff[rng.integers(0, len(diff), (n_boot, len(diff)))].mean(axis=1)
+                lo, hi = np.percentile(boots, [2.5, 97.5])
+                try:
+                    p = float(stats.wilcoxon(diff).pvalue)
+                except ValueError:
+                    p = float("nan")
+                rows.append({"from": method_name(e1, m1), "to": method_name(e2, m2), "scope": scope, "metric": met, "delta": float(diff.mean()),
+                             "lo95": float(lo), "hi95": float(hi), "frac_higher": float((diff > 0).mean()), "frac_lower": float((diff < 0).mean()),
+                             "p_wilcoxon": p, "n_images": len(diff)})
+    return pd.DataFrame(rows)
+
+
 # ------------------------------------------------------------------------------------------ uncertainty
 def uncertainty_table(df: pd.DataFrame) -> pd.DataFrame:
     """Per (exp, mode, seed, dataset): Spearman(pixel), image-level Spearman, AURC and pixel error vs coverage."""
@@ -165,6 +197,52 @@ def summarise_uncertainty(unc: pd.DataFrame) -> pd.DataFrame:
     m, s = g.mean(), g.std().fillna(0.0)
     out = m.add_suffix("_mean").join(s.add_suffix("_std")).reset_index()
     return out
+
+
+# ------------------------------------------------------------------------------------------ confusion matrix
+def _class_sizes(df: pd.DataFrame, processed_dir: Path) -> dict:
+    """{(dataset, id): (vessel pixels, background pixels)} inside the FOV, at the native resolution the metrics use."""
+    import cv2
+
+    sizes = {}
+    for ds, iid in df[["dataset", "id"]].drop_duplicates().itertuples(index=False):
+        root = processed_dir / ("drive" if ds.startswith("drive") else ds)
+        gt = cv2.imread(str(root / "masks" / f"{iid}.png"), cv2.IMREAD_GRAYSCALE) > 127
+        fov = cv2.imread(str(root / "fov" / f"{iid}.png"), cv2.IMREAD_GRAYSCALE) > 127
+        sizes[(ds, iid)] = (float((gt & fov).sum()), float(fov.sum() - (gt & fov).sum()))
+    return sizes
+
+
+def confusion_summary(runs_dir: str | Path, processed_dir: str | Path) -> pd.DataFrame:
+    """Pixel-level confusion matrix, precision, recall, F1 and accuracy per (experiment, mode, dataset).
+
+    The stored per-image sensitivity and specificity plus the exact ground-truth class sizes inside the FOV give the
+    confusion counts without re-running any model: TP = sens * P, FN = P - TP, TN = spec * N, FP = N - TN.  Cells are
+    reported as a share of the FOV pixels; every statistic is a mean over images and then over seeds, like all other
+    metrics (F1 equals the per-image Dice).  ``unseen`` is the macro average over STARE, CHASE_DB1 and HRF.
+    """
+    frames = []
+    for f in sorted(Path(runs_dir).glob("*/seed*/per_image.csv")):
+        frames.append(pd.read_csv(f, dtype={"id": str}, usecols=["exp", "seed", "mode", "dataset", "id", "sens", "spec", "acc"]))
+    if not frames or not Path(processed_dir).exists():
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    sizes = _class_sizes(df, Path(processed_dir))
+    P = np.array([sizes[(d, i)][0] for d, i in zip(df.dataset, df.id)])
+    N = np.array([sizes[(d, i)][1] for d, i in zip(df.dataset, df.id)])
+    F = P + N
+    df["tp"], df["fn"] = df.sens * P / F, (1 - df.sens) * P / F
+    df["tn"], df["fp"] = df.spec * N / F, (1 - df.spec) * N / F
+    assert np.abs(df.tp + df.tn - df.acc).max() < 1e-6, "derived accuracy disagrees with the stored accuracy"
+    df["precision"] = df.tp / (df.tp + df.fp).replace(0, np.nan)
+    df["recall"] = df.sens
+    df["f1"] = 2 * df.tp / (2 * df.tp + df.fp + df.fn)
+    df["accuracy"] = df.tp + df.tn
+    cols = ["tp", "fp", "fn", "tn", "precision", "recall", "f1", "accuracy"]
+    per_seed = df.groupby(["exp", "mode", "seed", "dataset"])[cols].mean().reset_index()
+    out = per_seed.groupby(["exp", "mode", "dataset"])[cols].mean().reset_index()
+    tgt = out[out.dataset.isin(CORE_TARGETS)].groupby(["exp", "mode"])[cols].mean().reset_index().assign(dataset="unseen")
+    return pd.concat([out, tgt], ignore_index=True)
 
 
 # ------------------------------------------------------------------------------------------ the bundle
@@ -215,6 +293,11 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
     fpairs = [(a, b) for a, b in fpairs if a in present and b in present]
     if fpairs:
         tabs["factorial_deltas"] = stage_deltas(run_tab, fpairs)
+    tabs["paired_image_deltas"] = paired_image_deltas(df, pairs + fpairs)
+
+    conf = confusion_summary(runs_dir, Path(__file__).resolve().parents[1] / "data" / "processed")
+    if len(conf):
+        tabs["confusion"] = conf
 
     nat = load_runs(runs_dir, "native")
     if not nat.empty:

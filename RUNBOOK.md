@@ -1,8 +1,9 @@
 # RUNBOOK — full training on the powerful machine
 
-Everything here was developed and smoke-tested on a CPU-only laptop (24 unit tests, a tiny end-to-end run, and a
-600-iteration sanity run that reached ≈0.79 DRIVE-validation Dice — see §9). **No full-length experiment has been run yet,
-so there are no final results in the repository and none in the paper.** This runbook gets you from `git clone` to a finished PDF.
+The code was developed and smoke-tested on a CPU-only laptop (28 unit tests, a tiny end-to-end run, and a 600-iteration sanity run that
+reached ≈0.79 DRIVE-validation Dice — see §9). The full experiments reported in the paper were then run on free Kaggle (T4) and Colab (L4)
+notebooks (§11); their per-run outputs are committed under `results/runs/`. This runbook is the procedure that produced them: it gets you from
+`git clone` to a finished PDF.
 
 ## 0. Checklist
 
