@@ -1,0 +1,55 @@
+% TG-LiteNet overview (included by main.tex as a full-width figure)
+\begin{tikzpicture}[font=\footnotesize, >=Stealth,
+  box/.style={draw, rounded corners=2pt, align=center, fill=gray!8, minimum height=9mm, inner sep=3pt},
+  tr/.style={draw, dashed, rounded corners=2pt, align=center, fill=yellow!16, minimum height=9mm, inner sep=3pt},
+  blk/.style={draw, fill=blue!12, minimum width=5.5mm, inner sep=0pt},
+  dblk/.style={draw, fill=green!14, minimum width=5.5mm, inner sep=0pt},
+  arr/.style={-{Stealth[length=1.8mm]}, thick},
+  darr/.style={-{Stealth[length=1.8mm]}, thick, dashed},
+  skip/.style={-{Stealth[length=1.4mm]}, gray, thin},
+  badge/.style={circle, draw, fill=white, inner sep=0.6pt, font=\scriptsize\bfseries}]
+  % ------------------------------------------------ inference path
+  \node[box] (img) {Fundus image\\+ FOV mask};
+  \node[box, right=6mm of img] (pre) {Preprocess:\\FOV width 527\,px,\\green, CLAHE,\\standardise};
+  \node[blk, minimum height=19mm, right=9mm of pre] (e1) {};
+  \node[blk, minimum height=15mm, right=2mm of e1] (e2) {};
+  \node[blk, minimum height=11mm, right=2mm of e2] (e3) {};
+  \node[blk, minimum height=8mm, right=2mm of e3] (e4) {};
+  \node[blk, fill=orange!30, minimum height=5.5mm, right=2mm of e4] (bn) {};
+  \node[dblk, minimum height=8mm, right=2mm of bn] (d4) {};
+  \node[dblk, minimum height=11mm, right=2mm of d4] (d3) {};
+  \node[dblk, minimum height=15mm, right=2mm of d3] (d2) {};
+  \node[dblk, minimum height=19mm, right=2mm of d2] (d1) {};
+  \foreach \a/\b in {e1/d1, e2/d2, e3/d3, e4/d4} \draw[skip] (\a.north) -- ++(0,2.2mm) -| (\b.north);
+  \foreach \n/\l in {e1/{$w$}, e2/{$2w$}, e3/{$4w$}, e4/{$8w$}, bn/{$16w$}} \node[below=1mm of \n, font=\scriptsize] {\l};
+  \path (e1.north) -- coordinate[midway] (mid) (d1.north);
+  \node[above=4.5mm of mid, align=center] {depthwise-separable U-Net, two $3{\times}3$ blocks per level (stage D),\\spatial dropout $p{=}0.1$ at the bottleneck and in the decoder (stage E)};
+  \node[box, right=7mm of d1] (mask) {Mask head\\$1{\times}1$ conv};
+  \node[box, right=6mm of mask] (mc) {MC dropout\\$T{=}20$ passes:\\mean $\bar p$, variance $u$};
+  \node[box, right=6mm of mc] (out) {Vessel mask\\($\bar p\ge 0.5$)\\+ uncertainty map};
+  \draw[arr] (img) -- (pre);
+  \draw[arr] (pre) -- (e1);
+  \draw[arr] (e1) -- (e2); \draw[arr] (e2) -- (e3); \draw[arr] (e3) -- (e4); \draw[arr] (e4) -- (bn);
+  \draw[arr] (bn) -- (d4); \draw[arr] (d4) -- (d3); \draw[arr] (d3) -- (d2); \draw[arr] (d2) -- (d1);
+  \draw[arr] (d1) -- (mask);
+  \draw[arr] (mask) -- (mc);
+  \draw[arr] (mc) -- (out);
+  % ------------------------------------------------ training-only elements
+  \node[tr, below=7mm of mask] (skel) {Skeleton head\\(train only)};
+  \draw[darr] (d1.south) |- (skel.west);
+  \node[tr, right=9mm of skel, yshift=-8mm, anchor=west, text width=7.4cm] (loss) {$\mathcal L=\mathcal L_{\mathrm{Dice}}+\lambda_1\mathcal L_{\mathrm{BCE}}+\lambda_2\mathcal L_{\mathrm{topo}}+\lambda_3\mathcal L_{\mathrm{cons}}$\\[-1pt]
+    $\mathcal L_{\mathrm{topo}}$: soft-clDice + skeleton head;\ $\mathcal L_{\mathrm{cons}}$: clean view vs.\ perturbed view};
+  \draw[darr] (skel.east) -| ([xshift=9mm]loss.north west);
+  \draw[darr] (mask.south east) -- ++(0,-4mm) -| ([xshift=3mm]loss.north west);
+  \node[tr, below=14mm of pre] (dg) {DG augmentation:\\style (gain, gamma, illumination,\\blur, JPEG), structure (elastic,\\local dropout) $\rightarrow$ view $\tilde x$};
+  \draw[darr] (dg.north) -- (pre.south);
+  \node[tr] (gt) at ($(e3.south)+(0,-3.3cm)$) {Label $G$ and\\exact skeleton $S(G)$};
+  \draw[darr] (gt.east) -| (loss.south);
+  % ------------------------------------------------ stage badges
+  \node[badge] at ($(pre.north east)+(1mm,1mm)$) {C};
+  \node[badge] at ($(loss.north east)+(-1mm,1mm)$) {B};
+  \node[badge] at ($(e1.north west)+(-1mm,1mm)$) {D};
+  \node[badge] at ($(bn.south east)+(1.5mm,-1mm)$) {E};
+  \node[badge] at ($(mc.north east)+(1mm,1mm)$) {E};
+  \node[font=\scriptsize, anchor=north east, text=black!70, text width=3.3cm, align=left] at ($(loss.south east)+(0,-3mm)$) {Solid: used at test time; dashed: training only. Badges: stage that adds the element (A is the plain U-Net with Dice+BCE).};
+\end{tikzpicture}

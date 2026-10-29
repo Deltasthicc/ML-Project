@@ -87,9 +87,8 @@ def table_main(summ, eff) -> str:
     best = []
     for ds, met, _, low in cols:
         best.append(best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low))
-    lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, "
-             "CHASE\\_DB1 and HRF (never used for training or model selection); $\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). "
-             "Cost: one $512{\\times}512$ image, batch 1, CPU = 4 threads, Kaggle machine; latency is machine-dependent; E (MC) needs $T$ forward passes. Best per column in bold.}",
+    lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, CHASE\\_DB1 and HRF; "
+             "$\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). Cost: one $512{\\times}512$ image, batch 1, CPU = 4 threads, Kaggle machine; E (MC) needs $T$ passes. Best per column in bold.}",
              "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rrrr}", "\\toprule",
              " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & & \\multicolumn{2}{c}{Latency (ms)} \\\\",
              "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}\\cmidrule(lr){11-12}",
@@ -157,36 +156,11 @@ def table_efficiency(eff) -> str:
     return "\n".join(lines)
 
 
-def table_uncertainty(unc, targets) -> str:
-    """Table VI: does uncertainty track error?  (image-level and pixel-level, source vs unseen)."""
-    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Uncertainty quality of TG-LiteNet (E). $\\rho_{px}$: mean per-image Spearman correlation between "
-             "pixel uncertainty and misclassification; $\\rho_{img}$: Spearman between mean image uncertainty and $1-$Dice; "
-             "AURC: area under the image-level risk--coverage curve (lower is better; random = mean error, oracle = lower bound). "
-             "\\emph{Var} = MC-dropout variance, \\emph{Ent} = predictive entropy.}",
-             "\\label{tab:unc}", "\\small", "\\begin{tabular}{l cc cc ccc}", "\\toprule",
-             " & \\multicolumn{2}{c}{$\\rho_{px}$} & \\multicolumn{2}{c}{$\\rho_{img}$} & \\multicolumn{3}{c}{AURC} \\\\",
-             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-5}\\cmidrule(lr){6-8}",
-             "Domain & Var & Ent & Var & Ent & Var & Rand. & Oracle \\\\", "\\midrule"]
-    if unc is None or unc.empty:
-        return "\n".join(lines + ["\\multicolumn{8}{c}{(no results yet)} \\\\", "\\bottomrule", "\\end{tabular}", "\\end{table}"])
-    for ds in ["drive"] + targets:
-        r = unc[(unc.exp == "E_tglitenet") & (unc["mode"] == "mc") & (unc.dataset == ds)]
-        if r.empty:
-            continue
-        r = r.iloc[0]
-        g = lambda k: fmt(r.get(f"{k}_mean", np.nan), None, 3)  # noqa: E731
-        lines.append(f"{NICE[ds]} & {g('rho_var')} & {g('rho_ent')} & {g('img_spearman_var')} & {g('img_spearman_ent')} & "
-                     f"{g('aurc_var')} & {g('risk_random')} & {g('aurc_oracle')} \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    return "\n".join(lines)
-
-
 def table_confusion(conf, targets) -> str:
     """Pixel confusion matrix (share of FOV pixels) with precision / recall / F1 / accuracy: TG-LiteNet per dataset, and stages A-E on the unseen average."""
     lines = ["\\begin{table}[t]", "\\centering",
-             "\\caption{Pixel-level confusion matrix and classification metrics (vessel = positive class, threshold 0.5). TP, FP, FN, TN are shares of the "
-             "FOV pixels in \\%; all values are means over images and seeds. Top: TG-LiteNet (E) on every dataset. Bottom: the U-Net (A) and TG-LiteNet on the "
-             "unseen average (other stages: \\texttt{results/tables/confusion.csv}). F1 equals the per-image Dice.}", "\\label{tab:confusion}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
+             "\\caption{Pixel-level confusion matrix (vessel = positive, threshold 0.5): TP, FP, FN, TN in \\% of the FOV pixels, means over images and seeds. "
+             "Top: TG-LiteNet (E) per dataset. Bottom: U-Net (A) and TG-LiteNet on the unseen average (all stages: \\texttt{confusion.csv}). F1 equals the per-image Dice.}", "\\label{tab:confusion}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
              "\\begin{tabular}{l cccc cccc}", "\\toprule",
              " & TP & FP & FN & TN & Precision & Recall & F1 & Accuracy \\\\", "\\midrule"]
 
@@ -206,7 +180,7 @@ def table_confusion(conf, targets) -> str:
 
 def table_factorial(summ) -> str:
     lines = ["\\begin{table}[t]", "\\centering", "\\caption{Full factorial design (backbone $\\times$ topology $\\times$ DG). Unseen = macro average over the three targets. "
-             "U-Net plain, U-Net+topo, U-Net+topo+DG and Lite+topo+DG are stages A--D (3 seeds); the other cells have 2 seeds, so their $\\pm$ is only indicative.}",
+             "Stages A--D (U-Net plain, U-Net+topo, U-Net+topo+DG, Lite+topo+DG) have 5 seeds, the other four cells 3.}",
              "\\label{tab:factorial}", "\\small",
              "\\begin{tabular}{lcc cc cc}", "\\toprule", "Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\\Delta$Dice \\\\", "\\midrule"]
     tick = lambda b: "\\checkmark" if b else "--"  # noqa: E731
@@ -265,25 +239,6 @@ def table_variants(summ, eff, lat) -> str:
     return "\n".join(lines)
 
 
-def table_checks(post, nat_summ) -> str:
-    """Evaluation-only checks on seeds 3 and 4: small-component removal, validation-tuned threshold and no-rescale evaluation."""
-    lines = ["\\begin{table}[t]", "\\centering",
-             "\\caption{Evaluation-only checks on the trained models (seeds 3 and 4, unseen average). Cleanup removes connected components below a size chosen on DRIVE-validation; "
-             "tuned = one threshold per model chosen on DRIVE-validation; native = no FOV rescaling (run for A, D and E only).}",
-             "\\label{tab:checks}", "\\small", "\\begin{tabular}{l cc ccc c}", "\\toprule",
-             " & \\multicolumn{2}{c}{Betti-0 error} & \\multicolumn{4}{c}{Dice} \\\\", "\\cmidrule(lr){2-3}\\cmidrule(lr){4-7}",
-             "Stage & fixed 0.5 & cleanup & fixed 0.5 & cleanup & tuned thr. & native \\\\", "\\midrule"]
-    for exp, mode, lab in STAGES:
-        if mode != "det":
-            continue
-        g = lambda m, c: (lambda r: float(r[c].iloc[0]) if len(r) else float("nan"))(post[(post.exp == exp) & (post["mode"] == m)])  # noqa: E731
-        nat = val(nat_summ, exp, "unseen", "dice") if len(nat_summ) else float("nan")
-        lines.append(f"{lab} & {g('fixed 0.5', 'unseen_betti0_err'):.1f} & {g('pp', 'unseen_betti0_err'):.1f} & {g('fixed 0.5', 'unseen_dice'):.3f} & "
-                     f"{g('pp', 'unseen_dice'):.3f} & {g('thr', 'unseen_dice'):.3f} & {fmt(nat, None, 3)} \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
-    return "\n".join(lines)
-
-
 def table_dataset_info(cfg) -> str:
     """Datasets table from data/processed/<name>/stats.json (written by prepare_data.py): measured, not assumed."""
     import json as _json
@@ -314,27 +269,6 @@ def table_dataset_info(cfg) -> str:
         lines.append(f"{name} & {st['n_images']} & {hw[1]}$\\times${hw[0]} & {100 * st['vessel_fraction_mean']:.1f} & "
                      f"{st['fov_width_median']:.0f} & {cal} & {g} & {role} \\\\")
     lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-    return "\n".join(lines)
-
-
-def table_hparams(cfg) -> str:
-    c = cfg
-    rows = [
-        ("Optimiser", r"AdamW, lr $%g$, wd $%g$" % (c.train.lr, c.train.weight_decay)),
-        ("Schedule", r"%d warm-up it., cosine to $1\%%$" % c.train.warmup_iters),
-        ("Iterations / batch / patch", r"%d / %d / %d$^2$ px" % (c.train.iters, c.train.batch_size, c.data.patch_size)),
-        ("Loss weights", r"$\lambda_1{=}%g,\ \lambda_2{=}%g,\ \lambda_3{=}%g$; skel. head $%g$" % (c.loss.lambda_bce, c.loss.lambda_topo, c.loss.lambda_cons, c.loss.lambda_skel_head)),
-        ("Soft-skeleton iterations", "%d" % c.loss.skel_iters),
-        ("CLAHE", "clip %g, %d px tiles" % (c.data.clahe_clip, c.data.clahe_tile_px)),
-        ("Scale normalisation", "FOV width $=%d$ px" % c.data.fov_target_width),
-        ("Lite width $w$ / U-Net base", "%d / %d" % (c.model.width, c.model.base_channels)),
-        ("MC dropout (stage E)", r"$p{=}0.1$, $T{=}%d$ passes" % c.eval.mc_samples),
-        ("Threshold", "%g (fixed; never tuned on targets)" % c.eval.threshold),
-    ]
-    lines = [r"\begin{table}[t]", r"\centering",
-             r"\caption{Training configuration shared by all stages (generated from \texttt{configs/base.yaml}).}",
-             r"\label{tab:hparams}", r"\small", r"\begin{tabular}{ll}", r"\toprule", r"Item & Value \\", r"\midrule"]
-    lines += [f"{a} & {b} \\\\" for a, b in rows] + [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     return "\n".join(lines)
 
 
@@ -373,38 +307,143 @@ def macros(summ, eff, unc) -> str:
 
 
 # ---------------------------------------------------------------------------------------------- figures
-def fig_ablation(summ, targets):
+SHORT = {"S_unet_b16": "U16", "W_lite_w48": "w48"}
+STEP_COL = {"A→B": COL["B"], "B→C": COL["C"], "C→D": COL["D"], "D→E": COL["E (det.)"], "A→E": "#333333"}
+
+
+def _style() -> None:
+    plt.rcParams.update({
+        "font.family": "serif", "font.serif": ["Times New Roman", "STIXGeneral", "DejaVu Serif"], "mathtext.fontset": "stix",
+        "pdf.fonttype": 42, "axes.linewidth": 0.6, "axes.spines.top": False, "axes.spines.right": False,
+        "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.major.size": 2.5, "ytick.major.size": 2.5,
+    })
+
+
+def _letter(ax, s: str) -> None:
+    ax.text(-0.02, 1.04, s, transform=ax.transAxes, fontsize=8, fontweight="bold", va="bottom", ha="right")
+
+
+def fig_results(summ, targets):
+    """Per-dataset Dice / clDice / Betti-0 error of stages A--E (mean over seeds, bars = std over seeds)."""
     if summ.empty:
         return
-    mets = [("dice", "Dice"), ("cldice", "clDice")]
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.6), sharey=False)
+    stages = [s for s in STAGES if s[1] == "det"]
     ds_list = ["drive"] + targets
-    w = 0.8 / len(STAGES)
-    for ax, (met, lab) in zip(axes, mets):
-        for i, (exp, mode, name) in enumerate(STAGES):
-            m = [val(summ, exp, d, met, mode) for d in ds_list]
-            s = [val(summ, exp, d, met, mode, "std") for d in ds_list]
-            ax.bar(np.arange(len(ds_list)) + (i - (len(STAGES) - 1) / 2) * w, m, w, yerr=s, color=COL[name], label=name, capsize=1.5, linewidth=0)
+    fig, axes = plt.subplots(1, 3, figsize=(7.1, 1.6))
+    w = 0.8 / len(stages)
+    for ax, (met, lab, log) in zip(axes, [("dice", "Dice", False), ("cldice", "clDice", False), ("betti0_err", "Betti-0 error (log)", True)]):
+        for i, (exp, mode, name) in enumerate(stages):
+            m = np.array([val(summ, exp, d, met, mode) for d in ds_list], float)
+            s = np.array([val(summ, exp, d, met, mode, "std") for d in ds_list], float)
+            ax.bar(np.arange(len(ds_list)) + (i - (len(stages) - 1) / 2) * w, m, w * 0.92, yerr=s, color=COL[name], linewidth=0,
+                   label=name.replace(" (det.)", ""), error_kw={"elinewidth": 0.5, "capsize": 0.8, "capthick": 0.5})
+        ax.axvline(0.5, color="k", lw=0.5, ls=":")
         ax.set_xticks(np.arange(len(ds_list)))
-        ax.set_xticklabels([NICE_PLAIN[d] for d in ds_list], fontsize=7)
-        ax.set_ylabel(lab, fontsize=8)
-        lo = np.nanmin([val(summ, e, d, met, m) for e, m, _ in STAGES for d in ds_list])
-        ax.set_ylim(max(0, lo - 0.08), 1.0 if met == "dice" else 1.0)
-        ax.tick_params(labelsize=7)
-        ax.grid(axis="y", alpha=0.3)
-    axes[0].legend(fontsize=6, ncol=3, loc="lower left")
-    fig.tight_layout()
-    savefig(fig, "fig_ablation")
+        ax.set_xticklabels([NICE_PLAIN[d].replace("CHASE_DB1", "CHASE") for d in ds_list], fontsize=6.5)
+        ax.set_ylabel(lab, fontsize=7)
+        ax.tick_params(axis="y", labelsize=6.5)
+        ax.grid(axis="y", alpha=0.3, lw=0.4)
+        if log:
+            ax.set_yscale("log")
+            ax.set_yticks([20, 50, 100, 200])
+            ax.set_yticklabels(["20", "50", "100", "200"])
+            ax.minorticks_off()
+            ax.set_ylim(15, 260)
+        else:
+            lo = np.nanmin([val(summ, e, d, met, m_) for e, m_, _ in stages for d in ds_list])
+            ax.set_ylim(max(0, lo - 0.06), min(1.0, np.nanmax([val(summ, e, d, met, m_) for e, m_, _ in stages for d in ds_list]) + 0.03))
+    axes[0].text(0.0, 1.0, "source", transform=axes[0].get_xaxis_transform(), fontsize=6, color="0.35", va="bottom", ha="center")
+    axes[0].text(2.0, 1.0, "unseen targets", transform=axes[0].get_xaxis_transform(), fontsize=6, color="0.35", va="bottom", ha="center")
+    for ax, s in zip(axes, "abc"):
+        _letter(ax, f"({s})")
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, ncol=5, fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, 1.07), frameon=False, handlelength=1.2, columnspacing=1.2)
+    fig.tight_layout(pad=0.4, w_pad=1.0)
+    savefig(fig, "fig_results")
 
 
-SHORT = {"X_unet_dg": "U+DG", "X_lite_plain": "L", "X_lite_topo": "L+T", "X_lite_dg": "L+DG", "V_lite_cbdice": "cbD", "V_lite_srl": "SRL",
-         "V_lite_cldice_srl": "cl+SRL", "W_lite_w8": "w8", "W_lite_w24": "w24", "W_lite_w32": "w32", "W_lite_w48": "w48",
-         "S_unet_b8": "U8", "S_unet_b16": "U16", "Z_lite_noskel": "-head", "Z_lite_nocons": "-cons"}
-LABELLED = {"X_unet_dg", "X_lite_plain", "X_lite_dg", "W_lite_w8", "W_lite_w48", "S_unet_b8", "S_unet_b16", "Z_lite_noskel", "Z_lite_nocons"}
+def fig_effects(pair: pd.DataFrame):
+    """Forest plot of the image-level paired effect of each stage step on the unseen images (95% bootstrap interval)."""
+    if pair is None or pair.empty:
+        return
+    steps = [("A_unet", "B_unet_topo", "A→B", "+ topology"), ("B_unet_topo", "C_unet_topo_dg", "B→C", "+ DG augm."),
+             ("C_unet_topo_dg", "D_lite_topo_dg", "C→D", "+ compact backbone"), ("D_lite_topo_dg", "E_tglitenet", "D→E", "+ dropout"),
+             ("A_unet", "E_tglitenet[mc]", "A→E", "total (A→E, MC)")]
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.5), sharey=True)
+    for ax, (met, lab) in zip(axes, [("dice", "Δ Dice"), ("cldice", "Δ clDice")]):
+        for i, (a, b, key, name) in enumerate(steps):
+            r = pair[(pair["from"] == a) & (pair["to"] == b) & (pair.scope == "unseen") & (pair.metric == met)]
+            if r.empty:
+                continue
+            r = r.iloc[0]
+            y = len(steps) - 1 - i
+            ax.errorbar(r.delta, y, xerr=[[r.delta - r.lo95], [r.hi95 - r.delta]], fmt="o" if key != "A→E" else "D", ms=3.5, color=STEP_COL[key],
+                        elinewidth=1.1, capsize=1.5, capthick=0.8)
+            ax.text(r.hi95 + 0.0015, y, f"{r.delta:+.3f}", fontsize=5.5, va="center", ha="left", color="0.25")
+        ax.axvline(0, color="k", lw=0.6)
+        ax.set_xlabel(lab, fontsize=7)
+        ax.tick_params(labelsize=6.5)
+        ax.grid(axis="x", alpha=0.3, lw=0.4)
+        ax.set_ylim(-0.6, len(steps) - 0.4)
+        lo, hi = ax.get_xlim()
+        ax.set_xlim(lo, hi + (hi - lo) * 0.28)
+    axes[0].set_yticks(range(len(steps)))
+    axes[0].set_yticklabels([s[3] for s in steps][::-1], fontsize=6.5)
+    fig.tight_layout(pad=0.4, w_pad=0.6)
+    savefig(fig, "fig_effects")
+
+
+def fig_cleanup(post, nat_summ):
+    """Evaluation-only checks: raw vs cleaned Betti-0 error, and Dice at the fixed threshold, the DRIVE-val-tuned threshold and without FOV rescaling."""
+    if post is None or post.empty:
+        return
+    stages = [s for s in STAGES if s[1] == "det"]
+    names = [s[2].replace(" (det.)", "") for s in stages]
+
+    def g(exp, mode, col):
+        r = post[(post.exp == exp) & (post["mode"] == mode)]
+        return float(r[col].iloc[0]) if len(r) else np.nan
+
+    x = np.arange(len(stages))
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.55))
+    raw = [g(e, "fixed 0.5", "unseen_betti0_err") for e, _, _ in stages]
+    pp = [g(e, "pp", "unseen_betti0_err") for e, _, _ in stages]
+    ax = axes[0]
+    ax.bar(x - 0.19, raw, 0.36, color="#b0b0b0", label="raw", linewidth=0)
+    ax.bar(x + 0.19, pp, 0.36, color="#1f77b4", label="cleanup", linewidth=0)
+    for xi, v in zip(x, pp):
+        ax.text(xi + 0.19, v * 1.08, f"{v:.1f}", ha="center", fontsize=5, rotation=90, va="bottom")
+    ax.set_yscale("log")
+    ax.set_ylim(2.5, 300)
+    ax.set_yticks([3, 10, 30, 100, 300])
+    ax.set_yticklabels(["3", "10", "30", "100", "300"])
+    ax.minorticks_off()
+    ax.set_ylabel("unseen Betti-0 error", fontsize=7)
+    ax.legend(fontsize=6, frameon=False, loc="upper right", handlelength=1.0)
+    ax = axes[1]
+    fx = [g(e, "fixed 0.5", "unseen_dice") for e, _, _ in stages]
+    th = [g(e, "thr", "unseen_dice") for e, _, _ in stages]
+    nat = [val(nat_summ, e, "unseen", "dice") if len(nat_summ) else np.nan for e, _, _ in stages]
+    for xi, a, b in zip(x, fx, th):
+        ax.plot([xi, xi], [a, b], color="0.6", lw=0.8, zorder=1)
+    ax.scatter(x, fx, s=18, color="k", label="fixed 0.5", zorder=3)
+    ax.scatter(x, th, s=20, marker="^", color="#d62728", label="tuned thr.", zorder=3)
+    ax.scatter(x, nat, s=20, marker="s", color="#2ca02c", label="no rescale", zorder=3)
+    ax.set_ylabel("unseen Dice", fontsize=7)
+    ax.legend(fontsize=5.5, frameon=False, loc="lower right", handletextpad=0.1, borderaxespad=0.1, labelspacing=0.2)
+    ax.set_ylim(0.60, 0.80)
+    for ax, s in zip(axes, "ab"):
+        ax.set_xticks(x)
+        ax.set_xticklabels(names, fontsize=6.5)
+        ax.tick_params(axis="y", labelsize=6.5)
+        ax.grid(axis="y", alpha=0.3, lw=0.4)
+        _letter(ax, f"({s})")
+    fig.tight_layout(pad=0.4, w_pad=0.8)
+    savefig(fig, "fig_cleanup")
 
 
 def fig_tradeoff(summ, eff, lat):
-    """Two readable panels: unseen Dice vs unseen clDice (overlap vs connectivity) and vs CPU latency from one Colab session (the cost)."""
+    """Unseen Dice against unseen clDice (overlap vs connectivity) and against CPU latency (cost); marker area grows with parameters."""
     if summ.empty or not len(eff):
         return
     pts = []
@@ -412,33 +451,42 @@ def fig_tradeoff(summ, eff, lat):
         e = eff[eff.exp == exp]
         if e.empty:
             continue
-        pts.append((exp, float(lat.get(exp, e.cpu_ms.iloc[0])), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "cldice")))
+        pts.append((exp, float(lat.get(exp, e.cpu_ms.iloc[0])), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "cldice"), float(e.params_m.iloc[0])
+                    if "params_m" in e else 1.0))
     if not pts:
         return
-    fig, axes = plt.subplots(1, 2, figsize=(3.5, 1.95))
-    for ax, (xi, xl, logx) in zip(axes, [(3, "Unseen clDice", False), (1, "CPU latency, ms (log, laptop)", True)]):
-        for p in pts:
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.85))
+    off = {0: {"A": (4, 3), "B": (4, -3), "C": (4, 1), "D": (-8, 3), "E": (4, -8), "U16": (3, -8), "w48": (-10, 3)},
+           1: {"A": (5, 3), "B": (5, -3), "C": (5, -8), "D": (-9, -9), "E": (4, 3), "U16": (-4, 5), "w48": (-6, -9)}}
+    for k, (ax, (xi, xl, logx)) in enumerate(zip(axes, [(3, "unseen clDice", False), (1, "CPU latency, ms (log)", True)])):
+        for p in sorted(pts, key=lambda q: -q[4]):
             stage = next((s for e, m, s in STAGES if e == p[0] and m == "det"), None)
-            marker = "s" if ("unet" in p[0] or p[0][0] in "ABC") and not p[0].startswith(("D_", "E_")) else "o"
-            ax.scatter(p[xi], p[2], s=16, marker=marker, color=COL.get(stage, "#bbbbbb"), edgecolor="k", linewidth=0.4, zorder=3)
-            lab = stage if stage and not stage.startswith("E (MC)") else SHORT.get(p[0]) if p[0] in LABELLED else None
-            if lab:
-                ax.annotate(lab.replace(" (det.)", ""), (p[xi], p[2]), fontsize=5.5, xytext=(2, 1.5), textcoords="offset points")
+            marker = "s" if p[0].startswith(("A_", "B_", "C_", "S_", "X_unet")) else "o"
+            size = 10 + 14 * np.log10(1 + 30 * p[4])
+            ax.scatter(p[xi], p[2], s=size, marker=marker, color=COL.get(stage, "#d9d9d9"), edgecolor="k", linewidth=0.4, zorder=3 if stage else 2)
+            lab = stage.replace(" (det.)", "") if stage and not stage.startswith("E (MC)") else SHORT.get(p[0])
+            if lab in off[k]:
+                ax.annotate(lab, (p[xi], p[2]), fontsize=6, xytext=off[k][lab], textcoords="offset points")
         if logx:
             ax.set_xscale("log")
             ax.set_xticks([100, 300, 1000, 3000])
-            ax.set_xticklabels(["100", "300", "1000", "3000"])
+            ax.set_xticklabels(["100", "300", "1k", "3k"])
             ax.minorticks_off()
-            ax.set_xlim(90, 6500)
-        ax.set_xlabel(xl, fontsize=6)
-        ax.tick_params(labelsize=5.5)
-        ax.grid(alpha=0.3)
-    axes[0].set_ylabel("Unseen Dice", fontsize=6)
-    fig.tight_layout(pad=0.4)
+            ax.set_xlim(55, 7000)
+        ax.set_xlabel(xl, fontsize=7)
+        ax.tick_params(labelsize=6.5)
+        ax.grid(alpha=0.3, lw=0.4)
+    axes[0].set_ylabel("unseen Dice", fontsize=7)
+    axes[1].tick_params(labelleft=False)
+    axes[0].sharey(axes[1])
+    for ax, s in zip(axes, "ab"):
+        _letter(ax, f"({s})")
+    fig.tight_layout(pad=0.4, w_pad=0.6)
     savefig(fig, "fig_tradeoff")
 
 
 def fig_training(runs_dir: Path):
+    """Training curves (DRIVE validation Dice, mean and min--max over seeds) of stages A--D, used in the README only."""
     fig, ax = plt.subplots(figsize=(3.4, 2.4))
     any_ = False
     for exp, mode, name in STAGES:
@@ -474,19 +522,36 @@ def _read_png(path: Path):
 def _err_overlay(img, pred, gt, fov):
     out = (img.astype(np.float32) / 255.0 * 0.45)
     tp, fp, fn = pred & gt, pred & ~gt, ~pred & gt
-    for m, c in ((tp, (1, 1, 1)), (fp, (1, 0.15, 0.15)), (fn, (0.2, 0.5, 1))):
+    for m, c in ((tp, (1, 1, 1)), (fp, (1, 0.15, 0.15)), (fn, (0.2, 0.55, 1))):
         out[m & fov] = c
     return out
 
 
+def _crop_box(a, b, fov, frac=0.3):
+    """Window (fraction of the shorter side) where predictions a and b disagree most (integral image over the FOV)."""
+    H, W = a.shape
+    h = w = int(frac * min(H, W))
+    d = ((a != b) & fov).astype(np.float32)
+    ii = cv2.integral(d)
+    best, pos = -1.0, (0, 0)
+    step = max(4, h // 8)
+    for y in range(0, H - h + 1, step):
+        for x in range(0, W - w + 1, step):
+            s = ii[y + h, x + w] - ii[y, x + w] - ii[y + h, x] + ii[y, x]
+            if s > best:
+                best, pos = s, (y, x)
+    return pos[0], pos[1], h, w
+
+
 def fig_qualitative(runs_dir: Path, cfg, targets):
+    """One test image per dataset (seed 0): full image with the zoom window, ground truth, error maps of A, D, E and the MC uncertainty of E in the window."""
     exps = [("A_unet", "A"), ("D_lite_topo_dg", "D"), ("E_tglitenet", "E")]
     seed_dir = {e: runs_dir / e / "seed0" for e, _ in exps}
     if not all((d / "preds").exists() for d in seed_dir.values()):
         print("  (qualitative figure skipped: preds/ missing for A, D or E seed 0)")
         return
     ds_list = ["drive"] + targets
-    fig, axes = plt.subplots(len(ds_list), 6, figsize=(7.2, 1.25 * len(ds_list) + 0.3))
+    fig, axes = plt.subplots(len(ds_list), 6, figsize=(7.1, 1.18 * len(ds_list) + 0.25), gridspec_kw={"wspace": 0.03, "hspace": 0.04})
     for r, ds in enumerate(ds_list):
         ids = sorted(p.name[:-9] for p in (seed_dir["E_tglitenet"] / "preds" / ds).glob("*_prob.png"))
         if not ids:
@@ -494,50 +559,65 @@ def fig_qualitative(runs_dir: Path, cfg, targets):
         sid = ids[len(ids) // 2]
         s = load_sample(ds, sid, cfg, cfg.eval.scale_mode)
         gt, fov = s["mask"] > 0, s["fov"] > 0
-        panels = [("image", s["img"]), ("ground truth", np.stack([gt] * 3, -1).astype(float))]
-        for e, tag in exps:
-            p = _read_png(seed_dir[e] / "preds" / ds / f"{sid}_prob.png")
-            panels.append((f"{tag}", _err_overlay(s["img"], p >= 0.5, gt, fov) if p is not None else np.zeros_like(s["img"])))
+        probs = {t: _read_png(seed_dir[e] / "preds" / ds / f"{sid}_prob.png") for e, t in exps}
+        if any(p is None for p in probs.values()):
+            continue
+        y, x, h, w = _crop_box(probs["A"] >= 0.5, probs["E"] >= 0.5, fov)
+        sl = (slice(y, y + h), slice(x, x + w))
         u = _read_png(seed_dir["E_tglitenet"] / "preds" / ds / f"{sid}_unc.png")
-        panels.append(("E uncertainty", u if u is not None else np.zeros(gt.shape)))
-        for c, (title, im) in enumerate(panels[:6]):
+        u = np.zeros(gt.shape, np.float32) if u is None else u
+        full = s["img"]
+        panels = [("image (zoom window)", full, None), ("ground truth", np.stack([gt] * 3, -1).astype(float)[sl], None)]
+        for e, t in exps:
+            panels.append((t, _err_overlay(full, probs[t] >= 0.5, gt, fov)[sl], None))
+        uc = u[sl]
+        hi = max(float(np.percentile(u[fov], 99.5)), 1e-6)
+        panels.append(("E uncertainty", uc, hi))
+        for c, (title, im, hi_) in enumerate(panels):
             ax = axes[r, c]
-            ax.imshow(im, cmap="magma" if title == "E uncertainty" else None)
-            ax.axis("off")
+            if hi_ is None:
+                ax.imshow(im)
+            else:
+                ax.imshow(im, cmap="magma", vmin=0, vmax=hi_)
+            if c == 0:
+                ax.add_patch(plt.Rectangle((x, y), w, h, fill=False, ec="#ffd400", lw=1.0))
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for sp in ax.spines.values():
+                sp.set_visible(False)
             if r == 0:
-                ax.set_title(title, fontsize=7)
-        axes[r, 0].text(-0.05, 0.5, NICE_PLAIN[ds], transform=axes[r, 0].transAxes, rotation=90, va="center", ha="right", fontsize=7)
-    fig.text(0.5, 0.0, "white = TP, red = FP, blue = FN (threshold 0.5, seed 0)", ha="center", fontsize=6)
-    fig.tight_layout()
+                ax.set_title({"A": "A: U-Net", "D": "D: lite", "E": "E: TG-LiteNet"}.get(title, title), fontsize=7, pad=2)
+        axes[r, 0].set_ylabel(NICE_PLAIN[ds].replace("CHASE_DB1", "CHASE"), fontsize=7)
     savefig(fig, "fig_qualitative")
 
 
 def fig_risk_coverage(unc, targets):
+    """Risk--coverage of the MC-dropout variance: pixel error and mean (1 - Dice) of the retained images, with the random baseline."""
     if unc is None or unc.empty:
         return
-    covs = [1.0, 0.9, 0.8, 0.5]
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.4))
-    for ds, col in zip(["drive"] + targets, ["k", "#1f77b4", "#2ca02c", "#d62728"]):
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.5))
+    cols = {"drive": "k", "stare": "#1f77b4", "chase_db1": "#2ca02c", "hrf": "#d62728"}
+    pcov, icov = [1.0, 0.9, 0.8, 0.5], [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+    for ds in ["drive"] + targets:
         r = unc[(unc.exp == "E_tglitenet") & (unc["mode"] == "mc") & (unc.dataset == ds)]
         if r.empty:
             continue
         r = r.iloc[0]
-        for kind, ls in (("var", "-"), ("ent", "--")):
-            ys = [r.get(f"perr_{kind}_c{c}_mean", np.nan) for c in covs]
-            axes[0].plot(covs, ys, ls, color=col, marker="o", ms=2.5, label=f"{NICE_PLAIN[ds]} ({kind})")
-        ys = [r.get(f"img_risk_var_c{c}_mean", np.nan) for c in [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]]
-        axes[1].plot([1.0, 0.9, 0.8, 0.7, 0.6, 0.5], ys, color=col, marker="o", ms=2.5, label=NICE_PLAIN[ds])
+        axes[0].plot(pcov, [r.get(f"perr_var_c{c}_mean", np.nan) for c in pcov], color=cols[ds], marker="o", ms=2, lw=1, label=NICE_PLAIN[ds].replace("CHASE_DB1", "CHASE"))
+        ys = [r.get(f"img_risk_var_c{c}_mean", np.nan) for c in icov]
+        axes[1].plot(icov, ys, color=cols[ds], marker="o", ms=2, lw=1)
+        axes[1].axhline(ys[0], color=cols[ds], lw=0.5, ls=":")
     axes[0].set_xlabel("pixel coverage", fontsize=7)
     axes[0].set_ylabel("pixel error rate", fontsize=7)
     axes[1].set_xlabel("image coverage", fontsize=7)
-    axes[1].set_ylabel("mean (1 $-$ Dice) of retained images", fontsize=7)
-    for ax in axes:
+    axes[1].set_ylabel("mean 1 − Dice, retained", fontsize=7)
+    for ax, s in zip(axes, "ab"):
         ax.invert_xaxis()
-        ax.tick_params(labelsize=6)
-        ax.grid(alpha=0.3)
-    axes[0].legend(fontsize=5, ncol=2)
-    axes[1].legend(fontsize=5)
-    fig.tight_layout()
+        ax.tick_params(labelsize=6.5)
+        ax.grid(alpha=0.3, lw=0.4)
+        _letter(ax, f"({s})")
+    axes[0].legend(fontsize=5.5, frameon=False, handlelength=1.2, loc="upper right")
+    fig.tight_layout(pad=0.4, w_pad=0.8)
     savefig(fig, "fig_risk_coverage")
 
 
@@ -568,7 +648,6 @@ def main() -> None:
     write("tab_main.tex", table_main(summ, eff))
     write("tab_datasets.tex", table_datasets(summ, ["drive"] + targets + extra))
     write("tab_efficiency.tex", table_efficiency(eff))
-    write("tab_uncertainty.tex", table_uncertainty(unc, targets + extra))
     conf = pd.read_csv(tdir / "confusion.csv") if (tdir / "confusion.csv").exists() else pd.DataFrame()
     if len(conf):
         write("tab_confusion.tex", table_confusion(conf, targets))
@@ -577,21 +656,22 @@ def main() -> None:
     write("tab_variants.tex", table_variants(summ, eff, lat))
     post = pd.read_csv(tdir / "postproc_summary.csv") if (tdir / "postproc_summary.csv").exists() else pd.DataFrame()
     nat_summ = pd.read_csv(tdir / "native_summary.csv") if (tdir / "native_summary.csv").exists() else pd.DataFrame()
-    if len(post):
-        write("tab_checks.tex", table_checks(post, nat_summ))
     write("tab_datasets_info.tex", table_dataset_info(cfg))
-    write("tab_hparams.tex", table_hparams(cfg))
     write("numbers.tex", macros(summ, eff, unc))
     ov = ROOT / "results" / "figures" / "data_overview_strip.png"
     if ov.exists():
         FIG.mkdir(parents=True, exist_ok=True)
         (FIG / "data_overview.png").write_bytes(ov.read_bytes())
     print("figures:")
-    fig_ablation(summ, targets + extra)
+    _style()
+    pair = pd.read_csv(tdir / "paired_image_deltas.csv") if (tdir / "paired_image_deltas.csv").exists() else pd.DataFrame()
+    fig_results(summ, targets)
+    fig_effects(pair)
+    fig_cleanup(post, nat_summ)
     fig_tradeoff(summ, eff, lat)
     fig_training(runs)
     fig_qualitative(runs, cfg, targets)
-    fig_risk_coverage(unc, targets + extra)
+    fig_risk_coverage(unc, targets)
 
 
 if __name__ == "__main__":
