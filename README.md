@@ -1,4 +1,4 @@
-# TG-LiteNet — topology-preserving, domain-generalizable, lightweight retinal vessel segmentation
+# TG-LiteNet — topology-aware, domain-generalizable, lightweight retinal vessel segmentation
 
 CSD361 *Introduction to Machine Learning* — final project (Shiv Nadar Institution of Eminence)
 Abhiraj Agarwal (2510110002) · Shashwat Rajan (2510111019) · Tanish Shitanshu (2510110008)

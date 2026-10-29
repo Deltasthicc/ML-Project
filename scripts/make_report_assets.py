@@ -89,8 +89,7 @@ def table_main(summ, eff) -> str:
         best.append(best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low))
     lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, "
              "CHASE\\_DB1 and HRF (never used for training or model selection); $\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). "
-             "FLOPs and latency are for one $512{\\times}512$ image (batch 1; CPU = 4 threads) on the Kaggle machine of Sec.~\\ref{sec:setup}; latency is "
-             "machine-dependent; E (MC) needs $T$ forward passes. Best per column in bold.}",
+             "Cost: one $512{\\times}512$ image, batch 1, CPU = 4 threads, Kaggle machine; latency is machine-dependent; E (MC) needs $T$ forward passes. Best per column in bold.}",
              "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rrrr}", "\\toprule",
              " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & & \\multicolumn{2}{c}{Latency (ms)} \\\\",
              "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}\\cmidrule(lr){11-12}",
@@ -186,8 +185,8 @@ def table_confusion(conf, targets) -> str:
     """Pixel confusion matrix (share of FOV pixels) with precision / recall / F1 / accuracy: TG-LiteNet per dataset, and stages A-E on the unseen average."""
     lines = ["\\begin{table}[t]", "\\centering",
              "\\caption{Pixel-level confusion matrix and classification metrics (vessel = positive class, threshold 0.5). TP, FP, FN, TN are shares of the "
-             "FOV pixels in \\%; all values are means over images and seeds. Top: TG-LiteNet (E, deterministic) on every dataset. Bottom: stages A--E on "
-             "the unseen average. F1 equals the per-image Dice.}", "\\label{tab:confusion}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
+             "FOV pixels in \\%; all values are means over images and seeds. Top: TG-LiteNet (E) on every dataset. Bottom: the U-Net (A) and TG-LiteNet on the "
+             "unseen average (other stages: \\texttt{results/tables/confusion.csv}). F1 equals the per-image Dice.}", "\\label{tab:confusion}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
              "\\begin{tabular}{l cccc cccc}", "\\toprule",
              " & TP & FP & FN & TN & Precision & Recall & F1 & Accuracy \\\\", "\\midrule"]
 
@@ -200,7 +199,7 @@ def table_confusion(conf, targets) -> str:
         return f"{label} & " + " & ".join(cells) + " \\\\"
 
     top = [row(NICE[d], "E_tglitenet", d) for d in ["drive"] + list(targets)]
-    bottom = [row(f"{lab}, unseen avg.", e, "unseen") for e, mode, lab in STAGES if mode == "det"]
+    bottom = [row(f"{lab}, unseen avg.", e, "unseen") for e, mode, lab in STAGES if mode == "det" and lab in ("A", "E (det.)")]
     lines += [t for t in top if t] + ["\\midrule"] + [b for b in bottom if b] + ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     return "\n".join(lines)
 
@@ -219,17 +218,68 @@ def table_factorial(summ) -> str:
     return "\n".join(lines)
 
 
-def table_variants(summ, eff) -> str:
-    rows = [("D_lite_topo_dg", "soft-clDice (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skeleton Recall")]
-    wrows = [("W_lite_w8", 8), ("D_lite_topo_dg", 16), ("W_lite_w24", 24), ("W_lite_w32", 32), ("W_lite_w48", 48)]
-    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Stage-D variants: topology loss (top) and lite width (bottom). The soft-clDice / $w{=}16$ row is stage D (3 seeds); all others used 2 seeds.}",
-             "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc cc}", "\\toprule",
-             " & Src Dice & Unseen Dice & Unseen clDice & Params (M) & GFLOPs \\\\", "\\midrule"]
+def bench_latency(tdir: Path) -> dict:
+    """exp -> CPU latency (ms, 4 threads, 512x512) from the controlled benchmark (scripts/benchmark_latency.py).
+
+    The per-run efficiency.json files are measured right after training and vary up to 2x for identical models, so the
+    cross-architecture comparisons use this benchmark (interleaved rounds on an idle machine), mapped via each experiment's architecture."""
+    from tglite.experiments import REGISTRY, make_config
+    files = sorted(tdir.glob("latency_*.csv"))
+    if not files:
+        return {}
+    table = pd.read_csv(files[0]).set_index("arch").cpu_ms.to_dict()
+    out = {}
+    for exp in REGISTRY:
+        m = make_config(exp).model
+        arch = f"U-Net base {int(m.base_channels)}" if m.backbone == "unet" else f"LiteNet w{int(m.width)}"
+        if arch in table:
+            out[exp] = float(table[arch])
+    return out
+
+
+def table_variants(summ, eff, lat) -> str:
+    """Stage-D variants, ingredient controls, plain compact U-Nets and the width sweep, with same-session CPU latency."""
+    groups = [
+        [("D_lite_topo_dg", "soft-clDice + skel.\\ head (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skel.\\ Recall")],
+        [("Z_lite_noskel", "D without skeleton head"), ("Z_lite_nocons", "D without consistency loss"), ("S_unet_b8", "plain U-Net, base 8 (topo+DG)"), ("S_unet_b16", "plain U-Net, base 16 (topo+DG)")],
+        [("W_lite_w8", "width $w{=}8$"), ("D_lite_topo_dg", "width $w{=}16$ (D)"), ("W_lite_w24", "width $w{=}24$"), ("W_lite_w32", "width $w{=}32$"), ("W_lite_w48", "width $w{=}48$")],
+    ]
+    lines = ["\\begin{table}[t]", "\\centering",
+             "\\caption{Variants of stage D: topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). "
+             "Stage D has 5 seeds, all other rows 3. CPU latency (4 threads) is from a controlled benchmark on one laptop CPU (Sec.~\\ref{sec:setup}).}",
+             "\\label{tab:variants}", "\\small", "\\begin{tabular}{l cccc rr r}", "\\toprule",
+             " & Src Dice & Unseen Dice & Unseen clDice & Unseen $\\beta_0$ & Params (M) & GFLOPs & CPU (ms) \\\\", "\\midrule"]
+
     def row(exp, label):
-        cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3) for ds, met in (("drive", "dice"), ("unseen", "dice"), ("unseen", "cldice"))]
+        cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3 if met != "betti0_err" else 1)
+                 for ds, met in (("drive", "dice"), ("unseen", "dice"), ("unseen", "cldice"), ("unseen", "betti0_err"))]
+        cells[3] = fmt(val(summ, exp, "unseen", "betti0_err"), None, 1)
         e = eff[eff.exp == exp] if len(eff) else pd.DataFrame()
-        return f"{label} & " + " & ".join(cells) + (f" & {e.params_m.iloc[0]:.2f} & {e.gflops.iloc[0]:.1f}" if len(e) else " & -- & --") + " \\\\"
-    lines += [row(e, l) for e, l in rows] + ["\\midrule"] + [row(e, f"width $w{{=}}{w}$") for e, w in wrows]
+        pg = f"{e.params_m.iloc[0]:.2f} & {e.gflops.iloc[0]:.1f}" if len(e) else "-- & --"
+        ms = f"{lat[exp]:.0f}" if exp in lat else "--"
+        return f"{label} & " + " & ".join(cells) + f" & {pg} & {ms} \\\\"
+
+    for k, g in enumerate(groups):
+        lines += [row(e, l) for e, l in g] + (["\\midrule"] if k < len(groups) - 1 else [])
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    return "\n".join(lines)
+
+
+def table_checks(post, nat_summ) -> str:
+    """Evaluation-only checks on seeds 3 and 4: small-component removal, validation-tuned threshold and no-rescale evaluation."""
+    lines = ["\\begin{table}[t]", "\\centering",
+             "\\caption{Evaluation-only checks on the trained models (seeds 3 and 4, unseen average). Cleanup removes connected components below a size chosen on DRIVE-validation; "
+             "tuned = one threshold per model chosen on DRIVE-validation; native = no FOV rescaling (run for A, D and E only).}",
+             "\\label{tab:checks}", "\\small", "\\begin{tabular}{l cc ccc c}", "\\toprule",
+             " & \\multicolumn{2}{c}{Betti-0 error} & \\multicolumn{4}{c}{Dice} \\\\", "\\cmidrule(lr){2-3}\\cmidrule(lr){4-7}",
+             "Stage & fixed 0.5 & cleanup & fixed 0.5 & cleanup & tuned thr. & native \\\\", "\\midrule"]
+    for exp, mode, lab in STAGES:
+        if mode != "det":
+            continue
+        g = lambda m, c: (lambda r: float(r[c].iloc[0]) if len(r) else float("nan"))(post[(post.exp == exp) & (post["mode"] == m)])  # noqa: E731
+        nat = val(nat_summ, exp, "unseen", "dice") if len(nat_summ) else float("nan")
+        lines.append(f"{lab} & {g('fixed 0.5', 'unseen_betti0_err'):.1f} & {g('pp', 'unseen_betti0_err'):.1f} & {g('fixed 0.5', 'unseen_dice'):.3f} & "
+                     f"{g('pp', 'unseen_dice'):.3f} & {g('thr', 'unseen_dice'):.3f} & {fmt(nat, None, 3)} \\\\")
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     return "\n".join(lines)
 
@@ -353,8 +403,8 @@ SHORT = {"X_unet_dg": "U+DG", "X_lite_plain": "L", "X_lite_topo": "L+T", "X_lite
 LABELLED = {"X_unet_dg", "X_lite_plain", "X_lite_dg", "W_lite_w8", "W_lite_w48", "S_unet_b8", "S_unet_b16", "Z_lite_noskel", "Z_lite_nocons"}
 
 
-def fig_tradeoff(summ, eff):
-    """Two readable panels: unseen Dice vs unseen Betti-0 error (the overlap/connectivity trade-off) and vs CPU latency (the cost)."""
+def fig_tradeoff(summ, eff, lat):
+    """Two readable panels: unseen Dice vs unseen clDice (overlap vs connectivity) and vs CPU latency from one Colab session (the cost)."""
     if summ.empty or not len(eff):
         return
     pts = []
@@ -362,11 +412,11 @@ def fig_tradeoff(summ, eff):
         e = eff[eff.exp == exp]
         if e.empty:
             continue
-        pts.append((exp, float(e.cpu_ms.iloc[0]), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "betti0_err")))
+        pts.append((exp, float(lat.get(exp, e.cpu_ms.iloc[0])), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "cldice")))
     if not pts:
         return
     fig, axes = plt.subplots(1, 2, figsize=(3.5, 1.95))
-    for ax, (xi, xl, logx) in zip(axes, [(3, "Unseen Betti-0 error (lower is better)", False), (1, "CPU latency, ms (log)", True)]):
+    for ax, (xi, xl, logx) in zip(axes, [(3, "Unseen clDice", False), (1, "CPU latency, ms (log, laptop)", True)]):
         for p in pts:
             stage = next((s for e, m, s in STAGES if e == p[0] and m == "det"), None)
             marker = "s" if ("unet" in p[0] or p[0][0] in "ABC") and not p[0].startswith(("D_", "E_")) else "o"
@@ -523,7 +573,12 @@ def main() -> None:
     if len(conf):
         write("tab_confusion.tex", table_confusion(conf, targets))
     write("tab_factorial.tex", table_factorial(summ))
-    write("tab_variants.tex", table_variants(summ, eff))
+    lat = bench_latency(tdir)
+    write("tab_variants.tex", table_variants(summ, eff, lat))
+    post = pd.read_csv(tdir / "postproc_summary.csv") if (tdir / "postproc_summary.csv").exists() else pd.DataFrame()
+    nat_summ = pd.read_csv(tdir / "native_summary.csv") if (tdir / "native_summary.csv").exists() else pd.DataFrame()
+    if len(post):
+        write("tab_checks.tex", table_checks(post, nat_summ))
     write("tab_datasets_info.tex", table_dataset_info(cfg))
     write("tab_hparams.tex", table_hparams(cfg))
     write("numbers.tex", macros(summ, eff, unc))
@@ -533,7 +588,7 @@ def main() -> None:
         (FIG / "data_overview.png").write_bytes(ov.read_bytes())
     print("figures:")
     fig_ablation(summ, targets + extra)
-    fig_tradeoff(summ, eff)
+    fig_tradeoff(summ, eff, lat)
     fig_training(runs)
     fig_qualitative(runs, cfg, targets)
     fig_risk_coverage(unc, targets + extra)

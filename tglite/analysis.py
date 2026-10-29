@@ -289,7 +289,8 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
             fpairs.append(((cell(("unet", topo, dg)), "det"), (exp, "det")))
     fpairs.append((("A_unet", "det"), ("X_lite_dg", "det")))
     fpairs += [(("D_lite_topo_dg", "det"), (e, "det")) for e in
-               ("V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl", "W_lite_w8", "W_lite_w24", "W_lite_w32", "W_lite_w48")]
+               ("V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl", "W_lite_w8", "W_lite_w24", "W_lite_w32", "W_lite_w48",
+                "S_unet_b8", "S_unet_b16", "Z_lite_noskel", "Z_lite_nocons")]
     fpairs = [(a, b) for a, b in fpairs if a in present and b in present]
     if fpairs:
         tabs["factorial_deltas"] = stage_deltas(run_tab, fpairs)

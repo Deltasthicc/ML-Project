@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Pixel-level confusion matrix and classification metrics (vessel = positive class, threshold 0.5). TP, FP, FN, TN are shares of the FOV pixels in \%; all values are means over images and seeds. Top: TG-LiteNet (E, deterministic) on every dataset. Bottom: stages A--E on the unseen average. F1 equals the per-image Dice.}
+\caption{Pixel-level confusion matrix and classification metrics (vessel = positive class, threshold 0.5). TP, FP, FN, TN are shares of the FOV pixels in \%; all values are means over images and seeds. Top: TG-LiteNet (E) on every dataset. Bottom: the U-Net (A) and TG-LiteNet on the unseen average (other stages: \texttt{results/tables/confusion.csv}). F1 equals the per-image Dice.}
 \label{tab:confusion}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -8,16 +8,13 @@
 \toprule
  & TP & FP & FN & TN & Precision & Recall & F1 & Accuracy \\
 \midrule
-DRIVE & 10.94 & 2.63 & 2.10 & 84.32 & 0.807 & 0.841 & 0.822 & 0.953 \\
-STARE & 9.66 & 3.95 & 0.81 & 85.58 & 0.711 & 0.922 & 0.801 & 0.952 \\
-CHASE\_DB1 & 9.40 & 4.94 & 0.87 & 84.79 & 0.655 & 0.916 & 0.762 & 0.942 \\
-HRF & 7.91 & 5.33 & 1.22 & 85.54 & 0.595 & 0.866 & 0.702 & 0.934 \\
+DRIVE & 10.91 & 2.59 & 2.14 & 84.37 & 0.809 & 0.839 & 0.822 & 0.953 \\
+STARE & 9.65 & 3.91 & 0.82 & 85.62 & 0.712 & 0.921 & 0.801 & 0.953 \\
+CHASE\_DB1 & 9.39 & 4.93 & 0.88 & 84.80 & 0.655 & 0.915 & 0.762 & 0.942 \\
+HRF & 7.88 & 5.27 & 1.25 & 85.60 & 0.597 & 0.864 & 0.703 & 0.935 \\
 \midrule
-A, unseen avg. & 8.97 & 4.63 & 0.98 & 85.41 & 0.662 & 0.900 & 0.759 & 0.944 \\
-B, unseen avg. & 8.97 & 4.87 & 0.99 & 85.18 & 0.651 & 0.900 & 0.751 & 0.941 \\
-C, unseen avg. & 9.13 & 4.77 & 0.83 & 85.27 & 0.656 & 0.915 & 0.762 & 0.944 \\
-D, unseen avg. & 8.98 & 4.68 & 0.98 & 85.36 & 0.656 & 0.901 & 0.756 & 0.943 \\
-E (det.), unseen avg. & 8.99 & 4.74 & 0.96 & 85.30 & 0.654 & 0.902 & 0.755 & 0.943 \\
+A, unseen avg. & 8.94 & 4.45 & 1.02 & 85.59 & 0.669 & 0.897 & 0.762 & 0.945 \\
+E (det.), unseen avg. & 8.97 & 4.70 & 0.98 & 85.34 & 0.655 & 0.900 & 0.755 & 0.943 \\
 \bottomrule
 \end{tabular}\end{adjustbox}
 \end{table}
