@@ -116,31 +116,51 @@ def welch_delta(a: np.ndarray, b: np.ndarray) -> tuple[float, float, float]:
     return d, float(stats.t.ppf(0.975, df) * se), float(2 * stats.t.sf(abs(d / se), df))
 
 
+def paired_delta(a: pd.Series, b: pd.Series) -> tuple[float, float, float, str, int]:
+    """mean(a) - mean(b) with a 95 % interval half-width and two-sided p-value, plus the test used and the number of pairs.
+
+    ``a`` and ``b`` are per-seed values indexed by seed.  Methods trained with the same seed identifier are compared as
+    pairs (Student-t on the per-seed differences, which keeps the seed-to-seed correlation); the unpaired Welch test is
+    only used when fewer than two seeds are shared.
+    """
+    shared = a.index.intersection(b.index)
+    if len(shared) >= 2:
+        diff = (a.loc[shared] - b.loc[shared]).to_numpy(float)
+        d, sd = diff.mean(), diff.std(ddof=1)
+        if sd == 0:
+            return float(d), 0.0, (1.0 if d == 0 else 0.0), "paired-t", len(shared)
+        se = sd / np.sqrt(len(diff))
+        return float(d), float(stats.t.ppf(0.975, len(diff) - 1) * se), float(2 * stats.t.sf(abs(d / se), len(diff) - 1)), "paired-t", len(shared)
+    d, ci, p = welch_delta(a.to_numpy(float), b.to_numpy(float))
+    return d, ci, p, "welch", 0
+
+
 def stage_deltas(run_tab: pd.DataFrame, pairs: list[tuple[tuple[str, str], tuple[str, str]]],
                  datasets=("drive", "unseen", "gap_unseen"), metrics=("dice", "cldice", "cbdice", "betti0_err", "auc")) -> pd.DataFrame:
-    """Differences (second minus first) between methods, each given as (exp, mode)."""
+    """Differences (second minus first) between methods, each given as (exp, mode); paired over seeds where possible."""
     rows = []
     for (e1, m1), (e2, m2) in pairs:
         for ds in datasets:
             for met in metrics:
-                a = run_tab[(run_tab.exp == e2) & (run_tab["mode"] == m2) & (run_tab.dataset == ds)][met].dropna().to_numpy()
-                b = run_tab[(run_tab.exp == e1) & (run_tab["mode"] == m1) & (run_tab.dataset == ds)][met].dropna().to_numpy()
+                sel = lambda e, m: run_tab[(run_tab.exp == e) & (run_tab["mode"] == m) & (run_tab.dataset == ds)].dropna(subset=[met]).set_index("seed")[met]  # noqa: E731
+                a, b = sel(e2, m2), sel(e1, m1)
                 if len(a) == 0 or len(b) == 0:
                     continue
-                d, ci, p = welch_delta(a, b)
+                d, ci, p, test, n_pairs = paired_delta(a, b)
                 rows.append({"from": method_name(e1, m1), "to": method_name(e2, m2), "dataset": ds, "metric": met,
-                             "delta": d, "ci95": ci, "p_welch": p, "n_from": len(b), "n_to": len(a)})
+                             "delta": d, "ci95": ci, "p": p, "test": test, "n_pairs": n_pairs, "n_from": len(b), "n_to": len(a)})
     return pd.DataFrame(rows)
 
 
 def paired_image_deltas(df: pd.DataFrame, pairs, metrics=("dice", "cldice", "betti0_err"), n_boot: int = 2000, seed: int = 0) -> pd.DataFrame:
     """Paired comparison on the test *images*: for every image the metric is averaged over the seeds of each method and the
-    second method is compared with the first on that same image.  Reports the mean difference with a percentile bootstrap
-    interval over images, the share of images that got worse/better and a Wilcoxon signed-rank p-value.
+    second method is compared with the first on that same image.
 
-    This captures test-set sampling variability only; training randomness is covered by the seed-level Welch intervals of
-    ``stage_deltas``.  ``unseen`` pools the 93 images of STARE, CHASE_DB1 and HRF (image-weighted).  Many comparisons are made
-    without multiplicity correction, so p-values are descriptive.
+    ``unseen`` uses a stratified bootstrap that matches the macro average of the tables: images are resampled within each of
+    STARE, CHASE_DB1 and HRF, the three dataset means of the difference are averaged, and the 2.5/97.5 percentiles of that
+    statistic give the interval (``delta`` is the same macro average).  ``frac_higher``/``frac_lower`` and the Wilcoxon p-value
+    are pooled over the 93 images and are descriptive.  This captures test-set sampling variability only; training randomness
+    is covered by the seed-level intervals of ``stage_deltas``.  Many comparisons are made without multiplicity correction.
     """
     d = df.assign(key=df.dataset + "/" + df.id.astype(str))
     rng = np.random.default_rng(seed)
@@ -150,18 +170,22 @@ def paired_image_deltas(df: pd.DataFrame, pairs, metrics=("dice", "cldice", "bet
             for met in metrics:
                 a = d[(d.exp == e1) & (d["mode"] == m1) & d.dataset.isin(dsets)].groupby("key")[met].mean()
                 b = d[(d.exp == e2) & (d["mode"] == m2) & d.dataset.isin(dsets)].groupby("key")[met].mean()
-                diff = (b - a).dropna().to_numpy()
+                diff = (b - a).dropna()
                 if len(diff) < 5:
                     continue
-                boots = diff[rng.integers(0, len(diff), (n_boot, len(diff)))].mean(axis=1)
+                strata = [diff[diff.index.str.startswith(ds + "/")].to_numpy() for ds in dsets]
+                strata = [x for x in strata if len(x)]
+                macro = float(np.mean([x.mean() for x in strata]))
+                boots = np.mean([x[rng.integers(0, len(x), (n_boot, len(x)))].mean(axis=1) for x in strata], axis=0)
                 lo, hi = np.percentile(boots, [2.5, 97.5])
+                pooled = diff.to_numpy()
                 try:
-                    p = float(stats.wilcoxon(diff).pvalue)
+                    p = float(stats.wilcoxon(pooled).pvalue)
                 except ValueError:
                     p = float("nan")
-                rows.append({"from": method_name(e1, m1), "to": method_name(e2, m2), "scope": scope, "metric": met, "delta": float(diff.mean()),
-                             "lo95": float(lo), "hi95": float(hi), "frac_higher": float((diff > 0).mean()), "frac_lower": float((diff < 0).mean()),
-                             "p_wilcoxon": p, "n_images": len(diff)})
+                rows.append({"from": method_name(e1, m1), "to": method_name(e2, m2), "scope": scope, "metric": met, "delta": macro,
+                             "lo95": float(lo), "hi95": float(hi), "frac_higher": float((pooled > 0).mean()), "frac_lower": float((pooled < 0).mean()),
+                             "p_wilcoxon": p, "n_images": len(pooled)})
     return pd.DataFrame(rows)
 
 
@@ -294,7 +318,8 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
     fpairs = [(a, b) for a, b in fpairs if a in present and b in present]
     if fpairs:
         tabs["factorial_deltas"] = stage_deltas(run_tab, fpairs)
-    tabs["paired_image_deltas"] = paired_image_deltas(df, pairs + fpairs)
+    all_pairs = list(dict.fromkeys(pairs + fpairs))                          # the stage chain and the factorial list overlap
+    tabs["paired_image_deltas"] = paired_image_deltas(df, all_pairs)
 
     conf = confusion_summary(runs_dir, Path(__file__).resolve().parents[1] / "data" / "processed")
     if len(conf):
@@ -302,7 +327,10 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
 
     nat = load_runs(runs_dir, "native")
     if not nat.empty:
-        nt = add_gaps(per_run_table(pd.concat([nat, df[df.dataset == "drive"].assign(scale_mode="fov")], ignore_index=True)))
+        keys = set(zip(nat.exp, nat["mode"], nat.seed))                            # native evaluation exists for a few runs only
+        src = df[df.dataset == "drive"]
+        src = src[[k in keys for k in zip(src.exp, src["mode"], src.seed)]]
+        nt = add_gaps(per_run_table(pd.concat([nat, src.assign(scale_mode="fov")], ignore_index=True)))
         tabs["native_summary"] = summarise(nt)
     for name, t in tabs.items():
         if len(t):

@@ -21,7 +21,7 @@
   \node[dblk, minimum height=15mm, right=2mm of d3] (d2) {};
   \node[dblk, minimum height=19mm, right=2mm of d2] (d1) {};
   \foreach \a/\b in {e1/d1, e2/d2, e3/d3, e4/d4} \draw[skip] (\a.north) -- ++(0,2.2mm) -| (\b.north);
-  \foreach \n/\l in {e1/{$w$}, e2/{$2w$}, e3/{$4w$}, e4/{$8w$}, bn/{$16w$}} \node[below=1mm of \n, font=\scriptsize] {\l};
+  \foreach \n/\l in {e1/{$w$}, e2/{$2w$}, e3/{$4w$}, e4/{$8w$}, bn/{$8w$}} \node[below=1mm of \n, font=\scriptsize] {\l};
   \path (e1.north) -- coordinate[midway] (mid) (d1.north);
   \node[above=4.5mm of mid, align=center] {depthwise-separable U-Net, two $3{\times}3$ blocks per level (stage D),\\spatial dropout $p{=}0.1$ at the bottleneck and in the decoder (stage E)};
   \node[box, right=7mm of d1] (mask) {Mask head\\$1{\times}1$ conv};

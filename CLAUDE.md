@@ -15,7 +15,7 @@ Read `README.md` (overview, commands) and `RUNBOOK.md` (how the full run is done
 ## Commands
 ```bash
 pip install -r requirements.txt && pip install -e .     # install torch separately (CUDA build)
-pytest -q                                                # 32 tests
+pytest -q                                                # 34 tests
 python scripts/run_experiments.py --groups primary --quick     # smoke test
 python scripts/run_experiments.py --groups primary factorial topology width --native-eval
 python scripts/aggregate_results.py && python scripts/make_report_assets.py && (cd report && pdflatex main && pdflatex main)

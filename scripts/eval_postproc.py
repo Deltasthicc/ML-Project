@@ -138,8 +138,20 @@ def summarise(runs: Path, exps, seeds) -> pd.DataFrame:
             drive = gs[gs.dataset == "drive"][COLS].mean()
             per_seed.append({**{f"unseen_{c}": unseen[c] for c in COLS}, **{f"drive_{c}": drive[c] for c in COLS}, "k": gs.k.iloc[0], "thr": gs.thr.iloc[0]})
         t = pd.DataFrame(per_seed)
-        out.append({"exp": e, "mode": mode, "n_seeds": len(t), **t.mean().to_dict(), **{f"{c}_std": v for c, v in t.std(ddof=0).items()}})
+        out.append({"exp": e, "mode": mode, "n_seeds": len(t), **t.mean().to_dict(), **{f"{c}_std": v for c, v in t.std(ddof=1).fillna(0.0).items()}})
     return pd.DataFrame(out)
+
+
+def choices(runs: Path, exps, seeds) -> pd.DataFrame:
+    """The cut-off k (px^2 at the 527-px scale) and threshold chosen on DRIVE-validation for every evaluated run."""
+    rows = []
+    for e in exps:
+        for s in seeds:
+            p = runs / e / f"seed{s}" / "per_image_pp.csv"
+            if p.exists():
+                d = pd.read_csv(p, usecols=["mode", "k", "thr"]).drop_duplicates()
+                rows += [{"exp": e, "seed": s, "mode": r["mode"], "k": r["k"], "thr": r["thr"]} for _, r in d.iterrows()]
+    return pd.DataFrame(rows)
 
 
 def main() -> None:
@@ -167,6 +179,7 @@ def main() -> None:
     out_dir = Path(a.out) if a.out else runs.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     summ.to_csv(out_dir / "postproc_summary.csv", index=False)
+    choices(runs, a.exp, a.seeds).to_csv(out_dir / "postproc_choices.csv", index=False)
     show = summ[["exp", "mode", "n_seeds", "k", "thr", "drive_dice", "unseen_dice", "unseen_cldice", "unseen_betti0_err", "unseen_betti1_err"]]
     print(show.round(3).to_string(index=False))
 

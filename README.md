@@ -37,10 +37,10 @@ python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scri
 pip install torch --index-url https://download.pytorch.org/whl/cu126
 # 2) everything else + the package itself
 pip install -r requirements.txt && pip install -e .
-pytest -q                                                   # 32 tests, ~15 s on CPU
+pytest -q                                                   # 34 tests, ~15 s on CPU
 ```
 Developed on a CPU laptop with Python 3.12; the reported experiments ran on free Kaggle (Tesla T4, Python 3.13.15, PyTorch 2.11.0+cu128) and
-Colab (L4) notebooks. The exact library versions of every run are stored in its `env.json`; `requirements-lock.txt` lists them. The code is
+Colab (L4) notebooks. The exact library versions of every run are stored in its `env.json`; `reported-environment.txt` summarises the main library versions and `results/tables/run_manifest.csv` (from `scripts/make_run_manifest.py`) lists, for every run, the code commit, GPU and CUDA/PyTorch build. The 70 reported runs come from two environments (37 on a Kaggle T4 with CUDA 12.8, 33 on a Colab L4 with CUDA 13.0) and three code commits that differ only in analysis code and added experiments, so results are statistically, not bitwise, reproducible. The code is
 device-agnostic and uses CUDA + fp16 autocast automatically when available.
 
 ## 3. Data (not redistributed — please cite the original papers)
@@ -86,7 +86,7 @@ Experiments (see `tglite/experiments.py`): `A_unet`, `B_unet_topo`, `C_unet_topo
 `X_unet_dg`, `X_lite_plain`, `X_lite_topo`, `X_lite_dg` (factorial); `V_lite_cbdice`, `V_lite_srl`, `V_lite_cldice_srl` (topology variants);
 `W_lite_w{8,24,32,48}` (width; w=16 is stage D); `S_unet_b8`, `S_unet_b16` (plain compact U-Nets with the stage-D recipe);
 `Z_lite_noskel`, `Z_lite_nocons` (stage D without the skeleton head / without the consistency loss).
-Defaults: 5 seeds for primary/factorial, 3 for the rest; the number of seeds actually behind each paper number is `n_seeds` in `results/tables/summary.csv`.
+Defaults: 5 seeds for the primary stages A-E, 3 for every other group (this is what the reported 70 runs used); the number of seeds actually behind each paper number is `n_seeds` in `results/tables/summary.csv`.
 
 Evaluation-only controls on trained checkpoints (no retraining; thresholds and the component-size cut-off are chosen on DRIVE-val only):
 ```bash

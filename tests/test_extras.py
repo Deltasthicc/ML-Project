@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from tglite.analysis import confusion_summary, paired_image_deltas
+from tglite.analysis import confusion_summary, paired_delta, paired_image_deltas, stage_deltas, welch_delta
 from tglite.config import ROOT
 from tglite.experiments import GROUPS, make_config
 from tglite.models import build_model, count_params
@@ -73,3 +73,31 @@ def test_paired_image_deltas_direction_and_counts():
     t = paired_image_deltas(pd.DataFrame(rows), [(("A", "det"), ("B", "det"))])
     r = t[(t.scope == "unseen") & (t.metric == "dice")].iloc[0]
     assert r.n_images == 30 and r.delta < 0 and r.hi95 < 0 and r.frac_lower > 0.9
+
+
+def test_paired_delta_uses_shared_seeds_and_falls_back_to_welch():
+    seeds = [0, 1, 2, 3, 4]
+    base = pd.Series([0.70, 0.74, 0.78, 0.72, 0.76], index=seeds)
+    better = base + 0.01 + pd.Series([0.001, -0.001, 0.0, 0.001, -0.001], index=seeds)    # constant gain on every seed
+    d, ci, p, test, n = paired_delta(better, base)
+    assert test == "paired-t" and n == 5 and np.isclose(d, 0.01, atol=1e-3) and p < 0.001
+    assert ci < welch_delta(better.to_numpy(), base.to_numpy())[1] / 5                       # pairing removes the seed-to-seed spread
+    # seeds that do not overlap: only the unpaired test is possible
+    other = pd.Series([0.71, 0.75], index=[10, 11])
+    assert paired_delta(other, base)[3] == "welch"
+    # a stage_deltas row for a pair of runs carries the test and the number of pairs
+    rows = [{"exp": e, "mode": "det", "seed": sd, "dataset": "unseen", "dice": v} for e, ser in (("A", base), ("B", better)) for sd, v in ser.items()]
+    t = stage_deltas(pd.DataFrame(rows), [(("A", "det"), ("B", "det"))], datasets=("unseen",), metrics=("dice",))
+    assert t.iloc[0].test == "paired-t" and t.iloc[0].n_pairs == 5
+
+
+def test_unseen_image_bootstrap_is_a_macro_average_over_datasets():
+    rows = []
+    for ds, n, gain in (("stare", 20, 0.10), ("chase_db1", 20, 0.10), ("hrf", 40, -0.10)):    # HRF would dominate a pooled mean
+        for exp, shift in (("A", 0.0), ("B", gain)):
+            for i in range(n):
+                rows.append({"exp": exp, "seed": 0, "mode": "det", "dataset": ds, "id": f"{i:02d}", "dice": 0.5 + shift, "cldice": 0.5, "betti0_err": 1.0})
+    t = paired_image_deltas(pd.DataFrame(rows), [(("A", "det"), ("B", "det"))])
+    r = t[(t.scope == "unseen") & (t.metric == "dice")].iloc[0]
+    assert np.isclose(r.delta, (0.10 + 0.10 - 0.10) / 3)                                      # equal weight per dataset, as in the tables
+    assert np.isclose(r.frac_lower, 0.5) and r.n_images == 80

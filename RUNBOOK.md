@@ -19,7 +19,7 @@ git clone <your-repo-url> tglite && cd tglite
 python -m venv .venv && source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install torch --index-url https://download.pytorch.org/whl/cu126   # pick the wheel that matches your driver
 pip install -r requirements.txt && pip install -e .
-pytest -q                                                       # all 28 tests must pass
+pytest -q                                                       # all 34 tests must pass
 ```
 
 ## 2. Data
@@ -52,7 +52,7 @@ python scripts/train.py --exp A_unet --seed 0 --evaluate --set train.num_workers
 python scripts/train.py --exp E_tglitenet --seed 0 --evaluate --set train.num_workers=12 --out results/timing/E
 ```
 Look at `results/timing/*/train_log.csv` (`time_s` column) and the console. Then: total ≈ 20 × t(U-Net run) [A,B,C,X_unet_dg × 5 seeds]
-+ 25 × t(lite run) [D,E,X_lite_* × 5 seeds] + 21 × t(lite run) [topology + width, 3 seeds] + evaluation (≈ 1–3 min per run, MC passes included).
++ 10 × t(lite run) [D,E × 5 seeds] + 3 × (X_unet_dg + 3 X_lite_* + topology + width) lite/U-Net runs [3 seeds each] + evaluation (≈ 1–3 min per run, MC passes included).
 If it is too slow: lower `train.iters` (e.g. 3000) *for every stage* with `--set train.iters=3000` (never for only some stages), or use 3 seeds (`--seeds 0 1 2`).
 GPU memory: U-Net at batch 8 × 256² with fp16 needs roughly 6–8 GB; on a smaller card use `--set train.batch_size=4` (again for all stages).
 If the GPU sits idle, the CPU data pipeline is the bottleneck → increase `train.num_workers`.
@@ -111,6 +111,8 @@ git init && git add . && git status                 # check: no data/, .venv/, *
 git commit -m "TG-LiteNet: code, configs, report scaffold"
 git branch -M main && git remote add origin <url> && git push -u origin main
 ```
+**Submission zip:** build it from git, not from the folder (the folder holds data, `.venv` and result zips): `git archive -o submission.zip HEAD`. Trained checkpoints are not in the repository, so the committed `per_image*.csv` files cannot be re-derived without retraining; copy `best.pt` files separately (or publish them as a release) if the examiner should be able to re-evaluate.
+
 `.gitignore` already excludes `data/raw`, `data/processed`, `data/cache`, `.venv`, checkpoints and LaTeX build files.
 
 ## 9. Sanity check done on the development laptop (CPU, tiny budget — not a result)
@@ -125,7 +127,7 @@ data pipeline, labels, losses and evaluation are wired correctly. Full runs use 
 | `FileNotFoundError: ... run scripts/download_data.py and scripts/prepare_data.py first` | data step skipped, or a dataset is missing from `data.eval_datasets` |
 | CUDA out of memory | `--set train.batch_size=4` (all stages) or `data.patch_size=192` |
 | very slow epochs, GPU idle | more `train.num_workers`; make sure `cv2` is `opencv-python-headless`; check `OMP_NUM_THREADS` |
-| `weights_only` / pickle error on load | use PyTorch ≥ 2.1; `evaluate.py` loads with `weights_only=False` on purpose (the checkpoint stores the config dict) |
+| `weights_only` / pickle error on load | use PyTorch ≥ 2.1; `evaluate.py` loads with `weights_only=False` on purpose (the checkpoint stores the config dict). **Only load checkpoints you trained yourself or trust**: a pickle can run code |
 | LaTeX: missing package | `tlmgr install IEEEtran adjustbox collectbox algorithms` or compile on Overleaf |
 | results differ slightly between machines | expected (non-deterministic GPU kernels); the paper reports mean±std over seeds |
 

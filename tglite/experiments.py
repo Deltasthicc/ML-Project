@@ -68,7 +68,7 @@ GROUPS: dict[str, list[str]] = {
     "controls": ["Z_lite_noskel", "Z_lite_nocons"],
 }
 # default number of seeds per group (small, cheap models can afford more seeds)
-DEFAULT_SEEDS = {"primary": 5, "factorial": 5, "topology": 3, "width": 3, "compact_unet": 3, "controls": 3}
+DEFAULT_SEEDS = {"primary": 5, "factorial": 3, "topology": 3, "width": 3, "compact_unet": 3, "controls": 3}
 # the stage-D recipe is shared by "primary" and the supplementary groups (referenced by the aggregation script)
 FACTORIAL_CELLS = {
     ("unet", "none", False): "A_unet", ("unet", "cldice", False): "B_unet_topo",

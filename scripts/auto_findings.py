@@ -2,7 +2,7 @@
 
     python scripts/aggregate_results.py && python scripts/auto_findings.py
 
-This is a *writing aid*: it states what the data show (differences, 95 % Welch intervals over seeds, whether the interval
+This is a *writing aid*: it states what the data show (differences, 95 % paired-t intervals over seeds, whether the interval
 excludes zero) but does not interpret them -- the Discussion in the paper must explain the *why*.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ def main() -> None:
     eff = pd.read_csv(t / "efficiency.csv") if (t / "efficiency.csv").exists() else pd.DataFrame()
     unc = pd.read_csv(t / "uncertainty.csv") if (t / "uncertainty.csv").exists() else pd.DataFrame()
     low = {"betti0_err": True, "dice": False, "cldice": False, "auc": False}
-    out = ["# Auto-generated findings (facts only)\n", "Deltas are (second − first) in mean over seeds; brackets are 95 % Welch intervals.\n"]
+    out = ["# Auto-generated findings (facts only)\n", "Deltas are (second − first) in mean over seeds; brackets are 95 % paired-t intervals over shared seeds.\n"]
 
     def block(title, a, b):
         out.append(f"\n## {title}\n")

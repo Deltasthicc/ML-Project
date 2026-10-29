@@ -214,22 +214,22 @@ def bench_latency(tdir: Path) -> dict:
 def table_variants(summ, eff, lat) -> str:
     """Stage-D variants, ingredient controls, plain compact U-Nets and the width sweep, with same-session CPU latency."""
     groups = [
-        [("D_lite_topo_dg", "soft-clDice + skel.\\ head (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skel.\\ Recall")],
-        [("Z_lite_noskel", "D without skeleton head"), ("Z_lite_nocons", "D without consistency loss"), ("S_unet_b8", "plain U-Net, base 8 (topo+DG)"), ("S_unet_b16", "plain U-Net, base 16 (topo+DG)")],
+        [("D_lite_topo_dg", "soft-clDice + head (D)"), ("V_lite_cbdice", "cbDice"), ("V_lite_srl", "Skeleton Recall"), ("V_lite_cldice_srl", "clDice + Skel.\\ Recall")],
+        [("Z_lite_noskel", "D without head"), ("Z_lite_nocons", "D without consistency"), ("S_unet_b8", "plain U-Net, base 8"), ("S_unet_b16", "plain U-Net, base 16")],
         [("W_lite_w8", "width $w{=}8$"), ("D_lite_topo_dg", "width $w{=}16$ (D)"), ("W_lite_w24", "width $w{=}24$"), ("W_lite_w32", "width $w{=}32$"), ("W_lite_w48", "width $w{=}48$")],
     ]
     lines = ["\\begin{table}[t]", "\\centering",
-             "\\caption{Variants of stage D: topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). "
-             "Stage D has 5 seeds, all other rows 3. CPU latency (4 threads) is from a controlled benchmark on one laptop CPU (Sec.~\\ref{sec:setup}).}",
-             "\\label{tab:variants}", "\\small", "\\begin{tabular}{l cccc rr r}", "\\toprule",
-             " & Src Dice & Unseen Dice & Unseen clDice & Unseen $\\beta_0$ & Params (M) & GFLOPs & CPU (ms) \\\\", "\\midrule"]
+             "\\caption{Variants of stage D (unseen averages): topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). "
+             "Stage D has 5 seeds, other rows 3. CPU = 4 threads, controlled laptop benchmark.}",
+             "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc rr}", "\\toprule",
+             " & Dice & clDice & $\\beta_0$ err & Params (M) & CPU (ms) \\\\", "\\midrule"]
 
     def row(exp, label):
         cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3 if met != "betti0_err" else 1)
-                 for ds, met in (("drive", "dice"), ("unseen", "dice"), ("unseen", "cldice"), ("unseen", "betti0_err"))]
-        cells[3] = fmt(val(summ, exp, "unseen", "betti0_err"), None, 1)
+                 for ds, met in (("unseen", "dice"), ("unseen", "cldice"), ("unseen", "betti0_err"))]
+        cells[2] = fmt(val(summ, exp, "unseen", "betti0_err"), None, 1)
         e = eff[eff.exp == exp] if len(eff) else pd.DataFrame()
-        pg = f"{e.params_m.iloc[0]:.2f} & {e.gflops.iloc[0]:.1f}" if len(e) else "-- & --"
+        pg = f"{e.params_m.iloc[0]:.2f}" if len(e) else "--"
         ms = f"{lat[exp]:.0f}" if exp in lat else "--"
         return f"{label} & " + " & ".join(cells) + f" & {pg} & {ms} \\\\"
 
@@ -308,7 +308,6 @@ def macros(summ, eff, unc) -> str:
 
 # ---------------------------------------------------------------------------------------------- figures
 SHORT = {"S_unet_b16": "U16", "W_lite_w48": "w48"}
-STEP_COL = {"A→B": COL["B"], "B→C": COL["C"], "C→D": COL["D"], "D→E": COL["E (det.)"], "A→E": "#333333"}
 
 
 def _style() -> None:
@@ -360,37 +359,6 @@ def fig_results(summ, targets):
     fig.legend(h, l, ncol=5, fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, 1.07), frameon=False, handlelength=1.2, columnspacing=1.2)
     fig.tight_layout(pad=0.4, w_pad=1.0)
     savefig(fig, "fig_results")
-
-
-def fig_effects(pair: pd.DataFrame):
-    """Forest plot of the image-level paired effect of each stage step on the unseen images (95% bootstrap interval)."""
-    if pair is None or pair.empty:
-        return
-    steps = [("A_unet", "B_unet_topo", "A→B", "+ topology"), ("B_unet_topo", "C_unet_topo_dg", "B→C", "+ DG augm."),
-             ("C_unet_topo_dg", "D_lite_topo_dg", "C→D", "+ compact backbone"), ("D_lite_topo_dg", "E_tglitenet", "D→E", "+ dropout"),
-             ("A_unet", "E_tglitenet[mc]", "A→E", "total (A→E, MC)")]
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.5), sharey=True)
-    for ax, (met, lab) in zip(axes, [("dice", "Δ Dice"), ("cldice", "Δ clDice")]):
-        for i, (a, b, key, name) in enumerate(steps):
-            r = pair[(pair["from"] == a) & (pair["to"] == b) & (pair.scope == "unseen") & (pair.metric == met)]
-            if r.empty:
-                continue
-            r = r.iloc[0]
-            y = len(steps) - 1 - i
-            ax.errorbar(r.delta, y, xerr=[[r.delta - r.lo95], [r.hi95 - r.delta]], fmt="o" if key != "A→E" else "D", ms=3.5, color=STEP_COL[key],
-                        elinewidth=1.1, capsize=1.5, capthick=0.8)
-            ax.text(r.hi95 + 0.0015, y, f"{r.delta:+.3f}", fontsize=5.5, va="center", ha="left", color="0.25")
-        ax.axvline(0, color="k", lw=0.6)
-        ax.set_xlabel(lab, fontsize=7)
-        ax.tick_params(labelsize=6.5)
-        ax.grid(axis="x", alpha=0.3, lw=0.4)
-        ax.set_ylim(-0.6, len(steps) - 0.4)
-        lo, hi = ax.get_xlim()
-        ax.set_xlim(lo, hi + (hi - lo) * 0.28)
-    axes[0].set_yticks(range(len(steps)))
-    axes[0].set_yticklabels([s[3] for s in steps][::-1], fontsize=6.5)
-    fig.tight_layout(pad=0.4, w_pad=0.6)
-    savefig(fig, "fig_effects")
 
 
 def fig_cleanup(post, nat_summ):
@@ -664,9 +632,7 @@ def main() -> None:
         (FIG / "data_overview.png").write_bytes(ov.read_bytes())
     print("figures:")
     _style()
-    pair = pd.read_csv(tdir / "paired_image_deltas.csv") if (tdir / "paired_image_deltas.csv").exists() else pd.DataFrame()
     fig_results(summ, targets)
-    fig_effects(pair)
     fig_cleanup(post, nat_summ)
     fig_tradeoff(summ, eff, lat)
     fig_training(runs)

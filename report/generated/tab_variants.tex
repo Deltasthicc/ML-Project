@@ -1,27 +1,27 @@
 \begin{table}[t]
 \centering
-\caption{Variants of stage D: topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). Stage D has 5 seeds, all other rows 3. CPU latency (4 threads) is from a controlled benchmark on one laptop CPU (Sec.~\ref{sec:setup}).}
+\caption{Variants of stage D (unseen averages): topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). Stage D has 5 seeds, other rows 3. CPU = 4 threads, controlled laptop benchmark.}
 \label{tab:variants}
 \small
-\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l cccc rr r}
+\begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l ccc rr}
 \toprule
- & Src Dice & Unseen Dice & Unseen clDice & Unseen $\beta_0$ & Params (M) & GFLOPs & CPU (ms) \\
+ & Dice & clDice & $\beta_0$ err & Params (M) & CPU (ms) \\
 \midrule
-soft-clDice + skel.\ head (D) & 0.822{\scriptsize$\pm$0.001} & 0.757{\scriptsize$\pm$0.003} & 0.832{\scriptsize$\pm$0.002} & 44.7 & 0.21 & 5.5 & 209 \\
-cbDice & 0.818{\scriptsize$\pm$0.001} & 0.745{\scriptsize$\pm$0.002} & 0.834{\scriptsize$\pm$0.002} & 39.1 & 0.21 & 5.5 & 209 \\
-Skeleton Recall & 0.814{\scriptsize$\pm$0.001} & 0.743{\scriptsize$\pm$0.006} & 0.828{\scriptsize$\pm$0.001} & 55.3 & 0.21 & 5.5 & 209 \\
-clDice + Skel.\ Recall & 0.810{\scriptsize$\pm$0.001} & 0.734{\scriptsize$\pm$0.001} & 0.832{\scriptsize$\pm$0.003} & 36.5 & 0.21 & 5.5 & 209 \\
+soft-clDice + head (D) & 0.757{\scriptsize$\pm$0.003} & 0.832{\scriptsize$\pm$0.002} & 44.7 & 0.21 & 209 \\
+cbDice & 0.745{\scriptsize$\pm$0.002} & 0.834{\scriptsize$\pm$0.002} & 39.1 & 0.21 & 209 \\
+Skeleton Recall & 0.743{\scriptsize$\pm$0.006} & 0.828{\scriptsize$\pm$0.001} & 55.3 & 0.21 & 209 \\
+clDice + Skel.\ Recall & 0.734{\scriptsize$\pm$0.001} & 0.832{\scriptsize$\pm$0.003} & 36.5 & 0.21 & 209 \\
 \midrule
-D without skeleton head & 0.822{\scriptsize$\pm$0.000} & 0.761{\scriptsize$\pm$0.006} & 0.831{\scriptsize$\pm$0.001} & 53.8 & 0.21 & 5.5 & 209 \\
-D without consistency loss & 0.822{\scriptsize$\pm$0.001} & 0.759{\scriptsize$\pm$0.005} & 0.833{\scriptsize$\pm$0.002} & 52.2 & 0.21 & 5.5 & 209 \\
-plain U-Net, base 8 (topo+DG) & 0.821{\scriptsize$\pm$0.000} & 0.758{\scriptsize$\pm$0.006} & 0.833{\scriptsize$\pm$0.001} & 48.9 & 0.49 & 6.0 & 67 \\
-plain U-Net, base 16 (topo+DG) & 0.823{\scriptsize$\pm$0.001} & 0.757{\scriptsize$\pm$0.005} & 0.840{\scriptsize$\pm$0.001} & 33.7 & 1.94 & 24.1 & 187 \\
+D without head & 0.761{\scriptsize$\pm$0.006} & 0.831{\scriptsize$\pm$0.001} & 53.8 & 0.21 & 209 \\
+D without consistency & 0.759{\scriptsize$\pm$0.005} & 0.833{\scriptsize$\pm$0.002} & 52.2 & 0.21 & 209 \\
+plain U-Net, base 8 & 0.758{\scriptsize$\pm$0.006} & 0.833{\scriptsize$\pm$0.001} & 48.9 & 0.49 & 67 \\
+plain U-Net, base 16 & 0.757{\scriptsize$\pm$0.005} & 0.840{\scriptsize$\pm$0.001} & 33.7 & 1.94 & 187 \\
 \midrule
-width $w{=}8$ & 0.816{\scriptsize$\pm$0.000} & 0.754{\scriptsize$\pm$0.005} & 0.822{\scriptsize$\pm$0.001} & 61.1 & 0.06 & 1.6 & 76 \\
-width $w{=}16$ (D) & 0.822{\scriptsize$\pm$0.001} & 0.757{\scriptsize$\pm$0.003} & 0.832{\scriptsize$\pm$0.002} & 44.7 & 0.21 & 5.5 & 209 \\
-width $w{=}24$ & 0.822{\scriptsize$\pm$0.003} & 0.764{\scriptsize$\pm$0.002} & 0.835{\scriptsize$\pm$0.003} & 40.0 & 0.46 & 11.8 & 343 \\
-width $w{=}32$ & 0.823{\scriptsize$\pm$0.001} & 0.759{\scriptsize$\pm$0.005} & 0.838{\scriptsize$\pm$0.003} & 34.3 & 0.81 & 20.3 & 487 \\
-width $w{=}48$ & 0.823{\scriptsize$\pm$0.002} & 0.759{\scriptsize$\pm$0.005} & 0.839{\scriptsize$\pm$0.002} & 30.1 & 1.81 & 44.4 & 838 \\
+width $w{=}8$ & 0.754{\scriptsize$\pm$0.005} & 0.822{\scriptsize$\pm$0.001} & 61.1 & 0.06 & 76 \\
+width $w{=}16$ (D) & 0.757{\scriptsize$\pm$0.003} & 0.832{\scriptsize$\pm$0.002} & 44.7 & 0.21 & 209 \\
+width $w{=}24$ & 0.764{\scriptsize$\pm$0.002} & 0.835{\scriptsize$\pm$0.003} & 40.0 & 0.46 & 343 \\
+width $w{=}32$ & 0.759{\scriptsize$\pm$0.005} & 0.838{\scriptsize$\pm$0.003} & 34.3 & 0.81 & 487 \\
+width $w{=}48$ & 0.759{\scriptsize$\pm$0.005} & 0.839{\scriptsize$\pm$0.002} & 30.1 & 1.81 & 838 \\
 \bottomrule
 \end{tabular}\end{adjustbox}
 \end{table}
