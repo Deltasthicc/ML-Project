@@ -361,51 +361,69 @@ def fig_results(summ, targets):
     savefig(fig, "fig_results")
 
 
-def fig_cleanup(post, nat_summ):
-    """Evaluation-only checks: raw vs cleaned Betti-0 error, and Dice at the fixed threshold, the DRIVE-val-tuned threshold and without FOV rescaling."""
+CLEAN_SETS = [("A_unet", "A"), ("B_unet_topo", "B"), ("C_unet_topo_dg", "C"), ("D_lite_topo_dg", "D"), ("E_tglitenet", "E"),
+              ("X_unet_dg", "U+DG"), ("S_unet_b8", "U8"), ("S_unet_b16", "U16"), ("X_lite_dg", "L+DG")]
+
+
+def fig_cleanup(post, nat_summ, per_run):
+    """Evaluation-only checks: raw vs cleaned Betti-0 error, and Dice at the fixed threshold, the DRIVE-val-tuned threshold and without FOV rescaling.
+
+    Stages A--E use all five seeds, the other four configurations three; the no-rescale evaluation exists for A, D and E on seeds 3--4 only, so it is
+    drawn next to the fixed-threshold Dice of the same two seeds (hollow marker).
+    """
     if post is None or post.empty:
         return
-    stages = [s for s in STAGES if s[1] == "det"]
-    names = [s[2].replace(" (det.)", "") for s in stages]
+    sets = [c for c in CLEAN_SETS if ((post.exp == c[0]) & (post["mode"] == "pp")).any()]
+    names = [c[1] for c in sets]
 
     def g(exp, mode, col):
         r = post[(post.exp == exp) & (post["mode"] == mode)]
         return float(r[col].iloc[0]) if len(r) else np.nan
 
-    x = np.arange(len(stages))
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.55))
-    raw = [g(e, "fixed 0.5", "unseen_betti0_err") for e, _, _ in stages]
-    pp = [g(e, "pp", "unseen_betti0_err") for e, _, _ in stages]
+    x = np.arange(len(sets))
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.6))
+    raw = [g(e, "fixed 0.5", "unseen_betti0_err") for e, _ in sets]
+    pp = [g(e, "pp", "unseen_betti0_err") for e, _ in sets]
     ax = axes[0]
-    ax.bar(x - 0.19, raw, 0.36, color="#b0b0b0", label="raw", linewidth=0)
-    ax.bar(x + 0.19, pp, 0.36, color="#1f77b4", label="cleanup", linewidth=0)
+    ax.bar(x - 0.2, raw, 0.38, color="#b0b0b0", label="raw", linewidth=0)
+    ax.bar(x + 0.2, pp, 0.38, color="#1f77b4", label="cleanup", linewidth=0)
     for xi, v in zip(x, pp):
-        ax.text(xi + 0.19, v * 1.08, f"{v:.1f}", ha="center", fontsize=5, rotation=90, va="bottom")
+        ax.text(xi + 0.2, v * 1.1, f"{v:.1f}", ha="center", fontsize=4.2, rotation=90, va="bottom")
     ax.set_yscale("log")
-    ax.set_ylim(2.5, 300)
+    ax.set_ylim(2.5, 400)
     ax.set_yticks([3, 10, 30, 100, 300])
     ax.set_yticklabels(["3", "10", "30", "100", "300"])
     ax.minorticks_off()
     ax.set_ylabel("unseen Betti-0 error", fontsize=7)
     ax.legend(fontsize=6, frameon=False, loc="upper right", handlelength=1.0)
     ax = axes[1]
-    fx = [g(e, "fixed 0.5", "unseen_dice") for e, _, _ in stages]
-    th = [g(e, "thr", "unseen_dice") for e, _, _ in stages]
-    nat = [val(nat_summ, e, "unseen", "dice") if len(nat_summ) else np.nan for e, _, _ in stages]
+    fx = [g(e, "fixed 0.5", "unseen_dice") for e, _ in sets]
+    th = [g(e, "thr", "unseen_dice") for e, _ in sets]
     for xi, a, b in zip(x, fx, th):
         ax.plot([xi, xi], [a, b], color="0.6", lw=0.8, zorder=1)
-    ax.scatter(x, fx, s=18, color="k", label="fixed 0.5", zorder=3)
-    ax.scatter(x, th, s=20, marker="^", color="#d62728", label="tuned thr.", zorder=3)
-    ax.scatter(x, nat, s=20, marker="s", color="#2ca02c", label="no rescale", zorder=3)
+    ax.scatter(x, fx, s=16, color="k", label="fixed 0.5", zorder=3)
+    ax.scatter(x, th, s=18, marker="^", color="#d62728", label="tuned thr.", zorder=3)
+    if len(nat_summ) and per_run is not None:
+        nx, nv, rv = [], [], []
+        for k, (e, _) in enumerate(sets):
+            n = val(nat_summ, e, "unseen", "dice")
+            two = per_run[(per_run.exp == e) & (per_run["mode"] == "det") & (per_run.dataset == "unseen") & per_run.seed.isin([3, 4])].dice
+            if np.isfinite(n) and len(two) == 2:
+                nx.append(k), nv.append(n), rv.append(two.mean())
+        ax.scatter(nx, rv, s=16, facecolors="none", edgecolors="k", marker="D", label="fixed, seeds 3-4", zorder=3)
+        ax.scatter(nx, nv, s=18, marker="s", color="#2ca02c", label="no rescale", zorder=3)
+        for xi, a, b in zip(nx, rv, nv):
+            ax.plot([xi, xi], [a, b], color="0.6", lw=0.8, zorder=1)
     ax.set_ylabel("unseen Dice", fontsize=7)
-    ax.legend(fontsize=5.5, frameon=False, loc="lower right", handletextpad=0.1, borderaxespad=0.1, labelspacing=0.2)
-    ax.set_ylim(0.60, 0.80)
-    for ax, s in zip(axes, "ab"):
+    ax.legend(fontsize=5, frameon=False, loc="lower right", handletextpad=0.1, borderaxespad=0.1, labelspacing=0.2)
+    ax.set_ylim(0.60, 0.82)
+    for ax, s_ in zip(axes, "ab"):
         ax.set_xticks(x)
-        ax.set_xticklabels(names, fontsize=6.5)
+        ax.set_xticklabels(names, fontsize=5.5, rotation=45, ha="right", rotation_mode="anchor")
         ax.tick_params(axis="y", labelsize=6.5)
         ax.grid(axis="y", alpha=0.3, lw=0.4)
-        _letter(ax, f"({s})")
+        ax.axvline(4.5, color="k", lw=0.5, ls=":")
+        _letter(ax, f"({s_})")
     fig.tight_layout(pad=0.4, w_pad=0.8)
     savefig(fig, "fig_cleanup")
 
@@ -633,7 +651,7 @@ def main() -> None:
     print("figures:")
     _style()
     fig_results(summ, targets)
-    fig_cleanup(post, nat_summ)
+    fig_cleanup(post, nat_summ, pd.read_csv(tdir / "per_run.csv") if (tdir / "per_run.csv").exists() else None)
     fig_tradeoff(summ, eff, lat)
     fig_training(runs)
     fig_qualitative(runs, cfg, targets)

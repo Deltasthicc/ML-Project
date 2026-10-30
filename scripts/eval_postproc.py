@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import argparse
 import math
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -83,7 +83,7 @@ def select_on_val(model, cfg, device):
     return k_star, t_star
 
 
-def evaluate_run(exp, seed, runs, device, quick, workers):
+def evaluate_run(exp, seed, runs, device, quick, workers, threads=False):
     run_dir = runs / exp / f"seed{seed}"
     cfg = make_config(exp, seed)
     if quick:
@@ -94,7 +94,7 @@ def evaluate_run(exp, seed, runs, device, quick, workers):
     k_star, t_star = select_on_val(model, cfg, device)
     print(f"  {exp} seed {seed}: k* = {k_star} px^2, thr* = {t_star}")
     rows, pending = [], []
-    pool = ProcessPoolExecutor(workers) if workers > 0 else None
+    pool = (ThreadPoolExecutor if threads else ProcessPoolExecutor)(workers) if workers > 0 else None     # threads: for platforms where worker processes cannot be spawned
     for ds_name in cfg.data.eval_datasets:
         samples = load_split(ds_name, cfg, cfg.eval.scale_mode)
         if cfg.eval.get("max_images"):
@@ -116,8 +116,8 @@ def evaluate_run(exp, seed, runs, device, quick, workers):
     return df
 
 
-def summarise(runs: Path, exps, seeds) -> pd.DataFrame:
-    """Unseen-domain macro averages (STARE, CHASE_DB1, HRF; mean over seeds) for det / pp / thr."""
+def per_seed(runs: Path, exps, seeds) -> pd.DataFrame:
+    """One row per (exp, mode, seed): unseen-domain macro averages (STARE, CHASE_DB1, HRF) and DRIVE means of every metric."""
     frames = []
     for e in exps:
         for s in seeds:
@@ -130,16 +130,56 @@ def summarise(runs: Path, exps, seeds) -> pd.DataFrame:
         return pd.DataFrame()
     df = pd.concat(frames)
     df["mode"] = df["mode"].replace({"det": "fixed 0.5"})
+    rows = []
+    for (e, mode, s), gs in df.groupby(["exp", "mode", "seed"]):
+        unseen = gs[gs.dataset.isin(["stare", "chase_db1", "hrf"])].groupby("dataset")[COLS].mean().mean()
+        drive = gs[gs.dataset == "drive"][COLS].mean()
+        rows.append({"exp": e, "mode": mode, "seed": s, **{f"unseen_{c}": unseen[c] for c in COLS}, **{f"drive_{c}": drive[c] for c in COLS},
+                     "k": gs.k.iloc[0], "thr": gs.thr.iloc[0]})
+    return pd.DataFrame(rows)
+
+
+def summarise(runs: Path, exps, seeds) -> pd.DataFrame:
+    """Unseen-domain macro averages (STARE, CHASE_DB1, HRF; mean over seeds) for det / pp / thr."""
+    ps = per_seed(runs, exps, seeds)
+    if ps.empty:
+        return ps
     out = []
-    for (e, mode), g in df.groupby(["exp", "mode"]):
-        per_seed = []
-        for s, gs in g.groupby("seed"):
-            unseen = gs[gs.dataset.isin(["stare", "chase_db1", "hrf"])].groupby("dataset")[COLS].mean().mean()
-            drive = gs[gs.dataset == "drive"][COLS].mean()
-            per_seed.append({**{f"unseen_{c}": unseen[c] for c in COLS}, **{f"drive_{c}": drive[c] for c in COLS}, "k": gs.k.iloc[0], "thr": gs.thr.iloc[0]})
-        t = pd.DataFrame(per_seed)
+    for (e, mode), t in ps.groupby(["exp", "mode"]):
+        t = t.drop(columns=["exp", "mode", "seed"]).reset_index(drop=True)
         out.append({"exp": e, "mode": mode, "n_seeds": len(t), **t.mean().to_dict(), **{f"{c}_std": v for c, v in t.std(ddof=1).fillna(0.0).items()}})
     return pd.DataFrame(out)
+
+
+DELTA_METRICS = ("unseen_dice", "unseen_cldice", "unseen_betti0_err", "unseen_sens", "unseen_spec")
+
+
+def deltas(ps: pd.DataFrame) -> pd.DataFrame:
+    """Paired (over shared seeds) differences: the effect of the evaluation-only controls within a model, and between models at the tuned threshold."""
+    from tglite.analysis import paired_delta
+
+    def series(e, m, col):
+        r = ps[(ps.exp == e) & (ps["mode"] == m)]
+        return r.set_index("seed")[col]
+
+    comps = []
+    for e in sorted(ps.exp.unique()):
+        comps += [((e, "fixed 0.5"), (e, "pp"), "cleanup vs fixed"), ((e, "fixed 0.5"), (e, "thr"), "tuned thr. vs fixed")]
+    pairs = [("A_unet", "B_unet_topo"), ("B_unet_topo", "C_unet_topo_dg"), ("C_unet_topo_dg", "D_lite_topo_dg"), ("D_lite_topo_dg", "E_tglitenet"),
+             ("A_unet", "C_unet_topo_dg"), ("X_unet_dg", "C_unet_topo_dg"), ("D_lite_topo_dg", "S_unet_b8"), ("D_lite_topo_dg", "S_unet_b16"),
+             ("E_tglitenet", "S_unet_b16"), ("D_lite_topo_dg", "X_lite_dg"), ("A_unet", "X_unet_dg")]
+    for a, b in pairs:
+        for m, lab in (("fixed 0.5", "fixed"), ("thr", "tuned thr."), ("pp", "cleanup")):
+            comps.append(((a, m), (b, m), f"between models, {lab}"))
+    rows = []
+    for (e1, m1), (e2, m2), kind in comps:
+        for col in DELTA_METRICS:
+            a_, b_ = series(e2, m2, col), series(e1, m1, col)
+            if len(a_) == 0 or len(b_) == 0:
+                continue
+            d, ci, pv, test, n = paired_delta(a_, b_)
+            rows.append({"kind": kind, "from": e1, "mode_from": m1, "to": e2, "mode_to": m2, "metric": col, "delta": d, "ci95": ci, "p": pv, "test": test, "n_pairs": n})
+    return pd.DataFrame(rows)
 
 
 def choices(runs: Path, exps, seeds) -> pd.DataFrame:
@@ -160,7 +200,9 @@ def main() -> None:
     ap.add_argument("--exp", nargs="*", default=GROUPS["primary"])
     ap.add_argument("--seeds", nargs="*", type=int, default=[0, 1, 2])
     ap.add_argument("--device", default=None)
-    ap.add_argument("--workers", type=int, default=0, help="metric worker processes (the topology metrics on 8-MP HRF images are slow)")
+    ap.add_argument("--workers", type=int, default=0, help="metric workers (the topology metrics on 8-MP HRF images are slow)")
+    ap.add_argument("--no-eval", action="store_true", help="do not evaluate: only summarise the per_image_pp.csv files that already exist")
+    ap.add_argument("--threads", action="store_true", help="use worker threads instead of processes (same results; for sandboxed Windows shells)")
     ap.add_argument("--quick", action="store_true", help="2 images from DRIVE and STARE only (smoke test)")
     ap.add_argument("--out", default=None, help="folder for postproc_summary.csv (default: next to the runs)")
     a = ap.parse_args()
@@ -168,9 +210,9 @@ def main() -> None:
     device = a.device or ("cuda" if torch.cuda.is_available() else "cpu")
     for e in a.exp:
         for s in a.seeds:
-            if (runs / e / f"seed{s}" / "best.pt").exists():
-                evaluate_run(e, s, runs, device, a.quick, a.workers)
-            else:
+            if not a.no_eval and (runs / e / f"seed{s}" / "best.pt").exists():
+                evaluate_run(e, s, runs, device, a.quick, a.workers, a.threads)
+            elif not a.no_eval:
                 print(f"  skip {e} seed {s}: no checkpoint in {runs}")
     summ = summarise(runs, a.exp, a.seeds)
     if summ.empty:
@@ -180,6 +222,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     summ.to_csv(out_dir / "postproc_summary.csv", index=False)
     choices(runs, a.exp, a.seeds).to_csv(out_dir / "postproc_choices.csv", index=False)
+    deltas(per_seed(runs, a.exp, a.seeds)).to_csv(out_dir / "postproc_deltas.csv", index=False)
     show = summ[["exp", "mode", "n_seeds", "k", "thr", "drive_dice", "unseen_dice", "unseen_cldice", "unseen_betti0_err", "unseen_betti1_err"]]
     print(show.round(3).to_string(index=False))
 

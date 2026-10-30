@@ -19,7 +19,7 @@ git clone <your-repo-url> tglite && cd tglite
 python -m venv .venv && source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install torch --index-url https://download.pytorch.org/whl/cu126   # pick the wheel that matches your driver
 pip install -r requirements.txt && pip install -e .
-pytest -q                                                       # all 34 tests must pass
+pytest -q                                                       # all 35 tests must pass
 ```
 
 ## 2. Data

@@ -15,7 +15,7 @@ It is a trade-off study, **not** a state-of-the-art claim, and several of our ow
 
 | Question | Answer from our data |
 |---|---|
-| Does a topology loss (soft-clDice + skeleton head) help? | It raises clDice (+0.007) and cuts the raw Betti-0 error 75 → 32, at −0.009 Dice at a fixed 0.5 threshold. Simply deleting tiny components brings *every* model to Betti-0 ≈ 5, so the lasting benefit is clDice; with a validation-tuned threshold most of the Dice cost disappears (2 seeds). |
+| Does a topology loss (soft-clDice + skeleton head) help? | It raises clDice (+0.007) and cuts the raw Betti-0 error 75 → 32, at −0.009 Dice at the fixed 0.5 threshold. Simply deleting tiny components brings *every* model to Betti-0 ≈ 5, so the lasting benefit is the (modest) clDice gain. The Dice cost is a calibration effect: with a threshold tuned on DRIVE-validation (5 seeds, post-hoc) the topology-trained U-Nets have the *highest* Dice (stage C 0.782, plain U-Net 0.757). |
 | Does domain-generalisation augmentation help? | Yes, it is the clearest gain: about +0.01 unseen Dice and a smaller DRIVE→target gap. |
 | Does the depthwise-separable backbone make it light? | It saves **parameters** (147× fewer) but **not time**: plain compact U-Nets match its Dice at equal or lower CPU latency, and a base-16 U-Net (1.9 M parameters) is also better connected. On this evidence we would deploy the base-16 U-Net. |
 | Do the skeleton head, consistency loss and dropout matter? | Not measurably. |
@@ -96,6 +96,22 @@ Mean over seeds (5 for stages A–E, 3 for the others); *unseen* = macro average
 \* one 512×512 image, 4 CPU threads, controlled laptop benchmark (`results/tables/latency_laptop.csv`); the MC row is T = 20 passes.
 Per-run latencies measured on the shared cloud machines varied by up to 2× for identical models and are only kept in `efficiency*.json`.
 
+**Evaluation-only controls** (no retraining; cleanup = connected components below a size chosen on DRIVE-validation are removed; tuned = one threshold per model chosen on DRIVE-validation; unseen averages)
+
+|  | seeds | Dice fixed 0.5 | Dice cleanup | Dice tuned thr. | clDice fixed | clDice cleanup | Betti-0 fixed | Betti-0 cleanup |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| A  U-Net | 5 | 0.762 | 0.763 | 0.757 | 0.835 | 0.835 | 75.0 | 4.7 |
+| B  + topology loss | 5 | 0.753 | 0.754 | 0.771 | 0.843 | 0.841 | 31.7 | 4.9 |
+| C  + DG augmentation | 5 | 0.761 | 0.763 | 0.782 | 0.847 | 0.847 | 27.9 | 4.7 |
+| D  + compact backbone | 5 | 0.757 | 0.759 | 0.772 | 0.832 | 0.828 | 44.7 | 5.0 |
+| E  TG-LiteNet | 5 | 0.755 | 0.757 | 0.771 | 0.833 | 0.829 | 41.9 | 4.9 |
+| U-Net + DG, no topology | 3 | 0.771 | 0.772 | 0.777 | 0.837 | 0.839 | 73.0 | 4.8 |
+| plain compact U-Net, base 8 | 3 | 0.758 | 0.759 | 0.764 | 0.833 | 0.830 | 48.9 | 4.7 |
+| plain compact U-Net, base 16 | 3 | 0.757 | 0.759 | 0.777 | 0.840 | 0.839 | 33.7 | 4.8 |
+| lite + DG, no topology | 3 | 0.767 | 0.768 | 0.757 | 0.827 | 0.825 | 87.7 | 4.6 |
+
+Reading the controls (paired over seeds, `results/tables/postproc_deltas.csv`): cleanup changes Dice by at most +0.002 and clDice by at most −0.004 but collapses the Betti-0 error of every model to 4.6–5.0, so the raw fragment count is not a reliable topology measure. The tuned thresholds are higher for the topology-trained models (0.50–0.65, plain U-Net 0.45–0.50; `postproc_choices.csv`) because they over-segment at 0.5; tuning raises their Dice by 0.015–0.020 but not the plain U-Net's (−0.006 ± 0.007), so at tuned thresholds A→B is +0.014 ± 0.008 and A→C +0.025 ± 0.006 Dice. The thresholds come from four validation images and are post-hoc, so all headline results keep 0.5.
+
 ![per-dataset results](report/figures/fig_results.png)
 
 | Accuracy vs. connectivity and cost | Evaluation-only checks |
@@ -103,7 +119,7 @@ Per-run latencies measured on the shared cloud machines varied by up to 2× for 
 | ![trade-off](report/figures/fig_tradeoff.png) | ![cleanup](report/figures/fig_cleanup.png) |
 
 *Left:* unseen Dice against unseen clDice and CPU latency (marker area ∝ parameters). *Right:* removing small components collapses the
-Betti-0 error of every model (a), and a validation-tuned threshold changes the Dice ranking (b); "no rescale" shows that the plain U-Net depends on the FOV normalisation.
+Betti-0 error of every model (a), and a validation-tuned threshold lifts the Dice of the topology-trained models but not the plain U-Net's (b); "no rescale" (seeds 3–4, hollow marker = fixed Dice of the same seeds) shows that the plain U-Net depends on the FOV normalisation.
 
 ![qualitative](report/figures/fig_qualitative.png)
 
@@ -139,7 +155,7 @@ in [`results/tables/`](results/tables); [`results/findings.md`](results/findings
 │   ├── make_report_assets.py, make_readme_results.py, make_readme_figures.py   paper tables/figures and README assets
 │   └── kaggle_run.sh, run_all.sh/.ps1                               drivers for the cloud / local full run
 ├── splits/drive_split.json  fixed DRIVE split: train 16 / validation 4 / test 20
-├── tests/                   34 unit tests (losses, Betti numbers, metrics, augmentation alignment, MC dropout, statistics, ...)
+├── tests/                   35 unit tests (losses, Betti numbers, metrics, augmentation alignment, MC dropout, statistics, ...)
 ├── results/
 │   ├── runs/<exp>/seed<k>/  config.yaml, train_log.csv, per_image*.csv, efficiency*.json, env.json   (checkpoints are git-ignored)
 │   ├── tables/              every aggregate table as CSV (summary, stage/factorial deltas, paired image deltas, confusion, ...)
@@ -156,7 +172,7 @@ in [`results/tables/`](results/tables); [`results/findings.md`](results/findings
 python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install torch --index-url https://download.pytorch.org/whl/cu126   # 1) PyTorch first, matching your CUDA driver (or the CPU build)
 pip install -r requirements.txt && pip install -e .                    # 2) everything else + the package
-pytest -q                                                              # 34 tests, ~15 s on CPU, no data needed
+pytest -q                                                              # 35 tests, ~15 s on CPU, no data needed
 ```
 
 Python 3.12+ and PyTorch ≥ 2.3. The code is device-agnostic (CUDA + fp16 autocast when available, CPU otherwise).
@@ -201,7 +217,10 @@ Experiment names: `A_unet`, `B_unet_topo`, `C_unet_topo_dg`, `D_lite_topo_dg`, `
 Evaluation-only controls on trained checkpoints (cut-off and thresholds are chosen on DRIVE-validation only):
 
 ```bash
-python scripts/eval_postproc.py --runs results/runs --seeds 3 4             # small-component removal + tuned threshold -> postproc_summary.csv
+python scripts/eval_postproc.py --runs results/runs --exp A_unet B_unet_topo C_unet_topo_dg D_lite_topo_dg E_tglitenet --seeds 0 1 2 3 4 --workers 8 --threads
+                                                                            # cleanup + tuned threshold -> postproc_summary/choices/deltas.csv  (~10 min per U-Net run on a CPU;
+                                                                            # --threads: worker threads instead of processes, for sandboxed Windows shells)
+python scripts/eval_postproc.py --runs results/runs --no-eval --exp A_unet B_unet_topo C_unet_topo_dg D_lite_topo_dg E_tglitenet X_unet_dg X_lite_dg S_unet_b8 S_unet_b16 --seeds 0 1 2 3 4 --out results/tables   # summaries only
 python scripts/run_experiments.py --exp A_unet D_lite_topo_dg E_tglitenet --seeds 3 4 --no-train --native-eval   # no-rescale evaluation
 python scripts/benchmark_latency.py --name laptop --threads 4               # controlled CPU latency benchmark
 ```
@@ -218,7 +237,7 @@ python scripts/benchmark_latency.py --name laptop --threads 4               # co
   [`reported-environment.txt`](reported-environment.txt) summarises the main library versions (it is not a full lock file).
 * Every number in the paper's tables comes from `results/runs` through `aggregate_results.py` → `make_report_assets.py`. Numbers typed into the paper's
   prose were checked against those tables; re-check them if you re-run the experiments.
-* **Checkpoints are not in the repository** (size). Re-evaluating a checkpoint (checked for stage A seed 3 on DRIVE and STARE) reproduced the committed per-image metrics to ~1e-5 (CPU vs. GPU rounding);
+* **Checkpoints are not in the repository** (size; the authors hold all 70, about 2.4 GB, and the evaluation-only controls were run on every one of them). Re-evaluating a checkpoint (checked for stage A seed 3 on DRIVE and STARE) reproduced the committed per-image metrics to ~1e-5 (CPU vs. GPU rounding);
   without checkpoints the committed `per_image*.csv` files are the record of the results and the experiments are reproducible by retraining.
   `evaluate.py` loads checkpoints with `weights_only=False` (they store the config), so only load checkpoints you trust.
 

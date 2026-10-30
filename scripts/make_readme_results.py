@@ -42,6 +42,18 @@ def main() -> None:
     print(md([row(e, m, l) for e, m, l in ROWS], head))
     print("\n**Controls and compact baselines**\n")
     print(md([row(e, "det", l) for e, l in OTHER], head))
+    post = pd.read_csv(T / "postproc_summary.csv")
+    names = {"A_unet": "A  U-Net", "B_unet_topo": "B  + topology loss", "C_unet_topo_dg": "C  + DG augmentation", "D_lite_topo_dg": "D  + compact backbone",
+             "E_tglitenet": "E  TG-LiteNet", "X_unet_dg": "U-Net + DG, no topology", "S_unet_b8": "plain compact U-Net, base 8",
+             "S_unet_b16": "plain compact U-Net, base 16", "X_lite_dg": "lite + DG, no topology"}
+    rows = []
+    for e, label in names.items():
+        g = lambda mode, col, d=3: float(post[(post.exp == e) & (post["mode"] == mode)][col].iloc[0])  # noqa: E731
+        rows.append([label, str(int(post[(post.exp == e) & (post["mode"] == "pp")].n_seeds.iloc[0])), f"{g('fixed 0.5', 'unseen_dice'):.3f}", f"{g('pp', 'unseen_dice'):.3f}",
+                     f"{g('thr', 'unseen_dice'):.3f}", f"{g('fixed 0.5', 'unseen_cldice'):.3f}", f"{g('pp', 'unseen_cldice'):.3f}",
+                     f"{g('fixed 0.5', 'unseen_betti0_err'):.1f}", f"{g('pp', 'unseen_betti0_err'):.1f}"])
+    print("\n**Evaluation-only controls** (cleanup = small components removed; tuned = threshold chosen per model on DRIVE-validation; unseen averages)\n")
+    print(md(rows, ["", "seeds", "Dice fixed 0.5", "Dice cleanup", "Dice tuned thr.", "clDice fixed", "clDice cleanup", "Betti-0 fixed", "Betti-0 cleanup"]))
     print("\n\\* one 512x512 image, 4 CPU threads, controlled laptop benchmark (`results/tables/latency_laptop.csv`); the MC row is T = 20 forward passes.")
 
 

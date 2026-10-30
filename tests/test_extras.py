@@ -101,3 +101,19 @@ def test_unseen_image_bootstrap_is_a_macro_average_over_datasets():
     r = t[(t.scope == "unseen") & (t.metric == "dice")].iloc[0]
     assert np.isclose(r.delta, (0.10 + 0.10 - 0.10) / 3)                                      # equal weight per dataset, as in the tables
     assert np.isclose(r.frac_lower, 0.5) and r.n_images == 80
+
+
+def test_postproc_deltas_are_paired_over_seeds():
+    rows = []
+    for exp, base in (("A_unet", 0.76), ("B_unet_topo", 0.75)):
+        for seed, jitter in enumerate((0.00, 0.01, -0.01)):
+            for mode, shift, b0 in (("fixed 0.5", 0.0, 70.0), ("pp", 0.001, 5.0), ("thr", 0.02 if exp == "B_unet_topo" else -0.005, 60.0)):
+                rows.append({"exp": exp, "mode": mode, "seed": seed, "unseen_dice": base + jitter + shift, "unseen_cldice": 0.83,
+                             "unseen_betti0_err": b0, "unseen_sens": 0.9, "unseen_spec": 0.95})
+    d = eval_postproc.deltas(pd.DataFrame(rows))
+    get = lambda kind, a, metric, b=None: d[(d.kind == kind) & (d["from"] == a) & (d.metric == metric) & ((d["to"] == (b or a)))].iloc[0]  # noqa: E731
+    tuned = get("tuned thr. vs fixed", "B_unet_topo", "unseen_dice")
+    assert tuned.n_pairs == 3 and np.isclose(tuned.delta, 0.02) and tuned.test == "paired-t"
+    assert tuned.ci95 < 1e-9                                                     # the seed jitter cancels in a paired comparison
+    assert np.isclose(get("cleanup vs fixed", "A_unet", "unseen_betti0_err").delta, -65.0)
+    assert np.isclose(get("between models, tuned thr.", "A_unet", "unseen_dice", "B_unet_topo").delta, 0.015)
