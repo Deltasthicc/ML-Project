@@ -1,11 +1,11 @@
 \begin{table}[t]
 \centering
-\caption{Full factorial design (backbone $\times$ topology $\times$ DG). Unseen = macro average over the three targets. Stages A--D (U-Net plain, U-Net+topo, U-Net+topo+DG, Lite+topo+DG) have 5 seeds, the other four cells 3.}
+\caption{All eight combinations of backbone (U-Net or compact), topology loss and DG augmentation. Unseen = average of the three unseen datasets; Gap = Dice on DRIVE $-$ Dice on unseen data. Rows 1, 4, 3 and 8 are stages A, C, B and D (5 seeds); the other rows have 3 seeds.}
 \label{tab:factorial}
 \small
 \begin{adjustbox}{max width=\columnwidth}\begin{tabular}{lcc cc cc}
 \toprule
-Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\Delta$Dice \\
+Backbone & Topology & DG & DRIVE Dice & Unseen Dice & Unseen clDice & Gap \\
 \midrule
 U-Net & -- & -- & 0.830{\scriptsize$\pm$0.001} & 0.762{\scriptsize$\pm$0.006} & 0.835{\scriptsize$\pm$0.002} & 0.068{\scriptsize$\pm$0.006} \\
 U-Net & -- & \checkmark & 0.831{\scriptsize$\pm$0.000} & 0.771{\scriptsize$\pm$0.001} & 0.837{\scriptsize$\pm$0.000} & 0.060{\scriptsize$\pm$0.001} \\

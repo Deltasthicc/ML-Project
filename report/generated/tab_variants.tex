@@ -1,11 +1,11 @@
 \begin{table}[t]
 \centering
-\caption{Variants of stage D (unseen averages): topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). Stage D has 5 seeds, other rows 3. CPU = 4 threads, controlled laptop benchmark.}
+\caption{Variants of stage D on unseen data: other topology losses (top); removed ingredients and plain compact U-Nets trained the same way (middle); network width (bottom). Stage D has 5 seeds, other rows 3. CPU time: 4 laptop threads, one $512{\times}512$ image.}
 \label{tab:variants}
 \small
 \begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l ccc rr}
 \toprule
- & Dice & clDice & $\beta_0$ err & Params (M) & CPU (ms) \\
+ & Dice & clDice & Betti-0 err. & Params (M) & CPU (ms) \\
 \midrule
 soft-clDice + head (D) & 0.757{\scriptsize$\pm$0.003} & 0.832{\scriptsize$\pm$0.002} & 44.7 & 0.21 & 209 \\
 cbDice & 0.745{\scriptsize$\pm$0.002} & 0.834{\scriptsize$\pm$0.002} & 39.1 & 0.21 & 209 \\

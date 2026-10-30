@@ -35,70 +35,65 @@
 \renewcommand{\IEEEkeywordsname}{Keywords}
 \begin{document}
 
-\title{Topology, Domain Shift and Efficiency in Retinal Vessel Segmentation: A Controlled Source-Only Study of TG-LiteNet\\
-\large CSD361 -- Introduction to Machine Learning, Final Project Report}
+\title{Topology-Aware Retinal Vessel Segmentation Under Dataset Shift:\\A Controlled Study of TG-LiteNet}
 
-\author{\IEEEauthorblockN{Abhiraj Agarwal}
-\IEEEauthorblockA{Roll No.\ 2510110002}
-\and
-\IEEEauthorblockN{Shashwat Rajan}
-\IEEEauthorblockA{Roll No.\ 2510111019}
-\and
-\IEEEauthorblockN{Tanish Shitanshu}
-\IEEEauthorblockA{Roll No.\ 2510110008}
-\\
-\IEEEauthorblockA{Department of Computer Science and Engineering, Shiv Nadar Institution of Eminence, Delhi NCR, India}}
+\author{\begin{tabular}[t]{ccc}
+Abhiraj Agarwal & Shashwat Rajan & Tanish Shitanshu\\
+\normalsize Roll No.\ 2510110002 & \normalsize Roll No.\ 2510111019 & \normalsize Roll No.\ 2510110008
+\end{tabular}\\[0.6em]
+\normalsize CSD361 -- Introduction to Machine Learning, Final Project Report\\
+\normalsize Department of Computer Science and Engineering, Shiv Nadar Institution of Eminence, Delhi NCR, India}
 
 \maketitle
 
 % =============================================================================== ABSTRACT
 \begin{abstract}
-A vessel segmenter for rural retinal screening must keep thin vessels \emph{connected}, work on cameras it was never trained on and run on modest hardware. We study this three-way trade-off in one controlled, source-only protocol (training on DRIVE only; STARE, CHASE\_DB1 and HRF held out) with \emph{TG-LiteNet}, a compact depthwise-separable encoder--decoder with a soft-clDice topology loss, an auxiliary skeleton head, domain-generalisation (DG) augmentation with a consistency loss, and Monte-Carlo-dropout uncertainty. A staged ablation (\nSeeds\ seeds per stage), a $2{\times}2{\times}2$ factorial design, variants, plain compact U-Nets and evaluation-only controls are scored with Dice, clDice, Betti error, size, latency and uncertainty--error correlation. TG-LiteNet has \paramsE\,M parameters and \gflopsE\,GFLOPs (U-Net: \paramsA\,M) and reaches an unseen Dice of \unDiceE\ and clDice of \unClE, versus \unDiceA\ and \unClA\ for the U-Net. At the fixed threshold, topology supervision more than halves the raw unseen Betti-0 error of the U-Net (\unBettiA\ to 31.7) and adds 0.007 clDice at a cost of 0.009 Dice, but removing small components brings every model to about 5, and with a threshold tuned on DRIVE validation the topology-trained models have the highest Dice (stage C 0.782, plain U-Net 0.757). DG augmentation adds about 0.01 unseen Dice. The depthwise backbone saves parameters, not time: plain compact U-Nets match its Dice at equal or lower CPU latency, and a base-16 U-Net is also better connected, so we would deploy that. Neither the skeleton head, the consistency loss nor dropout adds anything measurable. MC-dropout ranks pixel errors moderately ($\rho_{px}\approx0.31$--$0.34$), but image-level rejection is not reliably better than random. No target image or label is used for fitting, tuning or checkpoint selection; the targets were inspected while designing the analyses, so they are held-out, not untouched.
+Photographs of the back of the eye can show early signs of diseases such as diabetes. A computer program that outlines the blood vessels in these photographs should keep thin vessels \emph{connected}, work on cameras it was never trained on, and run on modest hardware. We study these three goals together with \emph{TG-LiteNet}, a small neural network trained with a connectivity (topology) loss, robustness augmentation and an optional uncertainty estimate. Every model is trained on one dataset (DRIVE) and tested on three others (STARE, CHASE\_DB1, HRF). We compare five build-up stages (\nSeeds\ random seeds each), all eight combinations of the three ingredients, and several simple control experiments. TG-LiteNet has \paramsE\,M parameters (U-Net: \paramsA\,M) and reaches a Dice score of \unDiceE\ on the unseen datasets (U-Net: \unDiceA). The topology loss more than halves the number of broken vessel pieces (\unBettiA\ to 31.7) and adds 0.007 clDice, at a cost of 0.009 Dice. However, simply deleting tiny fragments gives every model about 5 broken pieces, and when the decision threshold is tuned on validation images the topology-trained models have the best Dice (0.782 against 0.757 for the U-Net). The small network saves memory but not time: a plain U-Net with base width 16 is as accurate, as fast and better connected. The uncertainty estimate finds wrong pixels moderately well but does not reliably flag bad images. No test image is used for training, tuning or model selection; we did look at the test results while designing the analyses, so the test sets are held-out rather than untouched.
 \end{abstract}
 
 \begin{IEEEkeywords}
-retinal vessel segmentation, topology-aware loss, domain generalization, lightweight networks, uncertainty estimation, DRIVE
+retinal vessel segmentation, topology, domain generalization, lightweight networks, uncertainty, DRIVE
 \end{IEEEkeywords}
 
 % =============================================================================== I. INTRODUCTION
 \section{Introduction}
-Segmenting the retinal vascular tree from fundus photographs supports the measurement of vessel calibre, tortuosity and branching used in screening for diabetic retinopathy, glaucoma and hypertensive retinopathy~\cite{liu2025review}. Since U-Net~\cite{ronneberger2015} such networks are trained and tested on small public datasets, typically DRIVE~\cite{staal2004}, STARE~\cite{hoover2000}, CHASE\_DB1~\cite{fraz2012} and HRF~\cite{budai2013}. Overlap scores hide topological errors: a severed centreline barely changes Dice but breaks the connectivity that biomarkers rely on~\cite{shit2021,shi2024,kirchhoff2024}.
+Doctors look at the blood vessels in the retina (the back of the eye) to screen for diabetic eye disease, glaucoma and high blood pressure~\cite{liu2025review}. Measuring vessel width and branching requires an accurate \emph{vessel map} of the photograph. Since U-Net~\cite{ronneberger2015}, such maps are produced by neural networks trained on a few small public datasets: DRIVE~\cite{staal2004}, STARE~\cite{hoover2000}, CHASE\_DB1~\cite{fraz2012} and HRF~\cite{budai2013}. The usual score, Dice, measures how much the predicted vessels overlap the true ones. It hides a different kind of error: a vessel that is cut in two barely changes Dice, yet it breaks the connectivity that doctors rely on~\cite{shit2021,shi2024,kirchhoff2024}.
 
-\textbf{Motivation.} A model for a low-resource screening programme must satisfy three constraints \emph{simultaneously}: preserve vessel \emph{topology}; tolerate camera and population \emph{shift}, ideally without target labels~\cite{galdran2022,fadugba2024}; and be small and fast enough for \emph{edge} hardware~\cite{sobhan2026}. For a metric $m$ the \emph{target gap} is $\Delta_m=m(\text{source})-m(\text{target})$.
+\textbf{Motivation.} A model for a rural screening camp has to satisfy three needs at once: (1) keep vessels \emph{connected} (topology); (2) keep working when the camera or patient group changes (\emph{dataset shift}), ideally without labelled images from the new camera~\cite{galdran2022,fadugba2024}; and (3) be small and fast enough for cheap hardware~\cite{sobhan2026}. We call the drop in Dice between the training dataset and a new dataset the \emph{gap}.
 
-\textbf{Objectives.} (O1) A reproducible \emph{source-only} pipeline for topology-aware vessel segmentation; (O2) the contribution of each component (topology loss, DG augmentation, compact backbone, uncertainty) to accuracy, topology, cross-domain gap and cost in one controlled ablation; (O3) whether MC-dropout uncertainty can triage unreliable predictions, especially on unseen domains.
+\textbf{Objectives.} (O1) Build a reproducible pipeline that trains on one dataset only. (O2) Measure what each ingredient (topology loss, robustness augmentation, small backbone) contributes to accuracy, connectivity, the gap and cost. (O3) Test whether an uncertainty estimate can flag unreliable predictions.
 
-\textbf{Approach and contributions.} We study \emph{TG-LiteNet}, a depthwise-separable encoder--decoder with a mask head and an auxiliary skeleton head. Contributions: (1) a staged ablation and a full $2{\times}2{\times}2$ factorial study (backbone $\times$ topology loss $\times$ DG augmentation) with repeated seeds and confidence intervals; (2) a unified evaluation of Dice/IoU, clDice, Betti-0/1 error, the source-to-target gap, parameters, FLOPs, CPU/GPU latency and uncertainty quality \emph{together}; (3) an uncertainty-based triage analysis at pixel and image level for every domain; (4) controls that test whether the gains survive simple alternatives (small-component removal, validation-tuned thresholds, plain compact U-Nets, removing single ingredients); and (5) open code that regenerates every number. We claim neither a new loss or architecture family nor state-of-the-art accuracy.
+\textbf{Contributions.} (1) A staged ablation and a full $2{\times}2{\times}2$ factorial study (backbone $\times$ topology loss $\times$ robustness augmentation) with repeated random seeds. (2) One evaluation that reports overlap, connectivity, the gap, model size, speed and uncertainty quality together. (3) Control experiments that check whether the gains survive simple alternatives, such as deleting tiny fragments, tuning the threshold, or using a plain small U-Net. (4) Open code that regenerates every number. We do \emph{not} claim a new loss, a new architecture family or state-of-the-art accuracy.
 
 % =============================================================================== II. RELATED WORK
 \section{Related Work}
-\textbf{Base paper: clDice.} Shit et al.~\cite{shit2021} compare the skeleton of a prediction with the ground-truth mask (topology precision) and the skeleton of the ground truth with the predicted mask (topology sensitivity); their harmonic mean is clDice. They prove that maximising clDice preserves topology up to homotopy equivalence for binary tubular structures and give a differentiable \emph{soft-clDice} based on iterated soft morphological opening. cbDice~\cite{shi2024} observes that clDice favours large vessels (``diameter imbalance'') and adds radius and boundary information; Skeleton Recall Loss~\cite{kirchhoff2024} computes the skeleton once, offline, with cheap CPU operations; earlier work used persistent homology~\cite{hu2019}. None is evaluated for source-only robustness under shift.
+\textbf{clDice (our base paper).} Shit et al.~\cite{shit2021} thin both the prediction and the ground truth to one-pixel \emph{centrelines} (skeletons). They then check how much of the predicted centreline lies inside the true vessels and how much of the true centreline lies inside the prediction; the combined score is clDice. They give a differentiable version, \emph{soft-clDice}, that can be used as a training loss. cbDice~\cite{shi2024} adds vessel radius information, and Skeleton Recall~\cite{kirchhoff2024} is a cheaper alternative. None of these was tested for training on one dataset and testing on others.
 
-\textbf{Domain generalisation and adaptation.} ``Cross-dataset'' covers source-only transfer, multi-source DG, test-time adaptation (TTA) and fine-tuning with target labels. DGSSA~\cite{liu2026dgssa} synthesises vessel trees and styles (multi-source); WaveRNet~\cite{wang2026wavernet}, Hu et al.~\cite{hu2024hessian} and GraphSeg~\cite{liu2025graphseg} use frequency, Hessian or graph priors. A benchmark~\cite{fadugba2024} finds that, with enough data, a plain U-Net generalises well.
+\textbf{Dataset shift.} Several methods generate artificial vessel trees or styles~\cite{liu2026dgssa}, or use frequency, edge or graph information~\cite{wang2026wavernet,hu2024hessian,liu2025graphseg}. A benchmark~\cite{fadugba2024} found that, given enough data, even a plain U-Net generalises well.
 
-\textbf{Lightweight networks.} Galdran et al.~\cite{galdran2022} show that U-Nets with $\sim$34K and W-Nets with $\sim$68K parameters are competitive; DSAE-Net~\cite{zeng2025} (78K parameters, skeleton-distance loss) and LightVesselNet~\cite{sobhan2026} (75K parameters) report cross-dataset Dice but no connectivity metrics or uncertainty.
+\textbf{Small networks.} Galdran et al.~\cite{galdran2022} showed that networks with only 34\,K to 68\,K parameters can be competitive, and later work reports similar results~\cite{zeng2025,sobhan2026}. These papers report Dice on other datasets but not connectivity or uncertainty.
 
-\textbf{Topology under shift; uncertainty.} TopoTTA~\cite{zhou2025}, TopoLoRA-SAM~\cite{khazem2026} and TAPDecoderFT~\cite{huang2026} report clDice/Betti after test-time or fine-tuned transfer, with large or unspecified models and no latency; TFFM~\cite{ahmed2026} adds topology-aware feature fusion but is evaluated on a single dataset. Topology-aware uncertainty~\cite{gupta2023} scores whole structures; MC dropout~\cite{gal2016} is a cheap pixel-level alternative whose quality degrades under dataset shift~\cite{ovadia2019}.
+\textbf{Topology and uncertainty.} Recent methods adapt topology-aware models to new datasets~\cite{zhou2025,khazem2026,huang2026,ahmed2026}, but they use large models, labelled target data or a single dataset. Topology-aware uncertainty~\cite{gupta2023} scores whole structures. Monte-Carlo (MC) dropout~\cite{gal2016} is a cheap alternative whose quality is known to degrade under dataset shift~\cite{ovadia2019}.
 
-\textbf{Research gap.} Table~\ref{tab:gap} summarises what the closest works report. Among the works we reviewed, none evaluates a compact \emph{source-only} model for topology, total cost and uncertainty quality in one controlled protocol with repeated runs; we fill that gap with a trade-off \emph{study}, not a new method.
+\textbf{Research gap.} Table~\ref{tab:gap} summarises the closest works. Among the papers we reviewed, none evaluates a small model trained on one dataset for connectivity, total cost and uncertainty together, with repeated runs. We fill this gap with a \emph{study}, not a new method.
 
 \begin{table}[t]
 \centering
-\caption{Evidence reported by the closest reviewed works (\checkmark: reported, $\sim$: partial, --: not reported; n/v: not verifiable). Columns: topology loss, topology metrics, total deployment cost, uncertainty. Protocol: SO = source-only, MS = multi-source DG, SD = single-dataset evaluation, TTA, FT = fine-tuning on labelled target data.}
+\caption{What the closest works report (\checkmark: yes, $\sim$: partly, --: no, n/v: not verifiable). Protocol: SO = trained on one dataset only, MS = several training datasets, SD = one dataset in total, TTA = adapted at test time, FT = fine-tuned on labelled target data.}
 \label{tab:gap}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \begin{adjustbox}{max width=\columnwidth}\begin{tabular}{l c c c c c}
 \toprule
-Work & Prot. & Loss & Topo. & Cost & Unc. \\
+Work & Protocol & Topology loss & Topology metrics & Cost & Uncertainty \\
 \midrule
-clDice, SRL~\cite{shit2021,kirchhoff2024} & none & \checkmark & \checkmark & $\sim$ & -- \\
+clDice, Skeleton Recall~\cite{shit2021,kirchhoff2024} & -- & \checkmark & \checkmark & $\sim$ & -- \\
 DGSSA, WaveRNet~\cite{liu2026dgssa,wang2026wavernet} & MS & -- & -- & -- & -- \\
-Lightweight~\cite{galdran2022,zeng2025,sobhan2026} & SO & $\sim$ & -- & \checkmark & -- \\
+Small networks~\cite{galdran2022,zeng2025,sobhan2026} & SO & $\sim$ & -- & \checkmark & -- \\
 TFFM~\cite{ahmed2026} & SD & \checkmark & \checkmark & -- & -- \\
 TopoTTA~\cite{zhou2025} & TTA & $\sim$ & \checkmark & n/v & -- \\
 TopoLoRA-SAM, TAPDecoderFT~\cite{khazem2026,huang2026} & FT & \checkmark & \checkmark & $\sim$ & -- \\
-Topology-aware unc.~\cite{gupta2023} & -- & -- & $\sim$ & n/v & \checkmark \\
+Topology-aware uncertainty~\cite{gupta2023} & -- & -- & $\sim$ & n/v & \checkmark \\
 \midrule
 \textbf{TG-LiteNet (this work)} & SO & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
@@ -107,79 +102,93 @@ Topology-aware unc.~\cite{gupta2023} & -- & -- & $\sim$ & n/v & \checkmark \\
 
 % =============================================================================== III. PROBLEM FORMULATION
 \section{Problem Formulation and Research Questions}
-Given a fundus image $I$ with field-of-view (FOV) mask $F$, predict a binary vessel mask $M\in\{0,1\}^{H\times W}$. Models are trained on DRIVE only; STARE, CHASE\_DB1 and HRF are never used for fitting, loss-weight or threshold tuning, or checkpoint selection (they were inspected while designing the analyses, Sec.~\ref{sec:limits}). We ask:
+Given a colour photograph of the retina, the task is to label every pixel inside the circular field of view (FOV) as vessel or background. Models are trained on DRIVE only. STARE, CHASE\_DB1 and HRF are never used for training, for choosing settings or for picking the best checkpoint (we did look at their results while designing the analyses, see Sec.~\ref{sec:limits}). We ask four questions:
 \begin{itemize}
-\item \textbf{RQ1 (topology).} Does topology supervision (soft-clDice + skeleton head) improve clDice and Betti error relative to Dice+BCE without an unacceptable loss of overlap?
-\item \textbf{RQ2 (generalisation).} Does lightweight style-plus-structure augmentation with a consistency loss reduce $\Delta_m$ from DRIVE to the unseen targets?
-\item \textbf{RQ3 (trade-off).} What accuracy and topology cost does a $\le$2M-parameter budget incur relative to the savings in parameters, FLOPs and latency?
-\item \textbf{RQ4 (uncertainty).} Does MC-dropout uncertainty rank high-error cases and support selective rejection, more so on unseen domains than on the source domain?
+\item \textbf{RQ1 (topology).} Does the topology loss improve connectivity without losing too much overlap?
+\item \textbf{RQ2 (generalisation).} Does robustness augmentation shrink the gap between DRIVE and the unseen datasets?
+\item \textbf{RQ3 (cost).} What do we lose in accuracy and connectivity by using a network with under 2 million parameters, and what do we save?
+\item \textbf{RQ4 (uncertainty).} Does MC-dropout uncertainty point to wrong pixels and images, especially on unseen datasets?
 \end{itemize}
 
 % =============================================================================== IV. METHOD
 \section{Proposed Methodology}
 \subsection{Overview}
-Fig.~\ref{fig:pipeline} shows the pipeline. A fundus image is rescaled so that its FOV has a fixed width, reduced to the CLAHE-enhanced, standardised green channel, and passed through an encoder--decoder with a mask head (and, during training only, a skeleton head). The loss combines region, pixel, topology and consistency terms. At test time, $T$ stochastic forward passes give a mean probability map and a variance map used as uncertainty.
+Fig.~\ref{fig:pipeline} shows the pipeline. A photograph is resized so that its field of view has a fixed width, converted to an enhanced green-channel image, and passed through an encoder--decoder network. The network has a mask output and, during training only, a second output that predicts vessel centrelines. At test time the model can be run $T{=}20$ times with dropout switched on; the average is the prediction and the disagreement between runs is the uncertainty map.
 
 \begin{figure*}[t]
 \centering
 \resizebox{0.97\textwidth}{!}{\input{figures/overview.tex}}
-\caption{TG-LiteNet. A fundus image is normalised to a fixed FOV width and passed through a depthwise-separable U-Net with a mask head; $T$ stochastic passes give the segmentation and an uncertainty map. Skeleton head, DG augmentation and the loss (dashed) exist only during training; one fixed model is evaluated on every target.}
+\caption{TG-LiteNet. A photograph is resized to a fixed field-of-view width and passed through a small U-Net built from depthwise-separable convolutions. Repeated runs with dropout give the segmentation and an uncertainty map. The centreline output, the robustness augmentation and the loss (dashed) are used during training only.}
 \label{fig:pipeline}
 \end{figure*}
 
-\subsection{Preprocessing and scale normalisation}
-Cameras differ strongly in resolution (HRF images are $\sim$6$\times$ wider than DRIVE's), so the pixel width of vessels, to which a convolutional model is very sensitive, changes with the dataset. Every image is rescaled so that its FOV is $W_F{=}527$\,px wide (DRIVE's median), which uses neither labels nor any statistic of the target \emph{dataset}. We then take the green channel (best vessel contrast), replace the outside of the FOV by the FOV mean, apply CLAHE~\cite{zuiderveld1994} with a fixed tile size in pixels, standardise inside the FOV, and set the outside to zero. The same deterministic function is used in training and testing.
+\subsection{Preprocessing}
+The cameras differ a lot in resolution (HRF images are about 6$\times$ wider than DRIVE images), so the same vessel is a different number of pixels wide in each dataset. Convolutional networks are very sensitive to this. We therefore resize every image so that its FOV is 527 pixels wide (the median DRIVE width); this uses no labels and no statistics of the target datasets. We then keep the green channel, which shows vessels best, apply CLAHE~\cite{zuiderveld1994} (a local contrast enhancement), and standardise the brightness inside the FOV. The same steps are used for training and testing.
 
-\subsection{Architectures}
-\textbf{Baseline U-Net}~\cite{ronneberger2015}: four 2$\times$2 max-pool stages, double 3$\times$3 conv+BN+ReLU blocks, transposed-convolution up-sampling, base width 64 ($\approx$\paramsA\,M parameters).
+\subsection{Networks}
+\textbf{U-Net baseline}~\cite{ronneberger2015}: four down-sampling steps, double $3{\times}3$ convolution blocks and a base width of 64 channels ($\approx$\paramsA\,M parameters).
 
-\textbf{TG-LiteNet backbone.} Every 3$\times$3 convolution is replaced by a depthwise 3$\times$3 followed by a pointwise 1$\times$1 convolution (BN, ReLU6), as in MobileNets~\cite{howard2017}. A block has two such layers and a 1$\times$1 residual shortcut. Encoder widths are $(w,2w,4w,8w,8w)$ with $w{=}16$; the decoder uses bilinear up-sampling, skip concatenation and one separable block per level. A $1{\times}1$ mask head outputs vessel logits; an auxiliary $1{\times}1$ skeleton head (training only, no inference cost) predicts the 1-px-dilated skeleton of the label. Spatial dropout ($p{=}0.1$) after the bottleneck and each decoder block is used only in stage E. The width $w$ is the single capacity knob; Section~\ref{sec:ablation} sweeps it.
+\textbf{TG-LiteNet backbone.} Each $3{\times}3$ convolution is split into a depthwise $3{\times}3$ convolution followed by a pointwise $1{\times}1$ convolution, as in MobileNets~\cite{howard2017}, which needs far fewer parameters. The widths are $(w,2w,4w,8w,8w)$ with $w{=}16$; the decoder uses bilinear up-sampling and skip connections. A $1{\times}1$ layer outputs the vessel mask. A second $1{\times}1$ layer (the \emph{skeleton head}, used only in training) predicts the vessel centrelines. Dropout ($p{=}0.1$) is used only in stage E, for the uncertainty estimate.
 
-\subsection{Objective}
-For a prediction $P=\sigma(z)\in[0,1]^{H\times W}$, label $G$ and FOV $F$, the total loss is
+\subsection{Training objective}
+The total loss is
 \begin{equation}
 \mathcal L=\mathcal L_{\mathrm{Dice}}+\lambda_1\mathcal L_{\mathrm{BCE}}+\lambda_2\mathcal L_{\mathrm{topo}}+\lambda_3\mathcal L_{\mathrm{cons}},
 \label{eq:loss}
 \end{equation}
-with all terms computed inside $F$. $\mathcal L_{\mathrm{Dice}}$ and $\mathcal L_{\mathrm{BCE}}$ are the usual soft-Dice and binary cross-entropy.
+where $\mathcal L_{\mathrm{Dice}}$ and $\mathcal L_{\mathrm{BCE}}$ are the standard overlap and pixel-wise losses, and all terms are computed inside the FOV.
 
-\emph{Topology term.} With $S(\cdot)$ the (soft) morphological skeleton, topology precision and sensitivity are
-$T_{\mathrm{prec}}=\frac{\sum S(P)\odot G}{\sum S(P)}$, $T_{\mathrm{sens}}=\frac{\sum S(G)\odot P}{\sum S(G)}$, and
+\emph{Topology term.} Let $S(\cdot)$ be the (soft) skeleton of a mask, $P$ the predicted vessel probabilities and $G$ the ground truth. The share of the predicted centreline that lies on true vessels is $T_{\mathrm{prec}}=\sum S(P)\odot G/\sum S(P)$, and the share of the true centreline that is found is $T_{\mathrm{sens}}=\sum S(G)\odot P/\sum S(G)$. The loss
 \begin{equation}
-\mathcal L_{\mathrm{clDice}}=1-\frac{2\,T_{\mathrm{prec}}T_{\mathrm{sens}}}{T_{\mathrm{prec}}+T_{\mathrm{sens}}}.
+\mathcal L_{\mathrm{clDice}}=1-\frac{2\,T_{\mathrm{prec}}T_{\mathrm{sens}}}{T_{\mathrm{prec}}+T_{\mathrm{sens}}}
 \end{equation}
-$S(P)$ is the differentiable skeleton obtained by iterating soft erosion/opening (10 iterations, enough for vessels up to 10\,px radius at our scale); $S(G)$ is the exact skeleton of the (augmented) label, computed in the data loader. The skeleton head adds $\mathcal L_{\mathrm{skel}}=\mathrm{Dice}+\mathrm{BCE}$ against the dilated skeleton, so $\mathcal L_{\mathrm{topo}}=\mathcal L_{\mathrm{clDice}}+\gamma\mathcal L_{\mathrm{skel}}$. As supplementary variants we re-implemented Skeleton Recall~\cite{kirchhoff2024}, $\mathcal L_{\mathrm{SR}}=1-\sum P\odot\mathcal T(S(G))/\sum\mathcal T(S(G))$ with $\mathcal T$ a 3$\times$3 dilation, and the radius- and boundary-aware cbDice~\cite{shi2024} (cl-MIN-Dice variant; the label's skeleton and distance map are exact, the prediction's are the soft skeleton and a soft-erosion distance map, so values may differ numerically from the authors' code). cbDice is evaluated as a metric for every model and tested as a loss variant (Sec.~\ref{sec:ablation}).
+is small only when both are high. The skeleton head adds a loss on the predicted centreline, so $\mathcal L_{\mathrm{topo}}=\mathcal L_{\mathrm{clDice}}+\gamma\mathcal L_{\mathrm{skel}}$. We also tried two other topology losses, Skeleton Recall~\cite{kirchhoff2024} and cbDice~\cite{shi2024}, as variants (Sec.~\ref{sec:ablation}); our versions are re-implementations and may differ numerically from the authors' code.
 
-\emph{Consistency term (DG).} For each patch we build a perturbed view $\tilde x$ (below) that is pixel-aligned with the clean view $x$:
-$\mathcal L_{\mathrm{cons}}=\frac{1}{|F|}\sum_F\big(\sigma(f(\tilde x))-\mathrm{sg}[\sigma(f(x))]\big)^2$, where $\mathrm{sg}$ stops gradients. Both views are also supervised.
+\emph{Consistency term.} Each training patch is shown to the network twice, once clean and once with random changes (below). The consistency loss asks the two predictions to agree.
 
-\subsection{Domain-generalisation augmentation}
-All stages use the same geometric augmentation (random crop at a FOV pixel, flips, free rotation, scaling in $[0.8,1.25]$). Stage C onwards additionally applies, \emph{only at training time}: \textbf{style} --- gain/gamma/contrast jitter, a smooth multiplicative illumination field, blur, noise and JPEG compression of the green channel before CLAHE; and \textbf{structure} --- an elastic deformation applied identically to both views and the label, and local intensity dropout (view 2 only). Because CLAHE and standardisation follow the jitter, gain, gamma and contrast are largely neutralised by design; the effective style perturbations are illumination, blur, noise and JPEG. A DG stage processes two views per patch, i.e.\ twice the forward passes of stages A/B, and is deliberately much simpler than synthesising vessel trees~\cite{liu2026dgssa}.
+\subsection{Robustness (DG) augmentation}
+All stages use the same basic augmentation: random crops, flips, rotations and rescaling. From stage C on, we also apply, during training only, \textbf{style changes} (uneven illumination, blur, noise and JPEG compression) and \textbf{shape changes} (a smooth elastic bending and small patches of missing intensity). We call this \emph{DG augmentation} (domain generalisation). It is deliberately much simpler than methods that synthesise whole vessel trees~\cite{liu2026dgssa}. Because CLAHE and standardisation come afterwards, simple brightness and contrast changes are largely cancelled out by design.
 
-\subsection{Uncertainty and triage}
-With dropout kept active (BatchNorm in evaluation mode), $T$ passes give $p_t=\sigma(f_t(x))$, the mean $\bar p=\frac1T\sum_t p_t$ and the variance $u=\frac1T\sum_t p_t^2-\bar p^2$~\cite{gal2016}. We compare $u$ with the predictive entropy $H(\bar p)$, which is also available for deterministic models. For triage, an image is scored by its mean $u$ inside $F$; the images (or pixels) with the largest score are rejected first.
+\subsection{Uncertainty}
+With dropout switched on, we run the network $T{=}20$ times. The mean gives the final probability map and the variance of the 20 outputs gives a per-pixel uncertainty~\cite{gal2016}. An image is scored by its average uncertainty. To reject unreliable cases, the pixels or images with the highest uncertainty are removed first.
 
 % =============================================================================== V. EXPERIMENTAL SETUP
 \section{Experimental Setup}\label{sec:setup}
-\subsection{Datasets, preprocessing and exploratory analysis}
-Table~\ref{tab:data} lists the datasets. DRIVE provides 20 training and 20 test images; we split the training images once (seed 2026) into 16 for training and 4 for validation (model selection and, if used, hyper-parameter selection), and use the 20 test images as the in-domain test set. STARE (20), CHASE\_DB1 (28) and HRF (45) are used only for testing. Ground truth is the first human observer. HRF and (when available) official DRIVE masks provide the FOV; for DRIVE (mirror), STARE and CHASE\_DB1 the FOV is estimated by thresholding, keeping the largest component and eroding it by 1\% (checked visually, Fig.~\ref{fig:data}). The vessel fraction is 9--13\% in every dataset, i.e.\ about 1:8 class imbalance; there are no missing values or categorical attributes in this task. The exploratory statistics of Table~\ref{tab:data} quantify the domain shift: the mean green-channel intensity ranges from $\approx$60 (CHASE\_DB1, HRF) to $\approx$110 (STARE), and while the vessel calibre after FOV normalisation is $\approx$3.5\,px for DRIVE, STARE and CHASE\_DB1, it is only $\approx$1.4\,px for HRF: HRF's reference annotations are thin relative to its field of view, so HRF measures an annotation-style shift in addition to the camera shift (a no-rescale evaluation is in Fig.~\ref{fig:cleanup}). Sources and checksums are recorded in \texttt{data/MANIFEST.json}.
+\subsection{Datasets}
+Table~\ref{tab:data} lists the datasets. DRIVE has 20 training and 20 test images. We split the 20 training images once into 16 for training and 4 for validation; the validation images are the only ones used to pick checkpoints and settings. The 20 DRIVE test images are the in-domain test set. STARE (20 images), CHASE\_DB1 (28) and HRF (45) are used for testing only, and we call them the \emph{unseen} datasets. We use the first human annotator as ground truth. For HRF, and for DRIVE where available, the field-of-view masks are provided; for the other datasets we estimate them by thresholding and checked them visually (Fig.~\ref{fig:data}). About 9--13\% of pixels are vessels in every dataset, so the classes are imbalanced (about 1:8).
+
+The table shows how large the shift is: the average green-channel brightness ranges from about 60 (CHASE\_DB1, HRF) to about 110 (STARE). After resizing, vessels are about 3.5 pixels wide in DRIVE, STARE and CHASE\_DB1, but only about 1.4 pixels in HRF, because the HRF annotations are thin compared with its large images. HRF therefore also measures a difference in annotation style, not only a difference in camera.
 
 \input{generated/tab_datasets_info.tex}
 
 \begin{figure}[t]
 \centering
 \safefig{\columnwidth}{data_overview}
-\caption{Exploratory view of the datasets: vessel labels (green) and FOV outlines (red). Camera, colour balance, field of view and resolution differ markedly between datasets, which is the domain shift studied here.}
+\caption{The four datasets: vessel labels (green) and field-of-view outlines (red). Cameras, colours, fields of view and resolutions differ clearly; this is the dataset shift we study.}
 \label{fig:data}
 \end{figure}
 
-\subsection{Implementation and procedure}
-Everything is implemented in Python with PyTorch~\cite{paszke2019} (\hwTorch), OpenCV, scikit-image~\cite{vanderwalt2014} (Zhang--Suen thinning~\cite{zhang1984} for skeletons, connected components, Euler number) and scikit-learn. Training ran on Kaggle (\hwGPU, PyTorch 2.11.0+cu128; 37 runs) and Colab (NVIDIA L4, cu130; 33 runs: seeds 3--4 of A--E, seed 2 of the 3-seed configurations, all compact-U-Net and control runs) at three code commits that differ only in analysis code and added experiments (\texttt{run\_manifest.csv}); runs are statistically, not bitwise, reproducible. All stages share one optimiser, schedule and data pipeline (AdamW, learning rate $10^{-3}$, weight decay $10^{-4}$, 200 warm-up iterations then cosine decay, 5000 iterations of 8 patches of $256^2$ px, $\lambda_1{=}1$, $\lambda_2{=}\lambda_3{=}0.5$, 10 soft-skeleton iterations, CLAHE clip 2 with 64-px tiles; \texttt{configs/base.yaml}) and differ only in one switch each: A plain U-Net (Dice+BCE), B + topology loss, C + DG augmentation with consistency, D + compact backbone, E + dropout and MC averaging (Fig.~\ref{fig:pipeline}). We train each stage A--E with \nSeeds\ seeds and each additional configuration (factorial cells, loss variants, widths, controls) with 3 seeds, and report mean$\pm$std; differences between configurations are paired over shared seeds (Student-$t$ on the per-seed differences, 95\% half-widths; \texttt{stage\_deltas.csv}, \texttt{factorial\_deltas.csv}).
+\subsection{Training procedure}
+The code uses Python and PyTorch~\cite{paszke2019} (\hwTorch), with OpenCV and scikit-image~\cite{vanderwalt2014} for image processing. Training ran on Kaggle (\hwGPU; 37 runs) and Colab (NVIDIA L4; 33 runs); the code versions differ only in analysis scripts and added experiments, so results are statistically, not bit-for-bit, reproducible. All stages share one optimiser and schedule (AdamW, learning rate $10^{-3}$, cosine decay, 5000 iterations of 8 patches of $256{\times}256$ pixels; \texttt{configs/base.yaml}) and differ by one switch each:
+\begin{itemize}
+\item \textbf{A} plain U-Net (Dice + BCE loss);
+\item \textbf{B} A + topology loss;
+\item \textbf{C} B + DG augmentation and consistency loss;
+\item \textbf{D} C with the small depthwise backbone;
+\item \textbf{E} D + dropout, with MC averaging (this is \emph{TG-LiteNet}).
+\end{itemize}
+Stages A--E use \nSeeds\ random seeds each; every other configuration uses 3. We report the mean$\pm$standard deviation over seeds. When we compare two models we average the difference over the seeds they share and quote a 95\% range ``$\pm$''; a difference smaller than its $\pm$ is not clear evidence. These ranges are descriptive: we ran many comparisons and did not correct for that.
 
-
-
-\subsection{Evaluation metrics}
-All metrics are computed inside the FOV on the binarised prediction (threshold 0.5, fixed before seeing any target) against the \emph{native-resolution} ground truth: the model runs at the normalised scale and its probability map is resampled (bilinear) to the label resolution, because down-scaling thin labels fragments them and inflates Betti-0. \textbf{Accuracy:} Dice, IoU, sensitivity, specificity, accuracy and AUC (histogram-based above 2\,MP). \textbf{Topology:} clDice (exact skeletons), cbDice and the Betti-0/Betti-1 errors, i.e.\ the absolute difference in the number of connected components ($\beta_0$, 8-connectivity) and loops ($\beta_1=\beta_0-\chi$). \textbf{Generalisation:} $\Delta_m=m(\text{DRIVE})-m(\text{target})$; ``unseen'' is the macro average over the three targets. \textbf{Cost:} parameters, FLOPs (2$\times$MACs) and median latency for one $512{\times}512$ image (CPU with 1 and 4 threads, GPU). \textbf{Uncertainty:} Spearman correlation between pixel uncertainty and misclassification ($\rho_{px}$) and between image-mean uncertainty and $1-$Dice ($\rho_{img}$), risk--coverage curves and the area under the image-level curve (AURC) with random and oracle references.
+\subsection{Metrics}
+All metrics are computed inside the FOV after thresholding the probability map at a fixed 0.5 (chosen before seeing any unseen data), against the ground truth at its \emph{original} resolution (the model's output is resized back, because shrinking thin labels would break them).
+\begin{itemize}
+\item \textbf{Dice}: overlap between predicted and true vessels (higher is better).
+\item \textbf{clDice}: the centreline score of Sec.~IV (higher is better); it measures connectivity.
+\item \textbf{Betti-0 error}: the difference between the number of separate vessel pieces in the prediction and in the ground truth (lower is better). Stray fragments increase it.
+\item \textbf{Gap}: Dice on DRIVE minus Dice on unseen data. ``Unseen'' always means the average of the three unseen datasets.
+\item \textbf{Cost}: number of parameters, floating-point operations and time for one $512{\times}512$ image.
+\item \textbf{Uncertainty}: the rank correlation $\rho$ between uncertainty and error, and risk--coverage curves (how the error falls when the most uncertain pixels or images are removed).
+\end{itemize}
 
 % =============================================================================== VI. RESULTS
 \section{Experimental Results and Discussion}
@@ -188,73 +197,88 @@ All metrics are computed inside the FOV on the binarised prediction (threshold 0
 \begin{figure*}[t]
 \centering
 \safefig{0.98\textwidth}{fig_results}
-\caption{Per-dataset results of stages A--E: Dice, clDice and Betti-0 error (log scale; lower is better). Bars are means over seeds, whiskers the standard deviation over seeds; DRIVE is the source domain.}
+\caption{Results of stages A--E on each dataset (mean over seeds; whiskers: standard deviation over seeds). Betti-0 error is on a log scale.}
 \label{fig:results}
 \end{figure*}
 
-\subsection{Main results (staged ablation)}
-Table~\ref{tab:main} gives the staged ablation and Fig.~\ref{fig:results} the per-dataset values.
-Differences below are means over seeds with paired 95\% half-widths in brackets (training randomness; the same seed identifier forms a pair). We also compare models on the same test images (\texttt{paired\_image\_deltas.csv}): the paired difference of each image's seed-averaged score, macro-averaged over STARE, CHASE\_DB1 and HRF like the tables, with a stratified bootstrap interval (test-set sampling only). With 5 seeds (3 for supplementary runs) and no multiplicity correction both kinds of interval are descriptive.
+\subsection{Main results}
+Table~\ref{tab:main} and Fig.~\ref{fig:results} give the staged ablation.
 
-\textbf{Topology (A$\rightarrow$B, RQ1).} The topology loss lowers the raw unseen Betti-0 error from 75.0 to 31.7 ($-43.3\,[\pm16.0]$, on every target) and raises unseen clDice by 0.007 ($\pm$0.004), at a cost of 0.009 unseen Dice ($\pm$0.004) and 0.003 on DRIVE ($\pm$0.002). On the 93 unseen images Dice is lower for 92\% and clDice higher for 96\%. Unseen AUC moves by only $-$0.001 ($\pm$0.001), so ranking quality is nearly unchanged. It does not reduce loop errors: unseen Betti-1 moves only from 22.5 to 21.0 and is worse for the compact models (24.4). RQ1 therefore holds for centreline overlap and the raw fragment count, not for area overlap or loops; the checks below show that the fragment count is mostly removable by simple cleanup and that much of the Dice cost is threshold calibration.
+\textbf{Topology loss (A$\rightarrow$B, RQ1).} The topology loss cuts the unseen Betti-0 error from 75.0 to 31.7 ($-43.3\pm16.0$, on every unseen dataset) and raises clDice by 0.007 ($\pm0.004$). It costs 0.009 unseen Dice ($\pm0.004$) and 0.003 on DRIVE ($\pm0.002$): Dice is lower for 92\% of the 93 unseen images and clDice is higher for 96\%. It does not reduce loop errors (Betti-1 changes only from 22.5 to 21.0). So RQ1 holds for the centreline score and the piece count, not for overlap or loops. The checks below show that the piece count is easy to fix by cleanup and that much of the Dice cost is a threshold effect.
 
-\textbf{Generalisation (B$\rightarrow$C, RQ2).} DG augmentation raises unseen Dice by 0.008 ($\pm$0.005; higher for 81\% of the images) and shrinks the DRIVE-to-unseen gap from 0.074 to 0.065 ($-0.009\pm0.004$). CHASE\_DB1 sensitivity rises from 0.879 to 0.927, while unseen clDice (+0.004, $\pm$0.004) and Betti-0 ($-3.8$, $\pm$3.4) change little. RQ2 holds for overlap, only marginally for topology.
+\textbf{Robustness augmentation (B$\rightarrow$C, RQ2).} DG augmentation raises unseen Dice by 0.008 ($\pm0.005$; higher for 81\% of images) and shrinks the gap from 0.074 to 0.065 ($-0.009\pm0.004$). On CHASE\_DB1 the fraction of vessels found (sensitivity) rises from 0.879 to 0.927. Connectivity changes little (clDice $+0.004\pm0.004$). RQ2 holds for overlap and only weakly for connectivity.
 
-\textbf{Compact backbone (C$\rightarrow$D, RQ3).} Shrinking from 31 M to 0.21 M parameters costs 0.004 Dice on DRIVE ($\pm$0.002), 0.005 unseen Dice ($\pm$0.003; lower for 72\% of the images) and clearly more topology: unseen clDice $-$0.014 ($\pm$0.004) and raw Betti-0 +16.8 ($\pm$10.3), mostly on HRF, whose thin annotations reward capacity (sensitivity 0.891 to 0.862). The gap is unchanged (0.065). Stage E (dropout, MC averaging) differs from D by at most 0.002 Dice (lower for 81\% of the images) and not in clDice or Betti-0: dropout brings no benefit, only the uncertainty map. Overall (A$\rightarrow$E), unseen Dice is 0.007 lower ($\pm$0.007), unseen clDice 0.003 lower ($\pm$0.003) and raw unseen Betti-0 32 lower ($\pm$20).
+\textbf{Small backbone (C$\rightarrow$D$\rightarrow$E, RQ3).} Going from 31\,M to 0.21\,M parameters costs 0.004 Dice on DRIVE ($\pm0.002$), 0.005 unseen Dice ($\pm0.003$) and clearly more connectivity: unseen clDice drops by 0.014 ($\pm0.004$) and the Betti-0 error rises by 16.8 ($\pm10.3$), mostly on HRF, whose thin annotations reward a bigger network (sensitivity 0.891 to 0.862). The gap stays at 0.065. Adding dropout (E) changes Dice by at most 0.002 and does not change clDice or Betti-0, so dropout gives only the uncertainty map. Overall (A$\rightarrow$E), unseen Dice is 0.007 lower ($\pm0.007$) and clDice 0.003 lower ($\pm0.003$).
 
-\textbf{Classification view.} Table~\ref{tab:confusion} gives the pixel confusion matrix. On unseen data all stages are recall-heavy (recall 0.90--0.92) but over-segment: precision is only 0.66--0.67 against 0.81 for TG-LiteNet on DRIVE, and false positives (4.5--4.8\% of the FOV) outnumber false negatives (0.8--1.0\%) about five to one. The dominant error is spurious thin vessels and fragments, not missed vessels, which fits the Betti-0 counts.
+\textbf{What kind of mistakes?} On unseen data all stages find most vessels (recall 0.90--0.92) but also mark many pixels that are not vessels (precision 0.66--0.67, against 0.81 on DRIVE). False positives (4.5--4.8\% of the FOV) are about five times as common as false negatives (0.8--1.0\%). The typical error is a spurious thin vessel or a stray fragment, not a missed vessel.
 
-\textbf{Fragments, threshold and scale.} Betti-0 error is dominated by tiny floating fragments: the ground truth has 3--12 components per image, the predictions 25--187. Fig.~\ref{fig:cleanup} shows evaluation-only sensitivity checks with the cut-off $k$ and a threshold chosen per model on the four DRIVE-validation images (\texttt{postproc\_choices.csv}; 5 seeds for A--E, 3 for the others). Removing components smaller than $k$ px$^2$ at the 527-px FOV scale ($k{=}100$--200; the FOV width is estimated from its area) brings the unseen Betti-0 error of every model to 4.6--5.0, including the plain U-Net (75.0 to 4.7), with Dice up by at most 0.002 and clDice down by at most 0.004: the raw-count advantage of the topology loss is not specific to it. After cleanup the clDice gain of the topology loss alone is $+0.006$ ($\pm$0.008, not significant) and that of topology plus DG $+0.012$ ($\pm$0.005). The tuned thresholds are higher for the topology-trained models (0.50--0.65, plain U-Net 0.45--0.50), which over-segment (recall 0.90, precision 0.66 at 0.5): tuning raises their unseen Dice by 0.015--0.020 (B 0.771, C 0.782, D 0.772, E 0.771) but not the plain U-Net's ($-$0.006, $\pm$0.007). At tuned thresholds the topology loss therefore no longer costs Dice but gains it (A$\rightarrow$B $+0.014\pm0.008$, A$\rightarrow$C $+0.025\pm0.006$), so the Dice cost at 0.5 is mostly calibration; the DG-only U-Net gains little (0.777, $+0.006\pm0.013$) and C is $+0.002\pm0.002$ above it ($p{=}0.05$, 3 seeds) with $+0.007$ clDice and 46 fewer raw Betti-0. The thresholds come from four images and are post-hoc, so all main results keep 0.5. Without FOV rescaling (seeds 3--4) the plain U-Net collapses (unseen Dice 0.768 to 0.637, HRF 0.50) while D and E hold (0.757 to 0.750, 0.756 to 0.751), but only A, D and E were run at native scale, so we cannot say what gives the lite models this robustness.
+\subsection{Three checks that change the story}
+These checks need no retraining. Fig.~\ref{fig:cleanup} shows the first two (stages A--E: 5 seeds; DG-only U-Net: 3 seeds).
 
-\input{generated/tab_confusion.tex}
-\begin{figure}[t]
+\textbf{1. Deleting tiny fragments.} The ground truth has 3--12 vessel pieces per image, the predictions 25--187. Removing pieces smaller than a size chosen on the DRIVE validation images (100--200 pixels at our scale) brings the unseen Betti-0 error of \emph{every} model to 4.6--5.0, including the plain U-Net (75.0 to 4.7), while Dice rises by at most 0.002 and clDice falls by at most 0.004. So the piece-count advantage of the topology loss is not specific to it; a one-line cleanup gives the same result. After cleanup the clDice gain is $+0.006$ ($\pm0.008$, not clear) for topology alone and $+0.012$ ($\pm0.005$) for topology plus DG augmentation.
+
+\textbf{2. Choosing the threshold.} The topology-trained models over-segment at the default threshold of 0.5 (recall 0.90, precision 0.66). If the threshold is instead chosen on the four DRIVE validation images, it becomes 0.50--0.65 for these models (0.45--0.50 for the plain U-Net), and their unseen Dice rises by 0.015--0.020 (B 0.771, C 0.782, D 0.772, E 0.771) while the plain U-Net does not improve ($-0.006\pm0.007$). At tuned thresholds the topology loss therefore \emph{gains} Dice instead of losing it (A$\rightarrow$B $+0.014\pm0.008$, A$\rightarrow$C $+0.025\pm0.006$): the Dice cost at 0.5 is mostly a calibration effect. A U-Net with DG augmentation but no topology loss reaches 0.777, and stage C is $+0.002\pm0.002$ above it ($p{=}0.05$, 3 seeds) with 0.007 more clDice. Because the thresholds come from only four images and were examined after the fact, all headline results keep 0.5.
+
+\textbf{3. Image scale.} If images are \emph{not} resized to a fixed FOV width (seeds 3--4), the plain U-Net collapses (unseen Dice 0.768 to 0.637, HRF 0.50), while stages D and E hold up (0.757 to 0.750 and 0.756 to 0.751). Only A, D and E were run this way, so we cannot say why the small networks are more robust.
+
+\begin{figure*}[t]
 \centering
-\safefig{\columnwidth}{fig_cleanup}
-\caption{Evaluation-only checks (unseen average; A--E: 5 seeds; U+DG, U8, U16, L+DG: 3 seeds). (a) Betti-0 error before and after removing components below a size chosen on DRIVE validation (cleaned value printed). (b) Dice at the fixed threshold 0.5, at the per-model threshold chosen on DRIVE validation and without FOV rescaling (A, D, E; seeds 3--4, hollow marker: fixed Dice of the same seeds).}
+\safefig{0.92\textwidth}{fig_cleanup}
+\caption{Two checks on the unseen datasets. (a) Betti-0 error as predicted (grey) and after deleting fragments smaller than a size chosen on DRIVE validation (blue); the number above each bar is its value. (b) Dice at the standard threshold 0.5 (black) and at the threshold tuned on DRIVE validation (red).}
 \label{fig:cleanup}
-\end{figure}
-
+\end{figure*}
 
 \subsection{Efficiency and the trade-off (RQ3)}
-\begin{figure}[t]
+TG-LiteNet has 147$\times$ fewer parameters and 70$\times$ fewer operations than the U-Net, but it is only 6.8--8.8$\times$ faster on a CPU, depending on the machine (laptop: 209 against 1834\,ms; Kaggle: 429 against 2915\,ms; T4 GPU: 12.2 against 91.1\,ms). Depthwise convolutions do little work per byte of memory read, so operation counts overstate the speed-up. Against \emph{plain} small U-Nets the picture reverses (Fig.~\ref{fig:tradeoff}, Table~\ref{tab:variants}): a base-8 U-Net with the same number of operations runs in 67\,ms, 3.1$\times$ faster than TG-LiteNet, with the same Dice; a base-16 U-Net (1.94\,M parameters, still under 2\,M) is as fast (187\,ms) and has better clDice and Betti-0. The depthwise backbone saves parameters, not time, so for CPU-only hardware a base-16 U-Net is the better choice on this evidence. Compared with the U-Net, TG-LiteNet gives up 0.008 DRIVE Dice, 0.006 unseen Dice and 0.003 unseen clDice; the loss is no larger on unseen data (gap 0.065 for both C and D). MC dropout multiplies the cost by 20.
+
+\begin{figure*}[t]
 \centering
-\safefig{\columnwidth}{fig_tradeoff}
-\caption{Unseen Dice against (a) unseen clDice and (b) CPU latency (laptop, log scale). Marker area grows with the parameter count; squares: U-Net, circles: lite; letters: stages A--E; U16: plain U-Net with base width 16; w48: lite width 48; grey: other configurations (Table~\ref{tab:variants}).}
+\safefig{0.92\textwidth}{fig_tradeoff}
+\caption{Accuracy against CPU time (laptop benchmark) for the main models. Bigger markers mean more parameters; squares are U-Nets and circles are TG-LiteNet variants. Better models are higher and further left.}
 \label{fig:tradeoff}
-\end{figure}
-TG-LiteNet (Fig.~\ref{fig:tradeoff}) has 147$\times$ fewer parameters and 70$\times$ fewer FLOPs than the U-Net, but is only 6.8$\times$ faster on four CPU threads in the Kaggle runs (429 vs 2915\,ms), 7.5$\times$ on the T4 (12.2 vs 91.1\,ms) and 8.8$\times$ in a controlled laptop benchmark (209 vs 1834\,ms): depthwise convolutions have low arithmetic intensity, so FLOPs overstate the speed-up. Against plain compact U-Nets the picture reverses (Table~\ref{tab:variants}): a base-8 U-Net with the same FLOPs runs in 67\,ms, 3.1$\times$ faster than the lite model, with the same Dice, and a base-16 U-Net (1.9\,M parameters, within the 2\,M budget) is as fast (187\,ms) with better clDice and Betti-0. The depthwise-separable backbone therefore saves parameters, not time, and on this evidence a base-16 U-Net is the better choice for CPU-only screening hardware. Against the U-Net, TG-LiteNet gives up 0.008 DRIVE Dice, 0.006 unseen Dice and 0.003 unseen clDice; this loss is not larger on unseen domains (identical gap 0.065 for C and D). MC dropout multiplies the cost by $T{=}20$.
+\end{figure*}
 
 \subsection{Uncertainty (RQ4)}
-\begin{figure}[t]
-\centering
-\safefig{\columnwidth}{fig_risk_coverage}
-\caption{Risk--coverage of the MC-dropout variance of TG-LiteNet: (a) pixel error rate after rejecting the most uncertain pixels, (b) mean $1-$Dice of the retained images when the most uncertain images are rejected (dotted: random rejection).}
-\label{fig:risk}
-\end{figure}
-Pixel-level uncertainty (per-domain values in \texttt{results/tables/uncertainty.csv}) is moderately informative: $\rho_{px}$ is 0.31 on DRIVE and slightly higher on the unseen domains (0.32 STARE, 0.34 CHASE\_DB1, 0.34 HRF), so the expected increase under shift (RQ4) is present but small. Entropy is marginally better than MC variance at pixel level, variance at image level ($\rho_{img}$ 0.151 vs 0.129 on DRIVE). Rejecting the 10\% most uncertain pixels (Fig.~\ref{fig:risk}a) lowers the pixel error from 4.7\% to 1.6\% on DRIVE and from 6.5\% to 3.5\% on HRF. At image level (Fig.~\ref{fig:risk}b) the evidence is weak: AURC equals random on DRIVE and STARE, is better by 4\% on CHASE\_DB1 ($\rho_{img}{=}0.48$) and \emph{worse} than random on HRF ($\rho_{img}{=}{-}0.17$). With 20--45 images per domain these statistics are imprecise, but they do not support referring whole images with MC variance~\cite{ovadia2019}; with the $T{=}20$ cost they do not justify MC dropout here, and deep ensembles or temperature scaling (not run) would be the next options. The curves rank errors but say nothing about calibration (no ECE or Brier score).
+At pixel level the MC-dropout uncertainty is moderately informative: its rank correlation with the errors is 0.31 on DRIVE and slightly higher on the unseen datasets (0.32 STARE, 0.34 CHASE\_DB1, 0.34 HRF), so the expected increase under shift is present but small. Removing the 10\% most uncertain pixels (Fig.~\ref{fig:risk}a) lowers the pixel error from 4.7\% to 1.6\% on DRIVE and from 6.5\% to 3.5\% on HRF. At image level (Fig.~\ref{fig:risk}b) the evidence is weak. Removing the most uncertain images is no better than removing random images on DRIVE and STARE, 4\% better on CHASE\_DB1 (correlation 0.48) and \emph{worse} than random on HRF (correlation $-$0.17). With only 20--45 images per dataset these numbers are imprecise, but they do not support using this uncertainty to refer whole images~\cite{ovadia2019}. Together with the 20$\times$ cost, they do not justify MC dropout here; deep ensembles or temperature scaling (not run) would be the next options. We also did not measure calibration.
 
-\subsection{Qualitative results and error analysis}
+\begin{figure*}[t]
+\centering
+\safefig{0.92\textwidth}{fig_risk_coverage}
+\caption{Risk--coverage of the MC-dropout uncertainty of TG-LiteNet. (a) Pixel error after removing the most uncertain pixels. (b) Average $1-$Dice of the images that are kept when the most uncertain images are removed; dotted lines show random removal. A useful uncertainty would make the solid lines fall.}
+\label{fig:risk}
+\end{figure*}
+
+\subsection{Qualitative results}
+Fig.~\ref{fig:qual} shows one image per dataset (seed 0). The windows were chosen where stages A and E differ most, so differences look larger than they are on average. The errors of all three models are mostly thin red (false positive) or blue (missed) fragments along the finest vessels; the large vessels are almost error-free, and some spurious red segments, for example on CHASE\_DB1, appear in all three models. On HRF the small models miss more fine vessels than the U-Net (average HRF sensitivity 0.864 for E and 0.889 for A), which matches their lower clDice there. The uncertainty maps of E mark vessel borders and thin segments in general rather than the specific errors, in line with the weak image-level result.
+
 \begin{figure*}[t]
 \centering
 \safefig{0.7\textwidth}{fig_qualitative}
-\caption{Qualitative results (seed 0, one image per dataset). The yellow window, where stages A and E disagree most, is shown enlarged: ground truth, error maps of A, D and E (white: true positive, red: false positive, blue: false negative; threshold 0.5) and the MC-dropout uncertainty of E (scaled per image).}
+\caption{Examples (seed 0, one image per dataset). The yellow window is enlarged to the right: ground truth, error maps of A, D and E (white: correct, red: false positive, blue: missed; threshold 0.5) and the MC-dropout uncertainty of E.}
 \label{fig:qual}
 \end{figure*}
-In Fig.~\ref{fig:qual} (one image per dataset, seed 0, windows chosen where A and E differ, so the differences are exaggerated) the errors of all three models are mostly thin red (false positive) or blue (missed) fragments along the finest vessels, and spurious red segments such as the ones on CHASE\_DB1 appear in all three; the large vessels are essentially error-free. On HRF the compact models miss more capillary-scale vessels than the U-Net (mean HRF sensitivity 0.864 for E vs 0.889 for A), which matches their lower HRF clDice. The uncertainty maps of E mark vessel borders and thin segments in general rather than the red and blue errors in particular, consistent with the weak image-level triage above.
 
 % =============================================================================== VII. ABLATION
 \section{Ablation Analysis}\label{sec:ablation}
 \input{generated/tab_factorial.tex}
-Table~\ref{tab:factorial} separates the factors (unseen averages; effects paired over shared seeds). \emph{Topology loss} lowers the raw Betti-0 error in all four pairs (U-Net 75$\rightarrow$32 and 73$\rightarrow$28, lite 86$\rightarrow$46 and 88$\rightarrow$45; every paired interval excludes zero), raises clDice by 0.005--0.009 and changes unseen Dice by $+0.002$ to $-0.011$, so it still helps a $\le$2\,M-parameter network in raw Betti-0 and clDice, with the cleanup caveat. \emph{DG augmentation} adds 0.008 to 0.022 unseen Dice, narrows the gap (0.068$\rightarrow$0.060 for the plain U-Net) and leaves Betti-0 unchanged. \emph{Backbone}: the compact network loses 0.004--0.013 Dice and 0.011--0.014 clDice and adds 15--20 raw Betti-0 error in every cell. At the fixed threshold the highest unseen Dice come from DG without topology loss (U-Net 0.771; lite 0.767, $+0.009\pm0.006$ over the baseline but with worse clDice, $-0.011\pm0.006$); the full TG-LiteNet recipe is a connectivity-oriented operating point.
-\input{generated/tab_variants.tex}
-In Table~\ref{tab:variants} (top) the default soft-clDice has the best Dice: cbDice and clDice+Skeleton Recall lower the raw Betti-0 error slightly (44.7 to 39.1 and 36.5, within the seed spread) at 0.012 ($\pm$0.013) and 0.023 ($\pm$0.011) unseen Dice, and Skeleton Recall alone is worse in clDice ($-$0.006, $\pm$0.002). Neither the skeleton head nor the consistency loss helps Dice or clDice (without head: 0.761 and 0.831; without consistency: 0.759 and 0.833; stage D: 0.757 and 0.832); raw Betti-0 is higher by 10 ($\pm$3) and 8 ($\pm$9) without them, the only trace of a benefit. The plain compact U-Nets with the stage-D recipe match the lite model in Dice (base 8, 0.49\,M parameters: 0.758; base 16, 1.9\,M: 0.757) and the larger one is more connected (clDice 0.840 vs 0.832, paired $+0.006\pm0.003$; Betti-0 33.7 vs 44.7). In the width sweep, unseen Dice saturates near $w{=}24$ while clDice (0.822 to 0.839) and Betti-0 (61 to 30) keep improving up to $w{=}48$.
+Table~\ref{tab:factorial} tries all eight combinations of backbone, topology loss and DG augmentation. The \emph{topology loss} lowers the raw Betti-0 error in all four pairs (U-Net 75$\rightarrow$32 and 73$\rightarrow$28, small network 86$\rightarrow$46 and 88$\rightarrow$45), raises clDice by 0.005--0.009 and changes unseen Dice by $+0.002$ to $-0.011$; so it still helps a network under 2\,M parameters, with the cleanup caveat above. \emph{DG augmentation} adds 0.008 to 0.022 unseen Dice, narrows the gap (0.068$\rightarrow$0.060 for the plain U-Net) and leaves Betti-0 unchanged. The \emph{small backbone} loses 0.004--0.013 Dice and 0.011--0.014 clDice and adds 15--20 Betti-0 error in every combination. At threshold 0.5, the best unseen Dice comes from DG augmentation without topology loss (U-Net 0.771; small network 0.767, $+0.009\pm0.006$ over the baseline but with worse clDice, $-0.011\pm0.006$). The full TG-LiteNet recipe is thus an operating point that favours connectivity.
 
-\subsection{Limitations and threats to validity}\label{sec:limits}
-(i) Only 16 training images; seed-to-seed variation can match small gains (stage A's unseen Dice ranges from 0.755 to 0.769 over five seeds). Stages A--E use \nSeeds\ seeds, other configurations 3, the no-rescale check 2. (ii) The unseen average weights three very different datasets equally; raw Betti counts are dominated by HRF. (iii) The no-rescale evaluation covers only A, D and E. (iv) Labels are the first observer only; four of five FOV sets are estimated. (v) Soft-clDice, Skeleton Recall and cbDice~\cite{shi2024} are our re-implementations. (vi) Latency is eager-PyTorch, not an edge measurement, and varied up to 2$\times$ on shared cloud CPUs, hence the laptop benchmark. (vii) The targets were never used for fitting, loss-weight or threshold tuning or checkpoint selection, but we saw their results while designing the ablations, so they are held-out rather than untouched; comparisons are uncorrected, and the cleanup size and per-model thresholds (four validation images) are post-hoc. (viii) The DG stage bundles augmentation, a consistency term and a second view; the controls remove only the consistency term and the skeleton head. (ix) Uncertainty is ranked, not calibrated. (x) Source-only evaluation is harder than multi-source or test-time adaptation, so absolute numbers are not comparable with such papers~\cite{liu2026dgssa,wang2026wavernet,zhou2025}. (xi) Checkpoints are not in the repository: the committed per-image results are reproducible by retraining, not by re-evaluation.
+\input{generated/tab_variants.tex}
+Table~\ref{tab:variants} (top) shows that the default soft-clDice has the best Dice: cbDice and clDice+Skeleton Recall lower the Betti-0 error a little (44.7 to 39.1 and 36.5, within the seed spread) at a cost of 0.012 ($\pm0.013$) and 0.023 ($\pm0.011$) Dice. Neither the skeleton head nor the consistency loss improves Dice or clDice (without the head: 0.761 and 0.831; without consistency: 0.759 and 0.833; stage D: 0.757 and 0.832); the only trace of a benefit is a lower Betti-0 error (10 $\pm$ 3 and 8 $\pm$ 9 lower). Plain small U-Nets trained the same way match the Dice of the small network (base 8, 0.49\,M parameters: 0.758; base 16, 1.94\,M: 0.757), and the larger one is better connected (clDice 0.840 against 0.832, difference $+0.006\pm0.003$; Betti-0 33.7 against 44.7). In the width sweep, Dice stops improving near $w{=}24$, while clDice (0.822 to 0.839) and Betti-0 (61 to 30) keep improving up to $w{=}48$.
+
+\subsection{Limitations}\label{sec:limits}
+(i) There are only 16 training images, and seed-to-seed variation can match small gains (stage A's unseen Dice ranges from 0.755 to 0.769 over five seeds). Stages A--E use \nSeeds\ seeds, other configurations 3 and the image-scale check 2. (ii) The unseen average weights three very different datasets equally, and raw Betti counts are dominated by HRF. (iii) The image-scale check covers only A, D and E. (iv) Labels come from one annotator, and four of five field-of-view sets are estimated. (v) Soft-clDice, Skeleton Recall and cbDice are our own re-implementations. (vi) Speed was measured with standard PyTorch on a laptop, not on an edge device, and varied up to 2$\times$ on shared cloud machines. (vii) The unseen datasets were never used for training or tuning, but we saw their results while designing the experiments, so they are held-out rather than untouched; comparisons are uncorrected, and the fragment size and tuned thresholds (four validation images) were chosen after the fact. (viii) The DG stage bundles augmentation, a consistency loss and a second view; the controls remove only the consistency loss and the skeleton head. (ix) Uncertainty is ranked, not calibrated. (x) Training on one dataset only is harder than using several datasets or adapting at test time, so our numbers cannot be compared with such papers~\cite{liu2026dgssa,wang2026wavernet,zhou2025}. (xi) Checkpoints are not in the repository, so the committed per-image results can be reproduced by retraining but not by re-evaluating.
 
 % =============================================================================== VIII. CONCLUSION
 \section{Conclusion and Future Work}
-We built and evaluated TG-LiteNet in a controlled source-only protocol (one fixed 0.5 threshold unless stated). (O1) The pipeline is source-only and every number comes from 70 trained models. (O2) The topology loss lowers the raw unseen Betti-0 error of the U-Net from 75 to 32 and raises clDice by 0.007 at 0.009 Dice, but simple cleanup brings every model to Betti-0 $\approx$5, so its lasting benefit is the clDice gain (RQ1); with a threshold tuned on DRIVE validation (5 seeds, post-hoc) the topology-trained U-Nets have the highest Dice (stage C 0.782, plain U-Net 0.757), so the Dice cost at 0.5 is mostly calibration. DG augmentation adds 0.008 unseen Dice and narrows the shift gap from 0.074 to 0.065 (RQ2); at the fixed threshold the best Dice is DG without topology loss (U-Net 0.771), but at tuned thresholds stage C is on par or slightly better (0.782 against 0.777) and better connected. The compact backbone costs 0.005 Dice, 0.014 clDice and 17 raw Betti-0 (RQ3). TG-LiteNet is 0.006 Dice below the baseline U-Net with 147$\times$ fewer parameters and 70$\times$ fewer FLOPs, but plain compact U-Nets with the same recipe match its accuracy (base 8) or also its connectivity (base 16: clDice 0.840) at equal or lower CPU latency, so the depthwise backbone saves parameters, not time, and a base-16 U-Net is the better deployment choice on this evidence. Removing the skeleton head or the consistency loss lowers neither Dice nor clDice and dropout adds nothing measurable. (O3) MC-dropout ranks pixel errors moderately ($\rho_{px}$ 0.31--0.34), but image-level rejection is within 4\% of random and worse on HRF, so at 20$\times$ the cost we would drop it. \textbf{Limitations} are listed in Sec.~VII-A. \textbf{Future work:} a warm-up of the topology weight, deep ensembles or temperature scaling with calibration metrics, the official cbDice code, held-out FIVES, and INT8 measurements on a real edge device.
+We built and tested TG-LiteNet with models trained on DRIVE only and one fixed threshold of 0.5 unless stated. Our answers to the research questions are:
+\begin{itemize}
+\item \textbf{RQ1, topology.} The topology loss cuts the unseen Betti-0 error of the U-Net from 75 to 32 and raises clDice by 0.007, at 0.009 Dice. But deleting tiny fragments gives every model a Betti-0 error of about 5, so the lasting benefit is the small clDice gain. With a threshold tuned on DRIVE validation, the topology-trained U-Nets have the highest Dice (stage C 0.782, plain U-Net 0.757), so the Dice cost at 0.5 is mostly calibration.
+\item \textbf{RQ2, generalisation.} DG augmentation adds 0.008 Dice and narrows the gap from 0.074 to 0.065. At threshold 0.5 the best Dice comes from DG without topology loss (0.771), but at tuned thresholds stage C is as good or slightly better (0.782 against 0.777) and better connected.
+\item \textbf{RQ3, cost.} TG-LiteNet is 0.006 Dice below the U-Net with 147$\times$ fewer parameters. However, plain small U-Nets match its accuracy (base 8) or also its connectivity (base 16, clDice 0.840) at equal or lower CPU time, so a base-16 U-Net is the better deployment choice on this evidence. The skeleton head, the consistency loss and dropout add nothing measurable.
+\item \textbf{RQ4, uncertainty.} MC dropout ranks pixel errors moderately (correlation 0.31--0.34) but is within 4\% of random at image level and worse on HRF, so at 20$\times$ the cost we would drop it.
+\end{itemize}
+The \textbf{limitations} are listed in Sec.~\ref{sec:limits}. \textbf{Future work:} a gradual increase of the topology weight during training, deep ensembles or temperature scaling with calibration metrics, the official cbDice code, evaluation on the held-out FIVES dataset, and speed measurements on a real edge device.
 
 % =============================================================================== REFERENCES
 \begin{thebibliography}{99}

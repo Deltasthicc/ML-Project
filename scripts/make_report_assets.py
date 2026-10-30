@@ -79,35 +79,30 @@ def savefig(fig, name: str) -> None:
 
 
 # ---------------------------------------------------------------------------------------------- tables
-def table_main(summ, eff) -> str:
-    """Table III: accuracy / topology / generalisation / cost of the staged ablation."""
-    cols = [("drive", "dice", "Dice", False), ("drive", "cldice", "clDice", False), ("unseen", "dice", "Dice", False),
-            ("unseen", "cldice", "clDice", False), ("unseen", "cbdice", "cbDice", False),
-            ("unseen", "betti0_err", "$\\beta_0$ err", True), ("gap_unseen", "dice", "$\\Delta$Dice", True)]
-    best = []
-    for ds, met, _, low in cols:
-        best.append(best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low))
-    lines = ["\\begin{table*}[t]", "\\centering", "\\caption{Staged ablation (mean$\\pm$std over seeds). Source = DRIVE test; unseen = macro average over STARE, CHASE\\_DB1 and HRF; "
-             "$\\Delta$Dice = Dice(DRIVE)$-$Dice(unseen). Cost: one $512{\\times}512$ image, batch 1, CPU = 4 threads, Kaggle machine; E (MC) needs $T$ passes. Best per column in bold.}",
-             "\\label{tab:main}", "\\small", "\\begin{tabular}{l cc ccccc rrrr}", "\\toprule",
-             " & \\multicolumn{2}{c}{Source (DRIVE)} & \\multicolumn{5}{c}{Unseen domains} & & & \\multicolumn{2}{c}{Latency (ms)} \\\\",
-             "\\cmidrule(lr){2-3}\\cmidrule(lr){4-8}\\cmidrule(lr){11-12}",
-             "Stage & Dice & clDice & Dice & clDice & cbDice & $\\beta_0$ err & $\\Delta$Dice & Params (M) & GFLOPs & CPU & GPU \\\\", "\\midrule"]
+def table_main(summ, eff, lat) -> str:
+    """Table III: accuracy / topology / generalisation / cost of the staged ablation (CPU time from the controlled laptop benchmark)."""
+    cols = [("drive", "dice", False), ("unseen", "dice", False), ("unseen", "cldice", False), ("unseen", "betti0_err", True), ("gap_unseen", "dice", True)]
+    names = {"A": "A  U-Net", "B": "B  + topology loss", "C": "C  + DG augmentation", "D": "D  + compact backbone", "E (det.)": "E  TG-LiteNet",
+             "E (MC)": "E  with MC dropout (20 passes)"}
+    best = [best_idx([val(summ, e, ds, met, m) for e, m, _ in STAGES], low) for ds, met, low in cols]
+    lines = ["\\begin{table*}[t]", "\\centering",
+             "\\caption{Main results (mean$\\pm$std over random seeds). Dice and clDice: higher is better; Betti-0 error and Gap: lower is better. "
+             "Unseen = average of STARE, CHASE\\_DB1 and HRF; Gap = Dice on DRIVE $-$ Dice on unseen data. CPU time is for one $512{\\times}512$ image on four laptop CPU threads. "
+             "The best value in each column is in bold.}",
+             "\\label{tab:main}", "\\small", "\\begin{tabular}{l c cccc c rr}", "\\toprule",
+             " & DRIVE & \\multicolumn{4}{c}{Unseen datasets} & & & \\\\", "\\cmidrule(lr){3-6}",
+             "Model & Dice & Dice & clDice & Betti-0 err. & Gap & Params (M) & CPU (ms) \\\\", "\\midrule"]
     for r, (exp, mode, lab) in enumerate(STAGES):
         cells = []
-        for k, (ds, met, _, _) in enumerate(cols):
-            m, s = val(summ, exp, ds, met, mode), val(summ, exp, ds, met, mode, "std")
-            cells.append(fmt(m, s, 2 if met == "betti0_err" else 3, bold=(best[k] == r)))
+        for k, (ds, met, _) in enumerate(cols):
+            m, sd = val(summ, exp, ds, met, mode), val(summ, exp, ds, met, mode, "std")
+            cells.append(fmt(m, sd, 1 if met == "betti0_err" else 3, bold=(best[k] == r)))
         e = eff[eff.exp == exp] if len(eff) else pd.DataFrame()
         p = f"{e.params_m.iloc[0]:.2f}" if len(e) else "--"
-        g = f"{e.gflops.iloc[0]:.1f}" if len(e) else "--"
-        cpu = f"{e.cpu_ms.iloc[0]:.0f}" if len(e) else "--"
-        gpu = f"{e.gpu_ms.iloc[0]:.1f}" if len(e) and "gpu_ms" in e and not pd.isna(e.gpu_ms.iloc[0]) else "--"
-        if mode == "mc" and len(e):
-            t = int(e.mc_samples.iloc[0])
-            g, cpu = g + f" $\\times$ {t}", cpu + f" $\\times$ {t}"
-            gpu = gpu + f" $\\times$ {t}" if gpu != "--" else gpu
-        lines.append(f"{lab} & " + " & ".join(cells) + f" & {p} & {g} & {cpu} & {gpu} \\\\")
+        cpu = f"{lat[exp]:.0f}" if exp in lat else "--"
+        if mode == "mc":
+            cpu += " $\\times$ 20"
+        lines.append(f"{names[lab]} & " + " & ".join(cells) + f" & {p} & {cpu} \\\\")
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table*}"]
     return "\n".join(lines)
 
@@ -179,10 +174,10 @@ def table_confusion(conf, targets) -> str:
 
 
 def table_factorial(summ) -> str:
-    lines = ["\\begin{table}[t]", "\\centering", "\\caption{Full factorial design (backbone $\\times$ topology $\\times$ DG). Unseen = macro average over the three targets. "
-             "Stages A--D (U-Net plain, U-Net+topo, U-Net+topo+DG, Lite+topo+DG) have 5 seeds, the other four cells 3.}",
+    lines = ["\\begin{table}[t]", "\\centering", "\\caption{All eight combinations of backbone (U-Net or compact), topology loss and DG augmentation. Unseen = average of the three unseen datasets; "
+             "Gap = Dice on DRIVE $-$ Dice on unseen data. Rows 1, 4, 3 and 8 are stages A, C, B and D (5 seeds); the other rows have 3 seeds.}",
              "\\label{tab:factorial}", "\\small",
-             "\\begin{tabular}{lcc cc cc}", "\\toprule", "Backbone & Topo & DG & Src Dice & Unseen Dice & Unseen clDice & $\\Delta$Dice \\\\", "\\midrule"]
+             "\\begin{tabular}{lcc cc cc}", "\\toprule", "Backbone & Topology & DG & DRIVE Dice & Unseen Dice & Unseen clDice & Gap \\\\", "\\midrule"]
     tick = lambda b: "\\checkmark" if b else "--"  # noqa: E731
     for (bb, topo, dg), exp in sorted(FACTORIAL_CELLS.items(), key=lambda kv: (kv[0][0] != "unet", kv[0][1] != "none", kv[0][2])):
         cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3)
@@ -219,10 +214,10 @@ def table_variants(summ, eff, lat) -> str:
         [("W_lite_w8", "width $w{=}8$"), ("D_lite_topo_dg", "width $w{=}16$ (D)"), ("W_lite_w24", "width $w{=}24$"), ("W_lite_w32", "width $w{=}32$"), ("W_lite_w48", "width $w{=}48$")],
     ]
     lines = ["\\begin{table}[t]", "\\centering",
-             "\\caption{Variants of stage D (unseen averages): topology loss (top), removed ingredients and plain compact U-Nets with the same recipe (middle), lite width (bottom). "
-             "Stage D has 5 seeds, other rows 3. CPU = 4 threads, controlled laptop benchmark.}",
+             "\\caption{Variants of stage D on unseen data: other topology losses (top); removed ingredients and plain compact U-Nets trained the same way (middle); "
+             "network width (bottom). Stage D has 5 seeds, other rows 3. CPU time: 4 laptop threads, one $512{\\times}512$ image.}",
              "\\label{tab:variants}", "\\small", "\\begin{tabular}{l ccc rr}", "\\toprule",
-             " & Dice & clDice & $\\beta_0$ err & Params (M) & CPU (ms) \\\\", "\\midrule"]
+             " & Dice & clDice & Betti-0 err. & Params (M) & CPU (ms) \\\\", "\\midrule"]
 
     def row(exp, label):
         cells = [fmt(val(summ, exp, ds, met), val(summ, exp, ds, met, what="std"), 3 if met != "betti0_err" else 1)
@@ -308,18 +303,20 @@ def macros(summ, eff, unc) -> str:
 
 # ---------------------------------------------------------------------------------------------- figures
 SHORT = {"S_unet_b16": "U16", "W_lite_w48": "w48"}
+NAME = {"A": "A  U-Net", "B": "B  + topology loss", "C": "C  + DG augmentation", "D": "D  + compact backbone", "E": "E  TG-LiteNet"}
 
 
 def _style() -> None:
     plt.rcParams.update({
         "font.family": "serif", "font.serif": ["Times New Roman", "STIXGeneral", "DejaVu Serif"], "mathtext.fontset": "stix",
+        "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 8.5, "xtick.labelsize": 7.5, "ytick.labelsize": 7.5, "legend.fontsize": 7.5,
         "pdf.fonttype": 42, "axes.linewidth": 0.6, "axes.spines.top": False, "axes.spines.right": False,
         "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.major.size": 2.5, "ytick.major.size": 2.5,
     })
 
 
-def _letter(ax, s: str) -> None:
-    ax.text(-0.02, 1.04, s, transform=ax.transAxes, fontsize=8, fontweight="bold", va="bottom", ha="right")
+def _title(ax, s: str) -> None:
+    ax.set_title(s, loc="left", fontsize=8.5, fontweight="bold", pad=4)
 
 
 def fig_results(summ, targets):
@@ -328,19 +325,21 @@ def fig_results(summ, targets):
         return
     stages = [s for s in STAGES if s[1] == "det"]
     ds_list = ["drive"] + targets
-    fig, axes = plt.subplots(1, 3, figsize=(7.1, 1.6))
+    fig, axes = plt.subplots(1, 3, figsize=(7.1, 2.45))
     w = 0.8 / len(stages)
-    for ax, (met, lab, log) in zip(axes, [("dice", "Dice", False), ("cldice", "clDice", False), ("betti0_err", "Betti-0 error (log)", True)]):
+    panels = [("dice", "(a) Dice (higher is better)", False), ("cldice", "(b) clDice (higher is better)", False),
+              ("betti0_err", "(c) Betti-0 error (lower is better)", True)]
+    for ax, (met, title, log) in zip(axes, panels):
         for i, (exp, mode, name) in enumerate(stages):
             m = np.array([val(summ, exp, d, met, mode) for d in ds_list], float)
             s = np.array([val(summ, exp, d, met, mode, "std") for d in ds_list], float)
+            key = name.replace(" (det.)", "")
             ax.bar(np.arange(len(ds_list)) + (i - (len(stages) - 1) / 2) * w, m, w * 0.92, yerr=s, color=COL[name], linewidth=0,
-                   label=name.replace(" (det.)", ""), error_kw={"elinewidth": 0.5, "capsize": 0.8, "capthick": 0.5})
-        ax.axvline(0.5, color="k", lw=0.5, ls=":")
+                   label=NAME[key], error_kw={"elinewidth": 0.6, "capsize": 1.0, "capthick": 0.6})
+        ax.axvline(0.5, color="k", lw=0.6, ls=":")
         ax.set_xticks(np.arange(len(ds_list)))
-        ax.set_xticklabels([NICE_PLAIN[d].replace("CHASE_DB1", "CHASE") for d in ds_list], fontsize=6.5)
-        ax.set_ylabel(lab, fontsize=7)
-        ax.tick_params(axis="y", labelsize=6.5)
+        ax.set_xticklabels(["DRIVE\n(training)"] + [NICE_PLAIN[d].replace("CHASE_DB1", "CHASE") + "\n(unseen)" for d in targets], fontsize=7)
+        _title(ax, title)
         ax.grid(axis="y", alpha=0.3, lw=0.4)
         if log:
             ax.set_yscale("log")
@@ -351,123 +350,108 @@ def fig_results(summ, targets):
         else:
             lo = np.nanmin([val(summ, e, d, met, m_) for e, m_, _ in stages for d in ds_list])
             ax.set_ylim(max(0, lo - 0.06), min(1.0, np.nanmax([val(summ, e, d, met, m_) for e, m_, _ in stages for d in ds_list]) + 0.03))
-    axes[0].text(0.0, 1.0, "source", transform=axes[0].get_xaxis_transform(), fontsize=6, color="0.35", va="bottom", ha="center")
-    axes[0].text(2.0, 1.0, "unseen targets", transform=axes[0].get_xaxis_transform(), fontsize=6, color="0.35", va="bottom", ha="center")
-    for ax, s in zip(axes, "abc"):
-        _letter(ax, f"({s})")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, ncol=5, fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, 1.07), frameon=False, handlelength=1.2, columnspacing=1.2)
-    fig.tight_layout(pad=0.4, w_pad=1.0)
+    fig.legend(h, l, ncol=5, loc="upper center", bbox_to_anchor=(0.5, 1.09), frameon=False, handlelength=1.2, columnspacing=1.6)
+    fig.tight_layout(pad=0.4, w_pad=1.2)
     savefig(fig, "fig_results")
 
 
-CLEAN_SETS = [("A_unet", "A"), ("B_unet_topo", "B"), ("C_unet_topo_dg", "C"), ("D_lite_topo_dg", "D"), ("E_tglitenet", "E"),
-              ("X_unet_dg", "U+DG"), ("S_unet_b8", "U8"), ("S_unet_b16", "U16"), ("X_lite_dg", "L+DG")]
+CLEAN_SETS = [("A_unet", "A\nU-Net"), ("B_unet_topo", "B\n+ topology"), ("C_unet_topo_dg", "C\n+ DG aug."), ("D_lite_topo_dg", "D\ncompact"),
+              ("E_tglitenet", "E\nTG-LiteNet"), ("X_unet_dg", "U-Net\n+ DG only")]
 
 
-def fig_cleanup(post, nat_summ, per_run):
-    """Evaluation-only checks: raw vs cleaned Betti-0 error, and Dice at the fixed threshold, the DRIVE-val-tuned threshold and without FOV rescaling.
-
-    Stages A--E use all five seeds, the other four configurations three; the no-rescale evaluation exists for A, D and E on seeds 3--4 only, so it is
-    drawn next to the fixed-threshold Dice of the same two seeds (hollow marker).
-    """
+def fig_cleanup(post):
+    """Evaluation-only checks: Betti-0 error before/after deleting tiny fragments, and Dice at threshold 0.5 vs the threshold tuned on DRIVE validation."""
     if post is None or post.empty:
         return
     sets = [c for c in CLEAN_SETS if ((post.exp == c[0]) & (post["mode"] == "pp")).any()]
-    names = [c[1] for c in sets]
 
     def g(exp, mode, col):
         r = post[(post.exp == exp) & (post["mode"] == mode)]
         return float(r[col].iloc[0]) if len(r) else np.nan
 
     x = np.arange(len(sets))
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.6))
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 2.7))
+    ax = axes[0]
     raw = [g(e, "fixed 0.5", "unseen_betti0_err") for e, _ in sets]
     pp = [g(e, "pp", "unseen_betti0_err") for e, _ in sets]
-    ax = axes[0]
-    ax.bar(x - 0.2, raw, 0.38, color="#b0b0b0", label="raw", linewidth=0)
-    ax.bar(x + 0.2, pp, 0.38, color="#1f77b4", label="cleanup", linewidth=0)
-    for xi, v in zip(x, pp):
-        ax.text(xi + 0.2, v * 1.1, f"{v:.1f}", ha="center", fontsize=4.2, rotation=90, va="bottom")
+    ax.bar(x - 0.19, raw, 0.36, color="#b0b0b0", label="as predicted", linewidth=0)
+    ax.bar(x + 0.19, pp, 0.36, color="#1f77b4", label="after deleting tiny fragments", linewidth=0)
+    for xi, a, b in zip(x, raw, pp):
+        ax.text(xi - 0.19, a * 1.08, f"{a:.0f}", ha="center", fontsize=7)
+        ax.text(xi + 0.19, b * 1.08, f"{b:.1f}", ha="center", fontsize=7, color="#1f4e79")
     ax.set_yscale("log")
     ax.set_ylim(2.5, 400)
     ax.set_yticks([3, 10, 30, 100, 300])
     ax.set_yticklabels(["3", "10", "30", "100", "300"])
     ax.minorticks_off()
-    ax.set_ylabel("unseen Betti-0 error", fontsize=7)
-    ax.legend(fontsize=6, frameon=False, loc="upper right", handlelength=1.0)
+    ax.set_ylabel("Betti-0 error on unseen data (log)")
+    ax.legend(frameon=False, loc="upper right", handlelength=1.0, fontsize=7)
+    _title(ax, "(a) Broken pieces (lower is better)")
     ax = axes[1]
     fx = [g(e, "fixed 0.5", "unseen_dice") for e, _ in sets]
     th = [g(e, "thr", "unseen_dice") for e, _ in sets]
     for xi, a, b in zip(x, fx, th):
-        ax.plot([xi, xi], [a, b], color="0.6", lw=0.8, zorder=1)
-    ax.scatter(x, fx, s=16, color="k", label="fixed 0.5", zorder=3)
-    ax.scatter(x, th, s=18, marker="^", color="#d62728", label="tuned thr.", zorder=3)
-    if len(nat_summ) and per_run is not None:
-        nx, nv, rv = [], [], []
-        for k, (e, _) in enumerate(sets):
-            n = val(nat_summ, e, "unseen", "dice")
-            two = per_run[(per_run.exp == e) & (per_run["mode"] == "det") & (per_run.dataset == "unseen") & per_run.seed.isin([3, 4])].dice
-            if np.isfinite(n) and len(two) == 2:
-                nx.append(k), nv.append(n), rv.append(two.mean())
-        ax.scatter(nx, rv, s=16, facecolors="none", edgecolors="k", marker="D", label="fixed, seeds 3-4", zorder=3)
-        ax.scatter(nx, nv, s=18, marker="s", color="#2ca02c", label="no rescale", zorder=3)
-        for xi, a, b in zip(nx, rv, nv):
-            ax.plot([xi, xi], [a, b], color="0.6", lw=0.8, zorder=1)
-    ax.set_ylabel("unseen Dice", fontsize=7)
-    ax.legend(fontsize=5, frameon=False, loc="lower right", handletextpad=0.1, borderaxespad=0.1, labelspacing=0.2)
-    ax.set_ylim(0.60, 0.82)
-    for ax, s_ in zip(axes, "ab"):
+        ax.plot([xi, xi], [a, b], color="0.55", lw=1.2, zorder=1)
+        hi, lo = max(a, b), min(a, b)
+        ax.text(xi + 0.12, hi + 0.001, f"{hi:.3f}", fontsize=7, va="bottom", ha="left")
+        ax.text(xi + 0.12, lo - 0.001, f"{lo:.3f}", fontsize=7, va="top", ha="left")
+    ax.scatter(x, fx, s=34, color="k", label="threshold 0.5", zorder=3)
+    ax.scatter(x, th, s=38, marker="^", color="#d62728", label="threshold tuned on DRIVE validation", zorder=3)
+    ax.set_ylabel("Dice on unseen data")
+    ax.set_ylim(0.745, 0.792)
+    ax.set_xlim(-0.5, len(sets) - 0.3)
+    ax.legend(frameon=False, loc="upper left", handletextpad=0.2, fontsize=7)
+    _title(ax, "(b) Overlap, threshold 0.5 vs tuned (higher is better)")
+    for ax in axes:
         ax.set_xticks(x)
-        ax.set_xticklabels(names, fontsize=5.5, rotation=45, ha="right", rotation_mode="anchor")
-        ax.tick_params(axis="y", labelsize=6.5)
+        ax.set_xticklabels([n for _, n in sets], fontsize=7)
         ax.grid(axis="y", alpha=0.3, lw=0.4)
-        ax.axvline(4.5, color="k", lw=0.5, ls=":")
-        _letter(ax, f"({s_})")
-    fig.tight_layout(pad=0.4, w_pad=0.8)
+    fig.tight_layout(pad=0.4, w_pad=1.5)
     savefig(fig, "fig_cleanup")
 
 
+TRADE = {  # exp -> (label, (dx, dy, ha) for panel a, (dx, dy, ha) for panel b); offsets in points
+    "A_unet": ("A  U-Net (31 M)", (10, 6, "left"), (10, -4, "left")),
+    "B_unet_topo": ("B", (10, 0, "left"), (10, 0, "left")),
+    "C_unet_topo_dg": ("C", (10, -6, "left"), (10, 4, "left")),
+    "D_lite_topo_dg": ("D", (-9, 3, "right"), (-9, -4, "right")),
+    "E_tglitenet": ("E  TG-LiteNet (0.21 M)", (9, -9, "left"), (9, -8, "left")),
+    "S_unet_b8": ("plain U-Net,\nbase 8", (0, 22, "center"), (0, 22, "center")),
+    "S_unet_b16": ("plain U-Net,\nbase 16", (26, 24, "left"), (26, 16, "left")),
+}
+
+
 def fig_tradeoff(summ, eff, lat):
-    """Unseen Dice against unseen clDice (overlap vs connectivity) and against CPU latency (cost); marker area grows with parameters."""
+    """Unseen Dice and clDice against CPU latency (laptop benchmark) for the main models; marker area grows with the parameter count."""
     if summ.empty or not len(eff):
         return
-    pts = []
-    for exp in sorted(set(summ.exp)):
-        e = eff[eff.exp == exp]
-        if e.empty:
-            continue
-        pts.append((exp, float(lat.get(exp, e.cpu_ms.iloc[0])), val(summ, exp, "unseen", "dice"), val(summ, exp, "unseen", "cldice"), float(e.params_m.iloc[0])
-                    if "params_m" in e else 1.0))
-    if not pts:
-        return
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.85))
-    off = {0: {"A": (4, 3), "B": (4, -3), "C": (4, 1), "D": (-8, 3), "E": (4, -8), "U16": (3, -8), "w48": (-10, 3)},
-           1: {"A": (5, 3), "B": (5, -3), "C": (5, -8), "D": (-9, -9), "E": (4, 3), "U16": (-4, 5), "w48": (-6, -9)}}
-    for k, (ax, (xi, xl, logx)) in enumerate(zip(axes, [(3, "unseen clDice", False), (1, "CPU latency, ms (log)", True)])):
-        for p in sorted(pts, key=lambda q: -q[4]):
-            stage = next((s for e, m, s in STAGES if e == p[0] and m == "det"), None)
-            marker = "s" if p[0].startswith(("A_", "B_", "C_", "S_", "X_unet")) else "o"
-            size = 10 + 14 * np.log10(1 + 30 * p[4])
-            ax.scatter(p[xi], p[2], s=size, marker=marker, color=COL.get(stage, "#d9d9d9"), edgecolor="k", linewidth=0.4, zorder=3 if stage else 2)
-            lab = stage.replace(" (det.)", "") if stage and not stage.startswith("E (MC)") else SHORT.get(p[0])
-            if lab in off[k]:
-                ax.annotate(lab, (p[xi], p[2]), fontsize=6, xytext=off[k][lab], textcoords="offset points")
-        if logx:
-            ax.set_xscale("log")
-            ax.set_xticks([100, 300, 1000, 3000])
-            ax.set_xticklabels(["100", "300", "1k", "3k"])
-            ax.minorticks_off()
-            ax.set_xlim(55, 7000)
-        ax.set_xlabel(xl, fontsize=7)
-        ax.tick_params(labelsize=6.5)
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 2.7))
+    for k, (ax, (met, yl, title)) in enumerate(zip(axes, [("dice", "Dice on unseen data", "(a) Overlap (higher is better)"),
+                                                            ("cldice", "clDice on unseen data", "(b) Connectivity (higher is better)")])):
+        for exp, (label, oa, ob) in TRADE.items():
+            e = eff[eff.exp == exp]
+            if e.empty or exp not in lat:
+                continue
+            x, y, params = float(lat[exp]), val(summ, exp, "unseen", met), float(e.params_m.iloc[0])
+            stage = next((s_ for e_, m, s_ in STAGES if e_ == exp and m == "det"), None)
+            marker = "s" if exp.startswith(("A_", "B_", "C_", "S_")) else "o"
+            ax.scatter(x, y, s=22 + 26 * np.log10(1 + 30 * params), marker=marker, color=COL.get(stage, "#d9d9d9"), edgecolor="k", linewidth=0.6, zorder=3)
+            dx, dy, ha = (oa, ob)[k]
+            ax.annotate(label, (x, y), fontsize=7.5, xytext=(dx, dy), textcoords="offset points", va="center", ha=ha,
+                        arrowprops={"arrowstyle": "-", "lw": 0.5, "color": "0.4", "shrinkA": 0, "shrinkB": 3} if abs(dy) > 12 else None)
+        ax.set_xscale("log")
+        ax.set_xticks([100, 300, 1000, 3000])
+        ax.set_xticklabels(["100", "300", "1000", "3000"])
+        ax.minorticks_off()
+        ax.set_xlim(40, 9000)
+        ax.set_xlabel("CPU time for one 512×512 image (ms, log scale)")
+        ax.set_ylabel(yl)
         ax.grid(alpha=0.3, lw=0.4)
-    axes[0].set_ylabel("unseen Dice", fontsize=7)
-    axes[1].tick_params(labelleft=False)
-    axes[0].sharey(axes[1])
-    for ax, s in zip(axes, "ab"):
-        _letter(ax, f"({s})")
-    fig.tight_layout(pad=0.4, w_pad=0.6)
+        _title(ax, title)
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(lo - 0.15 * (hi - lo), hi + 0.12 * (hi - lo))
+    fig.tight_layout(pad=0.4, w_pad=1.5)
     savefig(fig, "fig_tradeoff")
 
 
@@ -581,7 +565,7 @@ def fig_risk_coverage(unc, targets):
     """Risk--coverage of the MC-dropout variance: pixel error and mean (1 - Dice) of the retained images, with the random baseline."""
     if unc is None or unc.empty:
         return
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.5))
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 2.5))
     cols = {"drive": "k", "stare": "#1f77b4", "chase_db1": "#2ca02c", "hrf": "#d62728"}
     pcov, icov = [1.0, 0.9, 0.8, 0.5], [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
     for ds in ["drive"] + targets:
@@ -589,21 +573,22 @@ def fig_risk_coverage(unc, targets):
         if r.empty:
             continue
         r = r.iloc[0]
-        axes[0].plot(pcov, [r.get(f"perr_var_c{c}_mean", np.nan) for c in pcov], color=cols[ds], marker="o", ms=2, lw=1, label=NICE_PLAIN[ds].replace("CHASE_DB1", "CHASE"))
+        lab = NICE_PLAIN[ds].replace("CHASE_DB1", "CHASE") + (" (training data)" if ds == "drive" else "")
+        axes[0].plot([100 * c for c in pcov], [100 * r.get(f"perr_var_c{c}_mean", np.nan) for c in pcov], color=cols[ds], marker="o", ms=3.5, lw=1.4, label=lab)
         ys = [r.get(f"img_risk_var_c{c}_mean", np.nan) for c in icov]
-        axes[1].plot(icov, ys, color=cols[ds], marker="o", ms=2, lw=1)
-        axes[1].axhline(ys[0], color=cols[ds], lw=0.5, ls=":")
-    axes[0].set_xlabel("pixel coverage", fontsize=7)
-    axes[0].set_ylabel("pixel error rate", fontsize=7)
-    axes[1].set_xlabel("image coverage", fontsize=7)
-    axes[1].set_ylabel("mean 1 − Dice, retained", fontsize=7)
-    for ax, s in zip(axes, "ab"):
+        axes[1].plot([100 * c for c in icov], ys, color=cols[ds], marker="o", ms=3.5, lw=1.4)
+        axes[1].axhline(ys[0], color=cols[ds], lw=0.7, ls=":")
+    axes[0].set_xlabel("share of pixels kept (most uncertain removed first, %)")
+    axes[0].set_ylabel("pixel error rate (%)")
+    axes[1].set_xlabel("share of images kept (most uncertain removed first, %)")
+    axes[1].set_ylabel("average 1 \u2212 Dice of kept images")
+    _title(axes[0], "(a) Removing uncertain pixels")
+    _title(axes[1], "(b) Removing uncertain images (dotted: random removal)")
+    for ax in axes:
         ax.invert_xaxis()
-        ax.tick_params(labelsize=6.5)
         ax.grid(alpha=0.3, lw=0.4)
-        _letter(ax, f"({s})")
-    axes[0].legend(fontsize=5.5, frameon=False, handlelength=1.2, loc="upper right")
-    fig.tight_layout(pad=0.4, w_pad=0.8)
+    axes[0].legend(frameon=False, loc="upper right", handlelength=1.4)
+    fig.tight_layout(pad=0.4, w_pad=1.5)
     savefig(fig, "fig_risk_coverage")
 
 
@@ -631,12 +616,10 @@ def main() -> None:
     targets = [d for d in CORE_TARGETS if d in set(summ.dataset)]
     extra = [d for d in ("fives",) if d in set(summ.dataset)]
     print("tables:")
-    write("tab_main.tex", table_main(summ, eff))
+    write("tab_main.tex", table_main(summ, eff, bench_latency(tdir)))
     write("tab_datasets.tex", table_datasets(summ, ["drive"] + targets + extra))
     write("tab_efficiency.tex", table_efficiency(eff))
     conf = pd.read_csv(tdir / "confusion.csv") if (tdir / "confusion.csv").exists() else pd.DataFrame()
-    if len(conf):
-        write("tab_confusion.tex", table_confusion(conf, targets))
     write("tab_factorial.tex", table_factorial(summ))
     lat = bench_latency(tdir)
     write("tab_variants.tex", table_variants(summ, eff, lat))
@@ -651,7 +634,7 @@ def main() -> None:
     print("figures:")
     _style()
     fig_results(summ, targets)
-    fig_cleanup(post, nat_summ, pd.read_csv(tdir / "per_run.csv") if (tdir / "per_run.csv").exists() else None)
+    fig_cleanup(post)
     fig_tradeoff(summ, eff, lat)
     fig_training(runs)
     fig_qualitative(runs, cfg, targets)
