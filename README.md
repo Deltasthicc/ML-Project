@@ -9,7 +9,7 @@ Abhiraj Agarwal (2510110002) · Shashwat Rajan (2510111019) · Tanish Shitanshu 
 A **controlled study** of three properties that a vessel segmenter for a rural screening camp needs at the same time:
 vessels that stay **connected** (topology), a model that works on cameras it was **never trained on** (domain shift) and a
 model that is **small and fast** (efficiency). Everything is trained on **one** source dataset (DRIVE, 16 training images) and
-evaluated on three held-out datasets (STARE, CHASE_DB1, HRF). The paper is [`report/main.pdf`](report/main.pdf) (8 pages, IEEE format).
+evaluated on three held-out datasets (STARE, CHASE_DB1, HRF). The paper is [`report/main.pdf`](report/main.pdf) (8 pages, IEEE format); an interactive project page (live segmentation viewer, results explorer) is in [`docs/`](docs/index.html) — run `python -m http.server --directory docs` and open <http://localhost:8000>, or publish `docs/` with GitHub Pages.
 
 It is a trade-off study, **not** a state-of-the-art claim, and several of our own ideas did not survive their controls:
 
@@ -128,6 +128,12 @@ The MC-dropout uncertainty (right) marks vessel borders and thin segments in gen
 
 ![risk-coverage](report/figures/fig_risk_coverage.png)
 
+**Where do the models fail?** `scripts/failure_analysis.py` breaks the errors of stages A–E down by vessel width, distance from the true vessels and image zone (saved prediction maps of seed 0, threshold 0.5, unseen datasets; `results/tables/failure_analysis.csv`):
+
+![failure analysis](docs/img/fig_failure.png)
+
+The thinnest vessels (≤ 2 px wide) are found least often (recall 0.82–0.86, against 0.94–0.96 for wider vessels). About 85 % of the false-positive pixels lie within 2 px of a true vessel (vessels drawn slightly too wide); the stray fragments are numerous (18–36 per image) but tiny (≈ 1 % of the predicted vessel pixels), and the topology loss halves them (36 → 18). These are single-run numbers describing kinds of error, not headline claims.
+
 All other tables (confusion matrix with precision/recall/F1, factorial design, variants, paired statistics, uncertainty) are in the paper and
 in [`results/tables/`](results/tables); [`results/findings.md`](results/findings.md) is an auto-generated list of facts with their intervals.
 
@@ -150,18 +156,20 @@ in [`results/tables/`](results/tables); [`results/findings.md`](results/findings
 │   ├── download_data.py, prepare_data.py, make_data_overview.py     data
 │   ├── train.py, run_experiments.py, evaluate.py, tune_lambdas.py   training and evaluation (resumable runner)
 │   ├── eval_postproc.py     evaluation-only controls: small-component removal, tuned threshold
+│   ├── failure_analysis.py  errors by vessel width / distance from vessels / image zone;  make_website_data.py  exports the website data
 │   ├── benchmark_latency.py controlled CPU latency benchmark
 │   ├── aggregate_results.py, auto_findings.py, make_run_manifest.py tables, findings, run manifest
 │   ├── make_report_assets.py, make_readme_results.py, make_readme_figures.py   paper tables/figures and README assets
 │   └── kaggle_run.sh, run_all.sh/.ps1                               drivers for the cloud / local full run
 ├── splits/drive_split.json  fixed DRIVE split: train 16 / validation 4 / test 20
-├── tests/                   35 unit tests (losses, Betti numbers, metrics, augmentation alignment, MC dropout, statistics, ...)
+├── tests/                   36 unit tests (losses, Betti numbers, metrics, augmentation alignment, MC dropout, statistics, ...)
 ├── results/
 │   ├── runs/<exp>/seed<k>/  config.yaml, train_log.csv, per_image*.csv, efficiency*.json, env.json   (checkpoints are git-ignored)
 │   ├── tables/              every aggregate table as CSV (summary, stage/factorial deltas, paired image deltas, confusion, ...)
 │   └── findings.md          auto-generated facts
 ├── report/                  main.tex, main.pdf, generated/ (tables + number macros), figures/
-├── docs/img/                architecture and preprocessing figures used in this README
+├── docs/                    project website (index.html, css/, js/, data/results.js, assets/viewer/, img/); built by scripts/make_website_data.py
+├── notebooks/colab_warmup.ipynb   Colab notebook for the topology-weight warm-up experiment (group `warmup`)
 ├── RUNBOOK.md               step-by-step checklist for the full run on a powerful machine
 └── data/                    NOT in git: raw/, processed/, MANIFEST.json (checksums)
 ```
@@ -172,7 +180,7 @@ in [`results/tables/`](results/tables); [`results/findings.md`](results/findings
 python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install torch --index-url https://download.pytorch.org/whl/cu126   # 1) PyTorch first, matching your CUDA driver (or the CPU build)
 pip install -r requirements.txt && pip install -e .                    # 2) everything else + the package
-pytest -q                                                              # 35 tests, ~15 s on CPU, no data needed
+pytest -q                                                              # 36 tests, ~15 s on CPU, no data needed
 ```
 
 Python 3.12+ and PyTorch ≥ 2.3. The code is device-agnostic (CUDA + fp16 autocast when available, CPU otherwise).
@@ -212,7 +220,7 @@ python scripts/evaluate.py results/runs/E_tglitenet/seed3 --datasets drive stare
 
 Experiment names: `A_unet`, `B_unet_topo`, `C_unet_topo_dg`, `D_lite_topo_dg`, `E_tglitenet` (stages); `X_unet_dg`, `X_lite_plain`, `X_lite_topo`,
 `X_lite_dg` (factorial); `V_lite_cbdice`, `V_lite_srl`, `V_lite_cldice_srl` (topology variants); `W_lite_w{8,24,32,48}` (width);
-`S_unet_b8`, `S_unet_b16` (plain compact U-Nets); `Z_lite_noskel`, `Z_lite_nocons` (controls). Default seeds: 5 for `primary`, 3 for every other group.
+`S_unet_b8`, `S_unet_b16` (plain compact U-Nets); `Z_lite_noskel`, `Z_lite_nocons` (controls); `P_unet_topo_dg_warm`, `P_lite_topo_dg_warm` (topology-weight warm-up, group `warmup`, added after the main study: the topology terms are ramped from 0 to full over the first 2000 iterations; run it with `notebooks/colab_warmup.ipynb`). Default seeds: 5 for `primary`, 3 for every other group.
 
 Evaluation-only controls on trained checkpoints (cut-off and thresholds are chosen on DRIVE-validation only):
 

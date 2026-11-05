@@ -123,8 +123,7 @@ Fig.~\ref{fig:pipeline} shows the pipeline. A photograph is resized so that its 
 \end{figure*}
 
 \subsection{Preprocessing}
-The cameras differ a lot in resolution (HRF images are about 6$\times$ wider than DRIVE images), so the same vessel is a different number of pixels wide in each dataset. Convolutional networks are very sensitive to this. We therefore resize every image so that its FOV is 527 pixels wide (the median DRIVE width); this uses no labels and no statistics of the target datasets. We then keep the green channel, which shows vessels best, apply CLAHE~\cite{zuiderveld1994} (a local contrast enhancement), and standardise the brightness inside the FOV. The same steps are used for training and testing.
-
+The cameras differ a lot in resolution (HRF images are about 6$\times$ wider than DRIVE images), so the same vessel is a different number of pixels wide in each dataset. Convolutional networks are very sensitive to this. We therefore resize every image so that its FOV is 527 pixels wide (the median DRIVE width); this uses no labels and no statistics of the target datasets. We then keep the green channel, which shows vessels best, apply CLAHE~\cite{zuiderveld1994} (a local contrast enhancement), and standardise the brightness inside the FOV.
 \subsection{Networks}
 \textbf{U-Net baseline}~\cite{ronneberger2015}: four down-sampling steps, double $3{\times}3$ convolution blocks and a base width of 64 channels ($\approx$\paramsA\,M parameters).
 
@@ -210,10 +209,10 @@ Table~\ref{tab:main} and Fig.~\ref{fig:results} give the staged ablation.
 
 \textbf{Small backbone (C$\rightarrow$D$\rightarrow$E, RQ3).} Going from 31\,M to 0.21\,M parameters costs 0.004 Dice on DRIVE ($\pm0.002$), 0.005 unseen Dice ($\pm0.003$) and clearly more connectivity: unseen clDice drops by 0.014 ($\pm0.004$) and the Betti-0 error rises by 16.8 ($\pm10.3$), mostly on HRF, whose thin annotations reward a bigger network (sensitivity 0.891 to 0.862). The gap stays at 0.065. Adding dropout (E) changes Dice by at most 0.002 and does not change clDice or Betti-0, so dropout gives only the uncertainty map. Overall (A$\rightarrow$E), unseen Dice is 0.007 lower ($\pm0.007$) and clDice 0.003 lower ($\pm0.003$).
 
-\textbf{What kind of mistakes?} On unseen data all stages find most vessels (recall 0.90--0.92) but also mark many pixels that are not vessels (precision 0.66--0.67, against 0.81 on DRIVE). False positives (4.5--4.8\% of the FOV) are about five times as common as false negatives (0.8--1.0\%). The typical error is a spurious thin vessel or a stray fragment, not a missed vessel.
+\textbf{What kind of mistakes?} On unseen data all stages find most vessels (recall 0.90--0.92) but also mark many pixels that are not vessels (precision 0.66--0.67, against 0.81 on DRIVE). False positives (4.5--4.8\% of the FOV) are about five times as common as false negatives (0.8--1.0\%). About 85\% of the extra pixels lie within 2 pixels of a true vessel, i.e.\ vessels are drawn slightly too wide. The many stray fragments (18--36 per image) are tiny (about 1\% of predicted vessel pixels) but dominate the Betti-0 error. The thinnest vessels (at most 2 pixels wide) are missed most often (recall 0.82--0.86, against 0.94--0.96 for wider ones); these last numbers use seed 0 only.
 
 \subsection{Three checks that change the story}
-These checks need no retraining. Fig.~\ref{fig:cleanup} shows the first two (stages A--E: 5 seeds; DG-only U-Net: 3 seeds).
+Fig.~\ref{fig:cleanup} shows the first two (stages A--E: 5 seeds; DG-only U-Net: 3 seeds).
 
 \textbf{1. Deleting tiny fragments.} The ground truth has 3--12 vessel pieces per image, the predictions 25--187. Removing pieces smaller than a size chosen on the DRIVE validation images (100--200 pixels at our scale) brings the unseen Betti-0 error of \emph{every} model to 4.6--5.0, including the plain U-Net (75.0 to 4.7), while Dice rises by at most 0.002 and clDice falls by at most 0.004. So the piece-count advantage of the topology loss is not specific to it; a one-line cleanup gives the same result. After cleanup the clDice gain is $+0.006$ ($\pm0.008$, not clear) for topology alone and $+0.012$ ($\pm0.005$) for topology plus DG augmentation.
 
@@ -229,8 +228,7 @@ These checks need no retraining. Fig.~\ref{fig:cleanup} shows the first two (sta
 \end{figure*}
 
 \subsection{Efficiency and the trade-off (RQ3)}
-TG-LiteNet has 147$\times$ fewer parameters and 70$\times$ fewer operations than the U-Net, but it is only 6.8--8.8$\times$ faster on a CPU, depending on the machine (laptop: 209 against 1834\,ms; Kaggle: 429 against 2915\,ms; T4 GPU: 12.2 against 91.1\,ms). Depthwise convolutions do little work per byte of memory read, so operation counts overstate the speed-up. Against \emph{plain} small U-Nets the picture reverses (Fig.~\ref{fig:tradeoff}, Table~\ref{tab:variants}): a base-8 U-Net with the same number of operations runs in 67\,ms, 3.1$\times$ faster than TG-LiteNet, with the same Dice; a base-16 U-Net (1.94\,M parameters, still under 2\,M) is as fast (187\,ms) and has better clDice and Betti-0. The depthwise backbone saves parameters, not time, so for CPU-only hardware a base-16 U-Net is the better choice on this evidence. Compared with the U-Net, TG-LiteNet gives up 0.008 DRIVE Dice, 0.006 unseen Dice and 0.003 unseen clDice; the loss is no larger on unseen data (gap 0.065 for both C and D). MC dropout multiplies the cost by 20.
-
+TG-LiteNet has 147$\times$ fewer parameters and 70$\times$ fewer operations than the U-Net, but it is only 6.8--8.8$\times$ faster on a CPU, depending on the machine (laptop: 209 against 1834\,ms; Kaggle: 429 against 2915\,ms; T4 GPU: 12.2 against 91.1\,ms). Depthwise convolutions do little work per byte of memory read, so operation counts overstate the speed-up. Against \emph{plain} small U-Nets the picture reverses (Fig.~\ref{fig:tradeoff}, Table~\ref{tab:variants}): a base-8 U-Net with the same number of operations runs in 67\,ms, 3.1$\times$ faster than TG-LiteNet, with the same Dice; a base-16 U-Net (1.94\,M parameters, still under 2\,M) is as fast (187\,ms) and has better clDice and Betti-0. The depthwise backbone saves parameters, not time, so for CPU-only hardware a base-16 U-Net is the better choice on this evidence. Compared with the U-Net, TG-LiteNet gives up 0.008 DRIVE Dice, 0.006 unseen Dice and 0.003 unseen clDice; the loss is no larger on unseen data (gap 0.065 for both C and D).
 \begin{figure*}[t]
 \centering
 \safefig{0.92\textwidth}{fig_tradeoff}
@@ -239,8 +237,7 @@ TG-LiteNet has 147$\times$ fewer parameters and 70$\times$ fewer operations than
 \end{figure*}
 
 \subsection{Uncertainty (RQ4)}
-At pixel level the MC-dropout uncertainty is moderately informative: its rank correlation with the errors is 0.31 on DRIVE and slightly higher on the unseen datasets (0.32 STARE, 0.34 CHASE\_DB1, 0.34 HRF), so the expected increase under shift is present but small. Removing the 10\% most uncertain pixels (Fig.~\ref{fig:risk}a) lowers the pixel error from 4.7\% to 1.6\% on DRIVE and from 6.5\% to 3.5\% on HRF. At image level (Fig.~\ref{fig:risk}b) the evidence is weak. Removing the most uncertain images is no better than removing random images on DRIVE and STARE, 4\% better on CHASE\_DB1 (correlation 0.48) and \emph{worse} than random on HRF (correlation $-$0.17). With only 20--45 images per dataset these numbers are imprecise, but they do not support using this uncertainty to refer whole images~\cite{ovadia2019}. Together with the 20$\times$ cost, they do not justify MC dropout here; deep ensembles or temperature scaling (not run) would be the next options. We also did not measure calibration.
-
+At pixel level the MC-dropout uncertainty is moderately informative: its rank correlation with the errors is 0.31 on DRIVE and slightly higher on the unseen datasets (0.32 STARE, 0.34 CHASE\_DB1, 0.34 HRF), so the expected increase under shift is present but small. Removing the 10\% most uncertain pixels (Fig.~\ref{fig:risk}a) lowers the pixel error from 4.7\% to 1.6\% on DRIVE and from 6.5\% to 3.5\% on HRF. At image level (Fig.~\ref{fig:risk}b) the evidence is weak. Removing the most uncertain images is no better than removing random images on DRIVE and STARE, 4\% better on CHASE\_DB1 (correlation 0.48) and \emph{worse} than random on HRF (correlation $-$0.17). With only 20--45 images per dataset these numbers are imprecise, but they do not support using this uncertainty to refer whole images~\cite{ovadia2019}. Together with the 20$\times$ cost, they do not justify MC dropout here; deep ensembles or temperature scaling (not run) would be the next options.
 \begin{figure*}[t]
 \centering
 \safefig{0.92\textwidth}{fig_risk_coverage}
@@ -249,7 +246,7 @@ At pixel level the MC-dropout uncertainty is moderately informative: its rank co
 \end{figure*}
 
 \subsection{Qualitative results}
-Fig.~\ref{fig:qual} shows one image per dataset (seed 0). The windows were chosen where stages A and E differ most, so differences look larger than they are on average. The errors of all three models are mostly thin red (false positive) or blue (missed) fragments along the finest vessels; the large vessels are almost error-free, and some spurious red segments, for example on CHASE\_DB1, appear in all three models. On HRF the small models miss more fine vessels than the U-Net (average HRF sensitivity 0.864 for E and 0.889 for A), which matches their lower clDice there. The uncertainty maps of E mark vessel borders and thin segments in general rather than the specific errors, in line with the weak image-level result.
+Fig.~\ref{fig:qual} shows one image per dataset (seed 0). The windows were chosen where stages A and E differ most, so differences look larger than they are on average. The errors of all three models are mostly thin red (false positive) or blue (missed) fragments along the finest vessels; the large vessels are almost error-free, and some spurious red segments, for example on CHASE\_DB1, appear in all three models. On HRF the small models miss more fine vessels than the U-Net (average HRF sensitivity 0.864 for E and 0.889 for A), which matches their lower clDice there. The uncertainty maps of E mark vessel borders and thin segments in general, not the specific errors.
 
 \begin{figure*}[t]
 \centering

@@ -315,6 +315,7 @@ def build_all(runs_dir: str | Path, out_dir: str | Path) -> dict[str, pd.DataFra
     fpairs += [(("D_lite_topo_dg", "det"), (e, "det")) for e in
                ("V_lite_cbdice", "V_lite_srl", "V_lite_cldice_srl", "W_lite_w8", "W_lite_w24", "W_lite_w32", "W_lite_w48",
                 "S_unet_b8", "S_unet_b16", "Z_lite_noskel", "Z_lite_nocons")]
+    fpairs += [(("C_unet_topo_dg", "det"), ("P_unet_topo_dg_warm", "det")), (("D_lite_topo_dg", "det"), ("P_lite_topo_dg_warm", "det"))]   # topology-weight warm-up
     fpairs = [(a, b) for a, b in fpairs if a in present and b in present]
     if fpairs:
         tabs["factorial_deltas"] = stage_deltas(run_tab, fpairs)

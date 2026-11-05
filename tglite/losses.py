@@ -139,19 +139,20 @@ class TGLoss:
         self.topo, self.iters = str(l.topo), int(l.skel_iters)
         assert self.topo in ("none", "cldice", "skeleton_recall", "cldice_skeleton_recall", "cbdice"), self.topo
 
-    def supervised(self, out, batch_y, fov, skel, dist=None) -> dict[str, torch.Tensor]:
+    def supervised(self, out, batch_y, fov, skel, dist=None, topo_scale: float = 1.0) -> dict[str, torch.Tensor]:
+        """``topo_scale`` in [0, 1] multiplies every topology term (clDice / cbDice / Skeleton Recall / skeleton head): 1 = always on."""
         logits, skel_logits = (out if isinstance(out, tuple) else (out, None))
         logits = logits.float()
         prob = torch.sigmoid(logits)
         terms = {"dice": dice_loss(prob, batch_y, fov), "bce": self.lb * bce_loss(logits, batch_y, fov)}
         if "cldice" in self.topo:
-            terms["cldice"] = self.lt * soft_cldice_loss(prob, batch_y, fov, skel, self.iters)
+            terms["cldice"] = topo_scale * self.lt * soft_cldice_loss(prob, batch_y, fov, skel, self.iters)
         if self.topo == "cbdice":
-            terms["cbdice"] = self.lt * cbdice_loss(prob, batch_y, fov, skel, dist, self.iters)
+            terms["cbdice"] = topo_scale * self.lt * cbdice_loss(prob, batch_y, fov, skel, dist, self.iters)
         if "skeleton_recall" in self.topo:
-            terms["srl"] = self.lt * skeleton_recall_loss(prob, fov, skel)
+            terms["srl"] = topo_scale * self.lt * skeleton_recall_loss(prob, fov, skel)
         if skel_logits is not None and self.topo != "none":
-            terms["skel_head"] = self.ls * skeleton_head_loss(skel_logits.float(), skel, fov)
+            terms["skel_head"] = topo_scale * self.ls * skeleton_head_loss(skel_logits.float(), skel, fov)
         return terms
 
     @staticmethod

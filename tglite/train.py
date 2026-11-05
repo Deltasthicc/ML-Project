@@ -50,6 +50,11 @@ def _worker_init(_):
     cv2.setNumThreads(0)   # avoid CPU oversubscription: parallelism comes from the DataLoader workers
 
 
+def topo_scale_at(it: int, warmup_iters: int) -> float:
+    """Linear ramp of the topology-loss weight from 0 to 1 over the first ``warmup_iters`` iterations (0 = no ramp, always 1)."""
+    return 1.0 if warmup_iters <= 0 else min(1.0, (it + 1) / warmup_iters)
+
+
 def lr_at(it: int, total: int, warmup: int, base: float) -> float:
     if it < warmup:
         return base * (it + 1) / warmup
@@ -86,6 +91,7 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
     model = build_model(cfg).to(device)
     log(f"[{cfg.name} seed={cfg.seed}] backbone={cfg.model.backbone} params={count_params(model)/1e6:.3f}M device={device}")
     criterion = TGLoss(cfg)
+    topo_warm = int(cfg.loss.get("topo_warmup_iters", 0))   # only present in the warm-up experiments; absent = off
     opt = torch.optim.AdamW(model.parameters(), lr=float(tr.lr), weight_decay=float(tr.weight_decay))
     is_cuda = str(device).startswith("cuda")
     use_amp = bool(tr.amp) and is_cuda
@@ -114,6 +120,7 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
             lr = lr_at(it, int(tr.iters), int(tr.warmup_iters), float(tr.lr))
             for g in opt.param_groups:
                 g["lr"] = lr
+            tscale = topo_scale_at(it, topo_warm)
             x, y, fov, skel = (batch[k].to(device, non_blocking=True) for k in ("x", "y", "fov", "skel"))
             with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
                 if dg:
@@ -121,14 +128,14 @@ def train(cfg, run_dir: Path, device: str | None = None, log=print) -> Path:
                     out = model(xx, with_skeleton=model.has_skeleton_head)
                     rep = lambda t: torch.cat([t, t])  # noqa: E731
                     dist = batch["dist"].to(device, non_blocking=True) if "dist" in batch else None
-                    terms = criterion.supervised(out, rep(y), rep(fov), rep(skel), rep(dist) if dist is not None else None)
+                    terms = criterion.supervised(out, rep(y), rep(fov), rep(skel), rep(dist) if dist is not None else None, tscale)
                     logits = out[0] if isinstance(out, tuple) else out
                     n = x.shape[0]
                     terms["cons"] = criterion.lc * criterion.consistency(logits[n:], logits[:n], fov)
                 else:
                     out = model(x, with_skeleton=model.has_skeleton_head)
                     dist = batch["dist"].to(device, non_blocking=True) if "dist" in batch else None
-                    terms = criterion.supervised(out, y, fov, skel, dist)
+                    terms = criterion.supervised(out, y, fov, skel, dist, tscale)
                 loss = sum(terms.values())
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()

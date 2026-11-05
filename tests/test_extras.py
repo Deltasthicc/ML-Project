@@ -11,6 +11,7 @@ from tglite.analysis import confusion_summary, paired_delta, paired_image_deltas
 from tglite.config import ROOT
 from tglite.experiments import GROUPS, make_config
 from tglite.models import build_model, count_params
+from tglite.train import topo_scale_at
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import eval_postproc  # noqa: E402
@@ -117,3 +118,22 @@ def test_postproc_deltas_are_paired_over_seeds():
     assert tuned.ci95 < 1e-9                                                     # the seed jitter cancels in a paired comparison
     assert np.isclose(get("cleanup vs fixed", "A_unet", "unseen_betti0_err").delta, -65.0)
     assert np.isclose(get("between models, tuned thr.", "A_unet", "unseen_dice", "B_unet_topo").delta, 0.015)
+
+
+def test_topology_warmup_ramps_only_the_topology_terms():
+    import torch
+
+    from tglite.losses import TGLoss
+
+    assert [topo_scale_at(i, 0) for i in (0, 10, 4999)] == [1.0, 1.0, 1.0]                  # no ramp configured: always on
+    assert topo_scale_at(0, 2000) == 1 / 2000 and topo_scale_at(999, 2000) == 0.5 and topo_scale_at(5000, 2000) == 1.0
+    for e in ("P_unet_topo_dg_warm", "P_lite_topo_dg_warm"):
+        assert int(make_config(e).loss.topo_warmup_iters) == 2000 and e in GROUPS["warmup"]
+    assert "topo_warmup_iters" not in make_config("C_unet_topo_dg").loss                       # the main-study configs are untouched
+    cfg = make_config("P_lite_topo_dg_warm")
+    t, fov = torch.zeros(1, 1, 64, 64), torch.ones(1, 1, 64, 64)
+    t[..., 20:44, 30:34] = 1
+    out = (torch.randn(1, 1, 64, 64), torch.randn(1, 1, 64, 64))
+    off, on = TGLoss(cfg).supervised(out, t, fov, t, None, 0.0), TGLoss(cfg).supervised(out, t, fov, t, None, 1.0)
+    assert float(off["cldice"]) == 0.0 and float(off["skel_head"]) == 0.0
+    assert float(off["dice"]) == float(on["dice"]) and float(off["bce"]) == float(on["bce"]) and float(on["cldice"]) > 0

@@ -11,6 +11,8 @@ width      Capacity sweep of the lite backbone on the stage-D recipe (accuracy /
 compact_unet  Plain U-Nets of base width 8 and 16 with the stage-D recipe: the fair "just use fewer channels" baseline for the
               depthwise-separable backbone (base 8 has about the FLOPs of the lite w=16 model, base 16 about 4x).
 controls   Stage D with one ingredient removed: no skeleton head (clDice only) and no consistency loss (DG views kept).
+warmup     Stages C and D with the topology weight ramped linearly from 0 to its full value over the first 2000 of 5000 iterations
+           (one pre-registered setting, not tuned; tests whether letting Dice/BCE shape the probabilities first removes the 0.5-threshold Dice cost).
 """
 from __future__ import annotations
 
@@ -59,6 +61,10 @@ def _with_loss(entry: dict, **loss) -> dict:
 REGISTRY["Z_lite_noskel"] = _with_loss(_e("lite", "cldice", dg=True, skeleton_head=False), lambda_skel_head=0.0)   # clDice without the skeleton head
 REGISTRY["Z_lite_nocons"] = _with_loss(_e("lite", "cldice", dg=True), lambda_cons=0.0)                            # DG views, no consistency term
 
+# ---- topology-weight warm-up (new, evaluated after the main study): same recipe as C / D, topology terms ramp up over 2000 iterations ----
+REGISTRY["P_unet_topo_dg_warm"] = _with_loss(_e("unet", "cldice", dg=True), topo_warmup_iters=2000)
+REGISTRY["P_lite_topo_dg_warm"] = _with_loss(_e("lite", "cldice", dg=True), topo_warmup_iters=2000)
+
 GROUPS: dict[str, list[str]] = {
     "primary": ["A_unet", "B_unet_topo", "C_unet_topo_dg", "D_lite_topo_dg", "E_tglitenet"],
     "factorial": ["X_unet_dg", "X_lite_plain", "X_lite_topo", "X_lite_dg"],
@@ -66,9 +72,10 @@ GROUPS: dict[str, list[str]] = {
     "width": [f"W_lite_w{w}" for w in (8, 24, 32, 48)],
     "compact_unet": ["S_unet_b8", "S_unet_b16"],
     "controls": ["Z_lite_noskel", "Z_lite_nocons"],
+    "warmup": ["P_unet_topo_dg_warm", "P_lite_topo_dg_warm"],
 }
 # default number of seeds per group (small, cheap models can afford more seeds)
-DEFAULT_SEEDS = {"primary": 5, "factorial": 3, "topology": 3, "width": 3, "compact_unet": 3, "controls": 3}
+DEFAULT_SEEDS = {"primary": 5, "factorial": 3, "topology": 3, "width": 3, "compact_unet": 3, "controls": 3, "warmup": 3}
 # the stage-D recipe is shared by "primary" and the supplementary groups (referenced by the aggregation script)
 FACTORIAL_CELLS = {
     ("unet", "none", False): "A_unet", ("unet", "cldice", False): "B_unet_topo",

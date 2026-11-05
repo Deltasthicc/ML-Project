@@ -1,0 +1,301 @@
+exp,dataset,kind,group,value
+A_unet,chase_db1,fp_rate_by_zone,centre,0.06443640380345288
+A_unet,chase_db1,fp_rate_by_zone,edge,0.026876027302402933
+A_unet,chase_db1,fp_rate_by_zone,middle,0.03980799074373661
+A_unet,chase_db1,fp_share_far,spurious (> 2 px from any vessel),0.11911416943060352
+A_unet,chase_db1,recall_by_width,medium (2-4 px),0.8897203347911732
+A_unet,chase_db1,recall_by_width,thick (> 4 px),0.9357462634984527
+A_unet,chase_db1,recall_by_width,thin  (<= 2 px),0.7103573183654331
+A_unet,chase_db1,recall_by_zone,centre,0.912045093772634
+A_unet,chase_db1,recall_by_zone,edge,0.837224401204932
+A_unet,chase_db1,recall_by_zone,middle,0.9056249860095392
+A_unet,chase_db1,stray_pieces_per_image,pieces touching no true vessel,26.5
+A_unet,chase_db1,stray_pixels_share,of all predicted vessel pixels,0.006263177413165799
+A_unet,drive,fp_rate_by_zone,centre,0.019696548379970803
+A_unet,drive,fp_rate_by_zone,edge,0.01996232388183652
+A_unet,drive,fp_rate_by_zone,middle,0.020113681825298258
+A_unet,drive,fp_share_far,spurious (> 2 px from any vessel),0.05084962498233753
+A_unet,drive,recall_by_width,medium (2-4 px),0.8585144898099244
+A_unet,drive,recall_by_width,thick (> 4 px),0.9050142326660204
+A_unet,drive,recall_by_width,thin  (<= 2 px),0.5954690100503142
+A_unet,drive,recall_by_zone,centre,0.7539376001538206
+A_unet,drive,recall_by_zone,edge,0.8375621953700749
+A_unet,drive,recall_by_zone,middle,0.8334363684353153
+A_unet,drive,stray_pieces_per_image,pieces touching no true vessel,21.4
+A_unet,drive,stray_pixels_share,of all predicted vessel pixels,0.0033112857777654616
+A_unet,hrf,fp_rate_by_zone,centre,0.056261387990451155
+A_unet,hrf,fp_rate_by_zone,edge,0.04253613409643975
+A_unet,hrf,fp_rate_by_zone,middle,0.06510580289542504
+A_unet,hrf,fp_share_far,spurious (> 2 px from any vessel),0.08076058584047473
+A_unet,hrf,recall_by_width,medium (2-4 px),0.98813959849821
+A_unet,hrf,recall_by_width,thick (> 4 px),0.980632364890855
+A_unet,hrf,recall_by_width,thin  (<= 2 px),0.8810604427677621
+A_unet,hrf,recall_by_zone,centre,0.9092724673071403
+A_unet,hrf,recall_by_zone,edge,0.9118544558534312
+A_unet,hrf,recall_by_zone,middle,0.9445767896534767
+A_unet,hrf,stray_pieces_per_image,pieces touching no true vessel,48.62222222222222
+A_unet,hrf,stray_pixels_share,of all predicted vessel pixels,0.008470040362213015
+A_unet,stare,fp_rate_by_zone,centre,0.04578824259933885
+A_unet,stare,fp_rate_by_zone,edge,0.03670082364766762
+A_unet,stare,fp_rate_by_zone,middle,0.04300480096916544
+A_unet,stare,fp_share_far,spurious (> 2 px from any vessel),0.2314040388697447
+A_unet,stare,recall_by_width,medium (2-4 px),0.9264915156339694
+A_unet,stare,recall_by_width,thick (> 4 px),0.9435860614060789
+A_unet,stare,recall_by_width,thin  (<= 2 px),0.8674126887246938
+A_unet,stare,recall_by_zone,centre,0.9223329908941832
+A_unet,stare,recall_by_zone,edge,0.9087375999371584
+A_unet,stare,recall_by_zone,middle,0.9336136615958825
+A_unet,stare,stray_pieces_per_image,pieces touching no true vessel,32.35
+A_unet,stare,stray_pixels_share,of all predicted vessel pixels,0.013561691520595939
+B_unet_topo,chase_db1,fp_rate_by_zone,centre,0.0669769372864389
+B_unet_topo,chase_db1,fp_rate_by_zone,edge,0.02792502588373946
+B_unet_topo,chase_db1,fp_rate_by_zone,middle,0.04231450401149416
+B_unet_topo,chase_db1,fp_share_far,spurious (> 2 px from any vessel),0.124407141327058
+B_unet_topo,chase_db1,recall_by_width,medium (2-4 px),0.892061329049904
+B_unet_topo,chase_db1,recall_by_width,thick (> 4 px),0.9379096786997029
+B_unet_topo,chase_db1,recall_by_width,thin  (<= 2 px),0.7303206048764411
+B_unet_topo,chase_db1,recall_by_zone,centre,0.9198466030346211
+B_unet_topo,chase_db1,recall_by_zone,edge,0.8364107831112294
+B_unet_topo,chase_db1,recall_by_zone,middle,0.9114252923988027
+B_unet_topo,chase_db1,stray_pieces_per_image,pieces touching no true vessel,15.0
+B_unet_topo,chase_db1,stray_pixels_share,of all predicted vessel pixels,0.005534662169037324
+B_unet_topo,drive,fp_rate_by_zone,centre,0.024934257630745343
+B_unet_topo,drive,fp_rate_by_zone,edge,0.021004477178475468
+B_unet_topo,drive,fp_rate_by_zone,middle,0.023407634115577645
+B_unet_topo,drive,fp_share_far,spurious (> 2 px from any vessel),0.046590459539744944
+B_unet_topo,drive,recall_by_width,medium (2-4 px),0.8661466182268264
+B_unet_topo,drive,recall_by_width,thick (> 4 px),0.8996921819428894
+B_unet_topo,drive,recall_by_width,thin  (<= 2 px),0.6427406512805018
+B_unet_topo,drive,recall_by_zone,centre,0.7793094966074475
+B_unet_topo,drive,recall_by_zone,edge,0.8367276888844597
+B_unet_topo,drive,recall_by_zone,middle,0.8450898662395708
+B_unet_topo,drive,stray_pieces_per_image,pieces touching no true vessel,13.45
+B_unet_topo,drive,stray_pixels_share,of all predicted vessel pixels,0.0028745803299419204
+B_unet_topo,hrf,fp_rate_by_zone,centre,0.06943775342769197
+B_unet_topo,hrf,fp_rate_by_zone,edge,0.048520575429308994
+B_unet_topo,hrf,fp_rate_by_zone,middle,0.07409701076053368
+B_unet_topo,hrf,fp_share_far,spurious (> 2 px from any vessel),0.07928417667383705
+B_unet_topo,hrf,recall_by_width,medium (2-4 px),0.9883409529094787
+B_unet_topo,hrf,recall_by_width,thick (> 4 px),0.9812044264148014
+B_unet_topo,hrf,recall_by_width,thin  (<= 2 px),0.8857254308821447
+B_unet_topo,hrf,recall_by_zone,centre,0.9141344601041425
+B_unet_topo,hrf,recall_by_zone,edge,0.9136220392764852
+B_unet_topo,hrf,recall_by_zone,middle,0.947666827158953
+B_unet_topo,hrf,stray_pieces_per_image,pieces touching no true vessel,19.244444444444444
+B_unet_topo,hrf,stray_pixels_share,of all predicted vessel pixels,0.005396929072345603
+B_unet_topo,stare,fp_rate_by_zone,centre,0.04790917010998044
+B_unet_topo,stare,fp_rate_by_zone,edge,0.03800530519215041
+B_unet_topo,stare,fp_rate_by_zone,middle,0.044930364334315534
+B_unet_topo,stare,fp_share_far,spurious (> 2 px from any vessel),0.23839122891399972
+B_unet_topo,stare,recall_by_width,medium (2-4 px),0.9290658072567691
+B_unet_topo,stare,recall_by_width,thick (> 4 px),0.9393246237439344
+B_unet_topo,stare,recall_by_width,thin  (<= 2 px),0.8839802916650822
+B_unet_topo,stare,recall_by_zone,centre,0.9263215969844577
+B_unet_topo,stare,recall_by_zone,edge,0.9065204437565612
+B_unet_topo,stare,recall_by_zone,middle,0.9380485313379378
+B_unet_topo,stare,stray_pieces_per_image,pieces touching no true vessel,20.55
+B_unet_topo,stare,stray_pixels_share,of all predicted vessel pixels,0.013429165510963714
+C_unet_topo_dg,chase_db1,fp_rate_by_zone,centre,0.0752224351347167
+C_unet_topo_dg,chase_db1,fp_rate_by_zone,edge,0.034030999647364016
+C_unet_topo_dg,chase_db1,fp_rate_by_zone,middle,0.047894337606964855
+C_unet_topo_dg,chase_db1,fp_share_far,spurious (> 2 px from any vessel),0.15635757396300917
+C_unet_topo_dg,chase_db1,recall_by_width,medium (2-4 px),0.9306223696092231
+C_unet_topo_dg,chase_db1,recall_by_width,thick (> 4 px),0.9609487054328756
+C_unet_topo_dg,chase_db1,recall_by_width,thin  (<= 2 px),0.7933230316319104
+C_unet_topo_dg,chase_db1,recall_by_zone,centre,0.9465483911560961
+C_unet_topo_dg,chase_db1,recall_by_zone,edge,0.8946498834429234
+C_unet_topo_dg,chase_db1,recall_by_zone,middle,0.9325114781245827
+C_unet_topo_dg,chase_db1,stray_pieces_per_image,pieces touching no true vessel,13.107142857142858
+C_unet_topo_dg,chase_db1,stray_pixels_share,of all predicted vessel pixels,0.007265937452947777
+C_unet_topo_dg,drive,fp_rate_by_zone,centre,0.02869465574883192
+C_unet_topo_dg,drive,fp_rate_by_zone,edge,0.02378039228928623
+C_unet_topo_dg,drive,fp_rate_by_zone,middle,0.02670195256971879
+C_unet_topo_dg,drive,fp_share_far,spurious (> 2 px from any vessel),0.05510644324313818
+C_unet_topo_dg,drive,recall_by_width,medium (2-4 px),0.8836941939920486
+C_unet_topo_dg,drive,recall_by_width,thick (> 4 px),0.9059340197783102
+C_unet_topo_dg,drive,recall_by_width,thin  (<= 2 px),0.6696776139779608
+C_unet_topo_dg,drive,recall_by_zone,centre,0.8010449239717324
+C_unet_topo_dg,drive,recall_by_zone,edge,0.8505477309326531
+C_unet_topo_dg,drive,recall_by_zone,middle,0.8576445462574863
+C_unet_topo_dg,drive,stray_pieces_per_image,pieces touching no true vessel,10.65
+C_unet_topo_dg,drive,stray_pixels_share,of all predicted vessel pixels,0.0025982877155819963
+C_unet_topo_dg,hrf,fp_rate_by_zone,centre,0.06518370667792321
+C_unet_topo_dg,hrf,fp_rate_by_zone,edge,0.045522865449808485
+C_unet_topo_dg,hrf,fp_rate_by_zone,middle,0.0680722982556824
+C_unet_topo_dg,hrf,fp_share_far,spurious (> 2 px from any vessel),0.07334890003143081
+C_unet_topo_dg,hrf,recall_by_width,medium (2-4 px),0.9851495948948754
+C_unet_topo_dg,hrf,recall_by_width,thick (> 4 px),0.9822892415865137
+C_unet_topo_dg,hrf,recall_by_width,thin  (<= 2 px),0.8783455711407291
+C_unet_topo_dg,hrf,recall_by_zone,centre,0.9088435188313783
+C_unet_topo_dg,hrf,recall_by_zone,edge,0.9094430625940698
+C_unet_topo_dg,hrf,recall_by_zone,middle,0.9414464087408166
+C_unet_topo_dg,hrf,stray_pieces_per_image,pieces touching no true vessel,17.644444444444446
+C_unet_topo_dg,hrf,stray_pixels_share,of all predicted vessel pixels,0.0051671522261569815
+C_unet_topo_dg,stare,fp_rate_by_zone,centre,0.041607862810379974
+C_unet_topo_dg,stare,fp_rate_by_zone,edge,0.03590945733297153
+C_unet_topo_dg,stare,fp_rate_by_zone,middle,0.038710587415260365
+C_unet_topo_dg,stare,fp_share_far,spurious (> 2 px from any vessel),0.27877965665026005
+C_unet_topo_dg,stare,recall_by_width,medium (2-4 px),0.9195858791664276
+C_unet_topo_dg,stare,recall_by_width,thick (> 4 px),0.9403680214928188
+C_unet_topo_dg,stare,recall_by_width,thin  (<= 2 px),0.8934108360700741
+C_unet_topo_dg,stare,recall_by_zone,centre,0.9179885404783352
+C_unet_topo_dg,stare,recall_by_zone,edge,0.9157711029224849
+C_unet_topo_dg,stare,recall_by_zone,middle,0.9315007447376609
+C_unet_topo_dg,stare,stray_pieces_per_image,pieces touching no true vessel,24.05
+C_unet_topo_dg,stare,stray_pixels_share,of all predicted vessel pixels,0.016381186049924244
+D_lite_topo_dg,chase_db1,fp_rate_by_zone,centre,0.07496754952821505
+D_lite_topo_dg,chase_db1,fp_rate_by_zone,edge,0.03220957950898606
+D_lite_topo_dg,chase_db1,fp_rate_by_zone,middle,0.048846379923154215
+D_lite_topo_dg,chase_db1,fp_share_far,spurious (> 2 px from any vessel),0.15563458636648536
+D_lite_topo_dg,chase_db1,recall_by_width,medium (2-4 px),0.9206289739115812
+D_lite_topo_dg,chase_db1,recall_by_width,thick (> 4 px),0.9519015276571404
+D_lite_topo_dg,chase_db1,recall_by_width,thin  (<= 2 px),0.7712570313489138
+D_lite_topo_dg,chase_db1,recall_by_zone,centre,0.9380819646773214
+D_lite_topo_dg,chase_db1,recall_by_zone,edge,0.8736964414289642
+D_lite_topo_dg,chase_db1,recall_by_zone,middle,0.925691955729166
+D_lite_topo_dg,chase_db1,stray_pieces_per_image,pieces touching no true vessel,13.857142857142858
+D_lite_topo_dg,chase_db1,stray_pixels_share,of all predicted vessel pixels,0.008050755723599442
+D_lite_topo_dg,drive,fp_rate_by_zone,centre,0.024985178252485345
+D_lite_topo_dg,drive,fp_rate_by_zone,edge,0.023871329599105626
+D_lite_topo_dg,drive,fp_rate_by_zone,middle,0.02475356293524663
+D_lite_topo_dg,drive,fp_share_far,spurious (> 2 px from any vessel),0.05521189034522378
+D_lite_topo_dg,drive,recall_by_width,medium (2-4 px),0.874953457958164
+D_lite_topo_dg,drive,recall_by_width,thick (> 4 px),0.9028428701462239
+D_lite_topo_dg,drive,recall_by_width,thin  (<= 2 px),0.6262029529252672
+D_lite_topo_dg,drive,recall_by_zone,centre,0.7715871893152281
+D_lite_topo_dg,drive,recall_by_zone,edge,0.8457021107583372
+D_lite_topo_dg,drive,recall_by_zone,middle,0.8431250112151243
+D_lite_topo_dg,drive,stray_pieces_per_image,pieces touching no true vessel,12.9
+D_lite_topo_dg,drive,stray_pixels_share,of all predicted vessel pixels,0.004377470475640165
+D_lite_topo_dg,hrf,fp_rate_by_zone,centre,0.053658705414991154
+D_lite_topo_dg,hrf,fp_rate_by_zone,edge,0.03846129325358324
+D_lite_topo_dg,hrf,fp_rate_by_zone,middle,0.059761860062719996
+D_lite_topo_dg,hrf,fp_share_far,spurious (> 2 px from any vessel),0.057965103026556705
+D_lite_topo_dg,hrf,recall_by_width,medium (2-4 px),0.9810556372687786
+D_lite_topo_dg,hrf,recall_by_width,thick (> 4 px),0.980245027472244
+D_lite_topo_dg,hrf,recall_by_width,thin  (<= 2 px),0.832796077460169
+D_lite_topo_dg,hrf,recall_by_zone,centre,0.8732499645139463
+D_lite_topo_dg,hrf,recall_by_zone,edge,0.8732275995470887
+D_lite_topo_dg,hrf,recall_by_zone,middle,0.9226114856749819
+D_lite_topo_dg,hrf,stray_pieces_per_image,pieces touching no true vessel,19.644444444444446
+D_lite_topo_dg,hrf,stray_pixels_share,of all predicted vessel pixels,0.006357281906137097
+D_lite_topo_dg,stare,fp_rate_by_zone,centre,0.04361815721456492
+D_lite_topo_dg,stare,fp_rate_by_zone,edge,0.03432015346840763
+D_lite_topo_dg,stare,fp_rate_by_zone,middle,0.03705997172248118
+D_lite_topo_dg,stare,fp_share_far,spurious (> 2 px from any vessel),0.2612391071621825
+D_lite_topo_dg,stare,recall_by_width,medium (2-4 px),0.921345827869518
+D_lite_topo_dg,stare,recall_by_width,thick (> 4 px),0.9309332814527671
+D_lite_topo_dg,stare,recall_by_width,thin  (<= 2 px),0.8573780809262947
+D_lite_topo_dg,stare,recall_by_zone,centre,0.9165831138114499
+D_lite_topo_dg,stare,recall_by_zone,edge,0.895513254276492
+D_lite_topo_dg,stare,recall_by_zone,middle,0.9251889576164449
+D_lite_topo_dg,stare,stray_pieces_per_image,pieces touching no true vessel,26.7
+D_lite_topo_dg,stare,stray_pixels_share,of all predicted vessel pixels,0.020758886555284642
+E_tglitenet,chase_db1,fp_rate_by_zone,centre,0.07164683797798069
+E_tglitenet,chase_db1,fp_rate_by_zone,edge,0.030965848105555187
+E_tglitenet,chase_db1,fp_rate_by_zone,middle,0.046750424373603494
+E_tglitenet,chase_db1,fp_share_far,spurious (> 2 px from any vessel),0.1461472480656311
+E_tglitenet,chase_db1,recall_by_width,medium (2-4 px),0.9164867474890406
+E_tglitenet,chase_db1,recall_by_width,thick (> 4 px),0.9482217825991108
+E_tglitenet,chase_db1,recall_by_width,thin  (<= 2 px),0.7706144928503041
+E_tglitenet,chase_db1,recall_by_zone,centre,0.9351617445907163
+E_tglitenet,chase_db1,recall_by_zone,edge,0.866663565919984
+E_tglitenet,chase_db1,recall_by_zone,middle,0.9243190323597199
+E_tglitenet,chase_db1,stray_pieces_per_image,pieces touching no true vessel,13.928571428571429
+E_tglitenet,chase_db1,stray_pixels_share,of all predicted vessel pixels,0.0076271218730100026
+E_tglitenet,drive,fp_rate_by_zone,centre,0.026194091111590594
+E_tglitenet,drive,fp_rate_by_zone,edge,0.0234853647580985
+E_tglitenet,drive,fp_rate_by_zone,middle,0.024972045124860114
+E_tglitenet,drive,fp_share_far,spurious (> 2 px from any vessel),0.050815838160412505
+E_tglitenet,drive,recall_by_width,medium (2-4 px),0.8778471855898069
+E_tglitenet,drive,recall_by_width,thick (> 4 px),0.9002077834169459
+E_tglitenet,drive,recall_by_width,thin  (<= 2 px),0.6306645889951047
+E_tglitenet,drive,recall_by_zone,centre,0.7782073138720156
+E_tglitenet,drive,recall_by_zone,edge,0.8434554891955758
+E_tglitenet,drive,recall_by_zone,middle,0.84352794926578
+E_tglitenet,drive,stray_pieces_per_image,pieces touching no true vessel,13.5
+E_tglitenet,drive,stray_pixels_share,of all predicted vessel pixels,0.0044331363454420325
+E_tglitenet,hrf,fp_rate_by_zone,centre,0.0558696447717055
+E_tglitenet,hrf,fp_rate_by_zone,edge,0.040878585775845105
+E_tglitenet,hrf,fp_rate_by_zone,middle,0.06090721904303575
+E_tglitenet,hrf,fp_share_far,spurious (> 2 px from any vessel),0.06011998536155934
+E_tglitenet,hrf,recall_by_width,medium (2-4 px),0.9829776459159356
+E_tglitenet,hrf,recall_by_width,thick (> 4 px),0.9814118084499436
+E_tglitenet,hrf,recall_by_width,thin  (<= 2 px),0.8358775313657183
+E_tglitenet,hrf,recall_by_zone,centre,0.8753099986789085
+E_tglitenet,hrf,recall_by_zone,edge,0.8775399145112273
+E_tglitenet,hrf,recall_by_zone,middle,0.9239645859284351
+E_tglitenet,hrf,stray_pieces_per_image,pieces touching no true vessel,19.42222222222222
+E_tglitenet,hrf,stray_pixels_share,of all predicted vessel pixels,0.00665647536803179
+E_tglitenet,stare,fp_rate_by_zone,centre,0.04269735211781492
+E_tglitenet,stare,fp_rate_by_zone,edge,0.03463949535935888
+E_tglitenet,stare,fp_rate_by_zone,middle,0.0374628370983266
+E_tglitenet,stare,fp_share_far,spurious (> 2 px from any vessel),0.2559060093937442
+E_tglitenet,stare,recall_by_width,medium (2-4 px),0.9236194004781341
+E_tglitenet,stare,recall_by_width,thick (> 4 px),0.9320815987074763
+E_tglitenet,stare,recall_by_width,thin  (<= 2 px),0.8583536381969097
+E_tglitenet,stare,recall_by_zone,centre,0.9147326460358614
+E_tglitenet,stare,recall_by_zone,edge,0.8990919847581061
+E_tglitenet,stare,recall_by_zone,middle,0.9256514708126276
+E_tglitenet,stare,stray_pieces_per_image,pieces touching no true vessel,25.8
+E_tglitenet,stare,stray_pixels_share,of all predicted vessel pixels,0.019696862908911032
+A_unet,unseen,fp_rate_by_zone,centre,0.05549534479774763
+A_unet,unseen,fp_rate_by_zone,edge,0.035370995015503434
+A_unet,unseen,fp_rate_by_zone,middle,0.0493061982027757
+A_unet,unseen,fp_share_far,spurious (> 2 px from any vessel),0.14375959804694097
+A_unet,unseen,recall_by_width,medium (2-4 px),0.9347838163077841
+A_unet,unseen,recall_by_width,thick (> 4 px),0.953321563265129
+A_unet,unseen,recall_by_width,thin  (<= 2 px),0.8196101499526297
+A_unet,unseen,recall_by_zone,centre,0.9145501839913192
+A_unet,unseen,recall_by_zone,edge,0.8859388189985072
+A_unet,unseen,recall_by_zone,middle,0.9279384790862996
+A_unet,unseen,stray_pieces_per_image,pieces touching no true vessel,35.824074074074076
+A_unet,unseen,stray_pixels_share,of all predicted vessel pixels,0.009431636431991583
+B_unet_topo,unseen,fp_rate_by_zone,centre,0.06144128694137044
+B_unet_topo,unseen,fp_rate_by_zone,edge,0.038150302168399625
+B_unet_topo,unseen,fp_rate_by_zone,middle,0.053780626368781136
+B_unet_topo,unseen,fp_share_far,spurious (> 2 px from any vessel),0.1473608489716316
+B_unet_topo,unseen,recall_by_width,medium (2-4 px),0.9364893630720506
+B_unet_topo,unseen,recall_by_width,thick (> 4 px),0.9528129096194796
+B_unet_topo,unseen,recall_by_width,thin  (<= 2 px),0.8333421091412226
+B_unet_topo,unseen,recall_by_zone,centre,0.9201008867077404
+B_unet_topo,unseen,recall_by_zone,edge,0.8855177553814252
+B_unet_topo,unseen,recall_by_zone,middle,0.9323802169652312
+B_unet_topo,unseen,stray_pieces_per_image,pieces touching no true vessel,18.264814814814816
+B_unet_topo,unseen,stray_pixels_share,of all predicted vessel pixels,0.008120252250782214
+C_unet_topo_dg,unseen,fp_rate_by_zone,centre,0.06067133487433996
+C_unet_topo_dg,unseen,fp_rate_by_zone,edge,0.038487774143381344
+C_unet_topo_dg,unseen,fp_rate_by_zone,middle,0.05155907442596921
+C_unet_topo_dg,unseen,fp_share_far,spurious (> 2 px from any vessel),0.16949537688156668
+C_unet_topo_dg,unseen,recall_by_width,medium (2-4 px),0.9451192812235086
+C_unet_topo_dg,unseen,recall_by_width,thick (> 4 px),0.9612019895040693
+C_unet_topo_dg,unseen,recall_by_width,thin  (<= 2 px),0.8550264796142378
+C_unet_topo_dg,unseen,recall_by_zone,centre,0.9244601501552698
+C_unet_topo_dg,unseen,recall_by_zone,edge,0.9066213496531593
+C_unet_topo_dg,unseen,recall_by_zone,middle,0.9351528772010201
+C_unet_topo_dg,unseen,stray_pieces_per_image,pieces touching no true vessel,18.26719576719577
+C_unet_topo_dg,unseen,stray_pixels_share,of all predicted vessel pixels,0.009604758576343
+D_lite_topo_dg,unseen,fp_rate_by_zone,centre,0.05741480405259037
+D_lite_topo_dg,unseen,fp_rate_by_zone,edge,0.03499700874365897
+D_lite_topo_dg,unseen,fp_rate_by_zone,middle,0.0485560705694518
+D_lite_topo_dg,unseen,fp_share_far,spurious (> 2 px from any vessel),0.15827959885174153
+D_lite_topo_dg,unseen,recall_by_width,medium (2-4 px),0.9410101463499593
+D_lite_topo_dg,unseen,recall_by_width,thick (> 4 px),0.9543599455273838
+D_lite_topo_dg,unseen,recall_by_width,thin  (<= 2 px),0.8204770632451259
+D_lite_topo_dg,unseen,recall_by_zone,centre,0.9093050143342393
+D_lite_topo_dg,unseen,recall_by_zone,edge,0.8808124317508482
+D_lite_topo_dg,unseen,recall_by_zone,middle,0.9244974663401976
+D_lite_topo_dg,unseen,stray_pieces_per_image,pieces touching no true vessel,20.067195767195766
+D_lite_topo_dg,unseen,stray_pixels_share,of all predicted vessel pixels,0.011722308061673728
+E_tglitenet,unseen,fp_rate_by_zone,centre,0.0567379449558337
+E_tglitenet,unseen,fp_rate_by_zone,edge,0.035494643080253054
+E_tglitenet,unseen,fp_rate_by_zone,middle,0.04837349350498862
+E_tglitenet,unseen,fp_share_far,spurious (> 2 px from any vessel),0.1540577476069782
+E_tglitenet,unseen,recall_by_width,medium (2-4 px),0.9410279312943701
+E_tglitenet,unseen,recall_by_width,thick (> 4 px),0.9539050632521769
+E_tglitenet,unseen,recall_by_width,thin  (<= 2 px),0.8216152208043107
+E_tglitenet,unseen,recall_by_zone,centre,0.9084014631018288
+E_tglitenet,unseen,recall_by_zone,edge,0.8810984883964391
+E_tglitenet,unseen,recall_by_zone,middle,0.9246450297002609
+E_tglitenet,unseen,stray_pieces_per_image,pieces touching no true vessel,19.71693121693122
+E_tglitenet,unseen,stray_pixels_share,of all predicted vessel pixels,0.011326820049984275

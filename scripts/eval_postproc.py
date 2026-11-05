@@ -167,7 +167,8 @@ def deltas(ps: pd.DataFrame) -> pd.DataFrame:
         comps += [((e, "fixed 0.5"), (e, "pp"), "cleanup vs fixed"), ((e, "fixed 0.5"), (e, "thr"), "tuned thr. vs fixed")]
     pairs = [("A_unet", "B_unet_topo"), ("B_unet_topo", "C_unet_topo_dg"), ("C_unet_topo_dg", "D_lite_topo_dg"), ("D_lite_topo_dg", "E_tglitenet"),
              ("A_unet", "C_unet_topo_dg"), ("X_unet_dg", "C_unet_topo_dg"), ("D_lite_topo_dg", "S_unet_b8"), ("D_lite_topo_dg", "S_unet_b16"),
-             ("E_tglitenet", "S_unet_b16"), ("D_lite_topo_dg", "X_lite_dg"), ("A_unet", "X_unet_dg")]
+             ("E_tglitenet", "S_unet_b16"), ("D_lite_topo_dg", "X_lite_dg"), ("A_unet", "X_unet_dg"),
+             ("C_unet_topo_dg", "P_unet_topo_dg_warm"), ("D_lite_topo_dg", "P_lite_topo_dg_warm")]       # topology-weight warm-up vs its no-warm-up twin
     for a, b in pairs:
         for m, lab in (("fixed 0.5", "fixed"), ("thr", "tuned thr."), ("pp", "cleanup")):
             comps.append(((a, m), (b, m), f"between models, {lab}"))
