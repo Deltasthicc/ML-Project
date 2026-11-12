@@ -116,11 +116,18 @@
       gsap.fromTo($$(".word", p), { opacity: 0.12 }, { opacity: 1, ease: "none", stagger: 0.12, scrollTrigger: { trigger: p, start: "top 78%", end: "bottom 46%", scrub: true } });
     }
 
-    // image scale and fade: grow from 0.8 to 1 on the way in, darken and fade on the way out
+    // image scale and fade: one timeline per figure, so the grow-in and the fade-out never fight each other.
+    // The figure is fully bright and full size through the middle of its scroll range and only dims at the very end.
     $$(".sf-img").forEach((n) => {
-      gsap.fromTo(n, { scale: 0.8, opacity: 0.55 }, { scale: 1, opacity: 1, ease: "none", scrollTrigger: { trigger: n, start: "top 92%", end: "top 38%", scrub: true } });
-      gsap.to(n, { opacity: 0.2, filter: "brightness(0.45)", ease: "none", scrollTrigger: { trigger: n, start: "bottom 42%", end: "bottom 4%", scrub: true } });
+      const tl = gsap.timeline({ scrollTrigger: { trigger: n, start: "top 95%", end: "bottom 0%", scrub: true } });
+      tl.fromTo(n, { scale: 0.82, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.35, ease: "none", immediateRender: true })
+        .to(n, { duration: 0.45 })
+        .to(n, { opacity: 0.35, scale: 0.97, duration: 0.2, ease: "none" });
     });
+    // fonts and lazy images move things around: recompute every trigger once the page has settled
+    const refresh = () => ScrollTrigger.refresh();
+    addEventListener("load", refresh);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
   })();
 
   /* ---------------------------------------------------------------- bento numbers */
@@ -183,6 +190,42 @@
       p.addEventListener("focus", () => open(p));
       p.addEventListener("mouseenter", () => { if (matchMedia("(hover: hover) and (min-width: 1024px)").matches) open(p); });
     });
+  })();
+
+  /* ---------------------------------------------------------------- interactive pipeline */
+  (function pipeline() {
+    const MAIN = [
+      ["photo", "ph-camera", "Fundus photo", "A colour photograph of the retina together with its circular field-of-view mask."],
+      ["resize", "ph-arrows-in", "Resize to 527 px", "Every image is resized so its circular field of view is 527 pixels wide, so the same vessel is about the same number of pixels everywhere. This uses no labels and no statistics of the test datasets."],
+      ["clahe", "ph-sun", "Green channel + CLAHE", "We keep the green channel, where vessels show best, apply CLAHE (a local contrast boost) and standardise the brightness."],
+      ["net", "ph-graph", "Compact U-Net", "An encoder-decoder built from depthwise-separable convolutions: 0.21 million parameters instead of 31 million. Skip connections carry fine detail across."],
+      ["head", "ph-circle-half", "Mask head", "A 1x1 layer turns the features into the probability that each pixel is vessel."],
+      ["mc", "ph-dice-five", "20 dropout runs", "Dropout stays switched on and the model runs 20 times. The average is the prediction; where the runs disagree, the model is unsure."],
+      ["out", "ph-tree-structure", "Vessel map + uncertainty", "Threshold the average at 0.5 for the vessel map. The disagreement between the runs becomes the uncertainty map."],
+    ];
+    const TRAIN = [
+      ["aug", "ph-sparkle", "Messy-photo augmentation", "Uneven light, blur, noise, JPEG artefacts and gentle bending, so the model does not rely on one camera's look."],
+      ["skel", "ph-line-segments", "Centreline head", "A second output predicts the one-pixel centrelines of the vessels. It is dropped after training, so it adds no cost at test time."],
+      ["loss", "ph-scales", "Training loss", "Overlap (Dice and cross-entropy), plus the topology loss (soft-clDice and the centreline head), plus a consistency term that asks the clean and the messy copy of a patch to give the same answer."],
+    ];
+    const rowM = $("#pipeMain"), rowT = $("#pipeTrain"), info = $("#pipeInfo");
+    if (!rowM) return;
+    const nodes = [];
+    function add(row, list, train) {
+      list.forEach(([id, icon, title, text], k) => {
+        const b = el("button", { class: "pnode" + (train ? " train" : ""), type: "button", "aria-pressed": "false" }, `<i class="ph-bold ${icon}"></i><span>${title}</span>`);
+        b.addEventListener("click", () => pick(id)); b.addEventListener("mouseenter", () => pick(id)); b.addEventListener("focus", () => pick(id));
+        row.appendChild(b); nodes.push([id, b, title, text, train, icon]);
+        if (!train && k < list.length - 1) row.appendChild(el("div", { class: "parrow" }, '<i class="ph-bold ph-caret-right"></i>'));
+      });
+    }
+    add(rowM, MAIN, false); add(rowT, TRAIN, true);
+    function pick(id) {
+      nodes.forEach(([k, b]) => b.setAttribute("aria-pressed", String(k === id)));
+      const n = nodes.find((x) => x[0] === id);
+      info.innerHTML = `<div class="w-12 h-12 shrink-0 rounded-2xl grid place-items-center bg-white/10"><i class="ph-bold ${n[5]} text-2xl text-coral"></i></div><div><div class="flex flex-wrap items-center gap-3"><h4 class="text-xl font-black tracking-tight">${n[2]}</h4><span class="text-xs rounded-full px-3 py-1 ${n[4] ? "bg-white/10 text-white/70" : "bg-coral text-[#0b0e13] font-bold"}">${n[4] ? "training only" : "test time"}</span></div><p class="mt-2 text-white/70 leading-relaxed max-w-3xl">${n[3]}</p></div>`;
+    }
+    pick("net");
   })();
 
   /* ---------------------------------------------------------------- stage stepper */
@@ -261,7 +304,7 @@
       $("#rExtra").textContent = thin ? "n/a" : Math.abs(pieces - c.gtPieces); $("#rRec").textContent = rec.toFixed(2); $("#rPre").textContent = pre.toFixed(2);
       const name = MODELS.find((m) => m[0] === model)[1].replace(/^\w\s+/, "");
       $("#vInsight").innerHTML = thin
-        ? `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> predicted vessel pieces. The ground-truth count (${c.gtPieces}) is not meaningful here: the very thin HRF labels shatter when resized to the working scale, which is why the paper counts pieces at full resolution.`
+        ? `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> predicted vessel pieces. The ground-truth count (${c.gtPieces}) is not meaningful here: the thin labels of this dataset split into many fragments when resized to the working scale, which is why the paper counts pieces at full resolution.`
         : `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> vessel pieces against <b>${c.gtPieces}</b> in the ground truth` + (minsz === 0 && pieces > 3 * c.gtPieces ? ". Most of the extra pieces are tiny specks: drag the fragment slider up." : minsz > 0 ? ` after deleting fragments under ${minsz} px.` : ".");
       cv.width = w; cv.height = hh;
       const out = ctx.createImageData(w, hh), o = out.data;

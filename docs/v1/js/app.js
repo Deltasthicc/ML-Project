@@ -259,7 +259,7 @@
       $("#rExtra").textContent = thinLabels ? "n/a" : Math.abs(pieces - c.gtPieces); $("#rRec").textContent = rec.toFixed(2); $("#rPre").textContent = pre.toFixed(2);
       const name = MODELS.find((m) => m[0] === model)[1].replace(/^\w\s+/, "");
       $("#vInsight").innerHTML = thinLabels
-        ? `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> predicted vessel pieces. The ground-truth count (${c.gtPieces}) is not meaningful here: the very thin HRF labels shatter when resized to the working scale, which is why the paper counts pieces at full resolution.`
+        ? `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> predicted vessel pieces. The ground-truth count (${c.gtPieces}) is not meaningful here: the thin labels of this dataset split into many fragments when resized to the working scale, which is why the paper counts pieces at full resolution.`
         : `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> vessel pieces against <b>${c.gtPieces}</b> in the ground truth` +
           (minsz === 0 && pieces > 3 * c.gtPieces ? ". Most of the extra pieces are tiny specks: drag the fragment slider up." : minsz > 0 ? ` after deleting fragments under ${minsz} px.` : ".");
       cv.width = w; cv.height = hh;

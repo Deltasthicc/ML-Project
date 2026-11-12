@@ -120,7 +120,7 @@ table.data tr.hl td:last-child { border-radius: 0 12px 12px 0; }
 
 /* ---------------------------------------------------------------- text reveal, misc */
 .word { opacity: .12; display: inline-block; will-change: opacity; }
-.pill-img { display: inline-block; width: 1.9em; height: .74em; border-radius: 999px; vertical-align: -.04em; margin: 0 .12em; background-size: cover; background-position: center; border: 1px solid rgba(255, 255, 255, .25); box-shadow: 0 0 0 4px rgba(255, 255, 255, .04); }
+.pill-img { display: inline-block; width: 1.75em; height: .8em; border-radius: 999px; vertical-align: -.07em; margin: 0 .1em; background-size: cover; background-position: 50% 45%; border: 2px solid rgba(255, 255, 255, .85); }
 .plate-card { background: #f4f1ec; border-radius: 28px; padding: 12px; }
 .plate-card img { width: 100%; height: auto; border-radius: 16px; display: block; }
 .btn-primary { display: inline-flex; align-items: center; gap: 10px; background: #f6f3ee; color: #0b0e13; font-weight: 700; padding: 15px 24px; border-radius: 999px; transition: transform .3s, background .3s, box-shadow .3s; }
@@ -154,3 +154,15 @@ details.lim > div { padding: 0 20px 18px; color: #b9bec6; font-size: 15px; line-
   .word { opacity: 1 !important; }
   .acc-panel, .acc-bg, .slide, .slide .plate, .slide .quote, .chart .bar { transition: none; }
 }
+
+/* ---------------------------------------------------------------- pipeline */
+.pipe-label { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin-bottom: 12px; }
+.pipe-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.pnode { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 128px; flex: 1 1 128px; text-align: left; color: var(--ink); background: var(--glass); border: 1px solid var(--line); border-radius: 22px; padding: 16px; cursor: pointer; transition: transform .3s, border-color .3s, background .3s; }
+.pnode i { font-size: 26px; color: var(--coral); }
+.pnode span { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.pnode:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, .3); }
+.pnode.train { border-style: dashed; }
+.pnode[aria-pressed="true"] { background: var(--coral-soft); border-color: var(--coral); }
+.parrow { display: grid; place-items: center; color: rgba(255, 255, 255, .35); font-size: 18px; }
+@media (max-width: 767px) { .parrow { display: none; } .pnode { flex: 1 1 calc(50% - 10px); } }

@@ -55,7 +55,7 @@
   <div class="absolute inset-0" style="background: radial-gradient(ellipse at center, rgba(6,8,11,.30) 0%, rgba(6,8,11,.78) 58%, #06080b 100%)"></div>
   <div class="absolute inset-0 mesh"></div>
   <div class="relative z-10 w-full max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
-    <h1 id="heroTitle" class="font-black tracking-[-0.035em] leading-[1.02] text-white" style="font-size: clamp(2.6rem, 4.6vw, 5rem)">
+    <h1 id="heroTitle" class="font-black tracking-[-0.035em] leading-[1.02] text-white" style="font-size: clamp(2.4rem, 4.1vw, 4.7rem); text-wrap: balance">
       A tiny network that traces <span class="pill-img" style="background-image:url('assets/viewer/stare_img.jpg')"></span>eye vessels on <span class="pill-img" style="background-image:url('assets/viewer/chase_db1_img.jpg')"></span>cameras it has never seen.
     </h1>
     <p class="hero-sub mt-8 mx-auto max-w-2xl text-lg md:text-xl text-white/70 leading-relaxed">
@@ -144,16 +144,14 @@
     <p class="mt-4 text-white/65 max-w-2xl">Pick a dataset. The brightness, size and vessel width all change, and that is the shift the model has to survive.</p>
     <div class="ctl-row mt-8" id="dsTabs"><span class="ctl-label"><i class="ph ph-database"></i>Dataset</span></div>
     <div class="grid lg:grid-cols-[1.15fr_1fr] gap-5 items-start">
-      <div class="vstage" style="min-height:0"><canvas id="dsCanvas"></canvas></div>
+      <div class="vstage sf-img" style="min-height:0"><canvas id="dsCanvas"></canvas></div>
       <div>
         <dl class="readout" id="dsStats"></dl>
         <div class="insight mt-4" id="dsInsight"></div>
         <div class="ctl-row mt-5" id="dsView"><span class="ctl-label"><i class="ph ph-eye"></i>View</span></div>
       </div>
     </div>
-    <figure class="plate-card sf-img mt-16 max-w-4xl mx-auto"><img src="img/data_overview.png" alt="The four datasets with vessel labels in green and field-of-view outlines in red" loading="lazy"></figure>
-    <p class="text-center text-sm text-white/50 mt-4">The four datasets with vessel labels (green) and field-of-view outlines (red).</p>
-  </div>
+      </div>
 </section>
 
 <!-- ============================================================ METHOD (accordion + stages) -->
@@ -191,8 +189,17 @@
       </div>
     </div>
 
-    <figure class="plate-card sf-img mt-24 max-w-5xl mx-auto"><img src="img/architecture.png" alt="Architecture diagram of TG-LiteNet" loading="lazy"></figure>
-    <p class="text-center text-sm text-white/50 mt-4">TG-LiteNet: resized photo in, vessel map and uncertainty out. The centreline head and the augmentation exist only during training.</p>
+    <div class="mt-24 md:mt-32">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05] max-w-3xl" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">How a photo becomes a vessel map.</h3>
+      <p class="mt-4 text-white/65 max-w-2xl">Click any step. Solid steps run at test time; dashed steps exist only during training and cost nothing afterwards.</p>
+      <div class="pipe mt-8">
+        <div class="pipe-label"><i class="ph-bold ph-play"></i>At test time</div>
+        <div class="pipe-row" id="pipeMain"></div>
+        <div class="pipe-label mt-6"><i class="ph-bold ph-graduation-cap"></i>Training only</div>
+        <div class="pipe-row" id="pipeTrain"></div>
+        <div class="glass rounded-[24px] p-6 md:p-8 mt-6 flex gap-5 items-start" id="pipeInfo" aria-live="polite"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -211,7 +218,7 @@
       <div class="glass rounded-3xl slider"><div class="row"><label for="minsz" class="font-medium text-white/80"><i class="ph ph-broom mr-1"></i>Delete fragments smaller than <span class="term" data-def="Tiny stray specks of vessel that touch no other vessel. Deleting them needs no retraining.">what is this</span></label><output id="minszOut">0 px</output></div><input id="minsz" type="range" min="0" max="200" step="5" value="0"></div>
     </div>
     <div class="grid lg:grid-cols-[1.5fr_1fr] gap-5 items-start">
-      <div class="vstage"><canvas id="vCanvas" aria-label="Segmentation viewer"></canvas></div>
+      <div class="vstage sf-img"><canvas id="vCanvas" aria-label="Segmentation viewer"></canvas></div>
       <div class="space-y-4">
         <dl class="readout">
           <div><dt>Dice (overlap)</dt><dd id="rDice">-</dd></div>
@@ -226,9 +233,7 @@
         <p class="text-sm text-white/55 leading-relaxed">Try this: pick the U-Net, then drag the fragment slider to about 150. The vessel-piece count collapses while the Dice barely moves. That is why a simple clean-up step explains most of the topology gain. Scores use the model's working resolution, so they differ slightly from the paper.</p>
       </div>
     </div>
-    <figure class="plate-card sf-img mt-20 max-w-4xl mx-auto"><img src="img/fig_qualitative.png" alt="Qualitative results on four datasets" loading="lazy"></figure>
-    <p class="text-center text-sm text-white/50 mt-4">One image per dataset. White is correct, red a false alarm, blue a missed vessel; the right panel is the uncertainty of TG-LiteNet.</p>
-  </div>
+      </div>
 </section>
 
 <!-- ============================================================ RESULTS -->
