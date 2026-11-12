@@ -1,347 +1,415 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TG-LiteNet — Retinal Vessel Segmentation Study</title>
-<meta name="description" content="A controlled study of topology-aware, lightweight retinal vessel segmentation trained on one dataset and tested on three others. CSD361 final project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<title>TG-LiteNet - Seeing retinal vessels on cameras it has never met</title>
+<meta name="description" content="A controlled study of compact, topology-aware retinal vessel segmentation trained on one dataset and tested on three others. Interactive results, live viewer and full paper.">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Satoshi', 'system-ui', 'sans-serif'] }, colors: { coral: '#ff6a4d' } } } };
+</script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="antialiased">
 
-<header class="top">
-  <div class="brand"><i></i><span>TG-LiteNet</span></div>
-  <nav aria-label="Sections">
-    <a href="#problem">01 Problem</a>
-    <a href="#method">02 Method</a>
-    <a href="#viewer">03 Live viewer</a>
-    <a href="#results">04 Results</a>
-    <a href="#tradeoff">05 Cost</a>
-    <a href="#uncertainty">06 Uncertainty</a>
-    <a href="#failures">07 Failures</a>
-    <a href="#verdict">08 Verdict</a>
-    <a href="#reproduce">09 Reproduce</a>
+<!-- inline logo mark: an eye with a branching vessel tree -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <path d="M24 38 V27 M24 27 C24 20 17 18 12 12 M24 27 C24 20 31 18 36 12 M18.5 18.8 C16 19 13 20.5 11 24 M29.5 18.8 C32 19 35 20.5 37 24" fill="none" stroke="#ff6a4d" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="24" cy="38" r="2.6" fill="#ff6a4d"/>
+  </symbol>
+</svg>
+
+<div id="progress"></div>
+
+<!-- ============================================================ NAV -->
+<header class="fixed top-4 left-0 right-0 z-[80] flex justify-center px-4 pointer-events-none">
+  <nav class="glass pointer-events-auto flex items-center gap-1 rounded-full pl-4 pr-2 py-2 max-w-full" aria-label="Primary">
+    <a href="#top" class="flex items-center gap-2 pr-3 mr-1 border-r border-white/10 font-black tracking-tight text-[15px]">
+      <svg class="w-7 h-7 text-white"><use href="#logo"/></svg><span class="hidden sm:inline">TG-LiteNet</span>
+    </a>
+    <div class="hidden md:flex items-center">
+      <a href="#problem" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Problem</a>
+      <a href="#method" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Method</a>
+      <a href="#viewer" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Viewer</a>
+      <a href="#results" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Results</a>
+      <a href="#cost" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Cost</a>
+      <a href="#verdict" class="nav-link px-3 py-2 text-[13.5px] text-white/75 hover:text-white rounded-full hover:bg-white/10 transition">Verdict</a>
+    </div>
+    <a href="paper.pdf" class="ml-1 inline-flex items-center gap-2 rounded-full bg-white text-[#0b0e13] px-4 py-2 text-[13.5px] font-bold hover:bg-coral transition"><i class="ph-bold ph-file-pdf"></i><span>Paper</span></a>
+    <a href="https://github.com/Deltasthicc/ML-Project" aria-label="GitHub repository" class="ml-1 w-9 h-9 grid place-items-center rounded-full hover:bg-white/10 transition"><i class="ph ph-github-logo text-xl"></i></a>
   </nav>
 </header>
 
-<!-- ===================================================================== HERO -->
-<section id="hero">
-  <span class="cross" style="left:8px;top:8px"></span><span class="cross" style="right:8px;top:8px"></span>
-  <div class="hero-meta mono">
-    <span>[ CSD361 / FINAL PROJECT ]</span><span>UNIT / D-01 &nbsp; REV 1.0</span><span>RETINAL VESSEL SEGMENTATION ®</span>
-    <div class="barcode" aria-hidden="true"></div>
+<main class="overflow-x-clip w-full max-w-full" id="top">
+
+<!-- ============================================================ HERO (Attention) -->
+<section class="relative min-h-[100svh] flex items-center justify-center overflow-hidden grain">
+  <div id="heroBg" class="absolute inset-0 bg-cover bg-center opacity-80 mix-blend-luminosity contrast-125" style="background-image:url('assets/viewer/drive_img.jpg'); filter: grayscale(.5) contrast(1.25) brightness(1.05)"></div>
+  <div class="absolute inset-0" style="background: radial-gradient(ellipse at center, rgba(6,8,11,.30) 0%, rgba(6,8,11,.78) 58%, #06080b 100%)"></div>
+  <div class="absolute inset-0 mesh"></div>
+  <div class="relative z-10 w-full max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
+    <h1 id="heroTitle" class="font-black tracking-[-0.035em] leading-[1.02] text-white" style="font-size: clamp(2.6rem, 4.6vw, 5rem)">
+      A tiny network that traces <span class="pill-img" style="background-image:url('assets/viewer/stare_img.jpg')"></span>eye vessels on <span class="pill-img" style="background-image:url('assets/viewer/chase_db1_img.jpg')"></span>cameras it has never seen.
+    </h1>
+    <p class="hero-sub mt-8 mx-auto max-w-2xl text-lg md:text-xl text-white/70 leading-relaxed">
+      Trained on one dataset, tested on three. We built it, then tried to break it. Explore every result, run the model in your browser, and see what actually worked.
+    </p>
+    <div class="hero-cta mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="#viewer" class="btn-primary"><i class="ph-bold ph-eye text-xl"></i>Try the live viewer</a>
+      <a href="paper.pdf" class="btn-ghost"><i class="ph-bold ph-file-text text-xl"></i>Read the paper</a>
+    </div>
   </div>
-  <div class="hero-title-wrap">
-    <div class="halftone" aria-hidden="true"></div>
-    <h1 class="macro">TG<span class="dash">-</span>Lite<br>Net</h1>
+  <a href="#snapshot" aria-label="Scroll down" class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 hover:text-white transition"><i class="ph ph-caret-double-down text-2xl animate-bounce"></i></a>
+</section>
+
+<!-- ============================================================ BENTO (Interest) -->
+<section id="snapshot" class="relative px-6 py-32 md:py-48">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">The result in four numbers, and one honest caveat.</h2>
+    <div class="mt-14 grid grid-cols-2 lg:grid-cols-4 auto-rows-[minmax(210px,auto)] gap-4 grid-flow-dense" id="bento">
+      <!-- A: 2x2 -->
+      <article class="spot glass rounded-[28px] p-8 col-span-2 row-span-2 flex flex-col justify-between reveal">
+        <div class="flex items-center gap-3 text-white/70"><i class="ph-bold ph-arrows-in-line-horizontal text-2xl text-coral"></i><span class="text-sm">Parameters against the standard U-Net</span></div>
+        <div>
+          <div class="font-black tracking-[-0.05em] leading-none text-white" style="font-size: clamp(4.5rem, 11vw, 9rem)"><span id="bentoRatio" data-count="147">147</span><span class="text-coral">x</span></div>
+          <p class="mt-3 text-xl text-white/80 max-w-md">fewer parameters: <b id="bentoLite">0.21 M</b> against <b id="bentoUnet">31 M</b>.</p>
+        </div>
+        <div class="space-y-3">
+          <div><div class="flex justify-between text-xs text-white/60 mb-1"><span>U-Net</span><span>31 M</span></div><div class="h-2 rounded-full bg-white/10"><div class="h-2 rounded-full bg-white/40 bento-bar" data-w="100"></div></div></div>
+          <div><div class="flex justify-between text-xs text-white/60 mb-1"><span>TG-LiteNet</span><span>0.21 M</span></div><div class="h-2 rounded-full bg-white/10"><div class="h-2 rounded-full bg-coral bento-bar" data-w="0.68"></div></div></div>
+        </div>
+      </article>
+      <!-- B: 2x1 -->
+      <article class="spot glass rounded-[28px] p-7 col-span-2 flex flex-col justify-between reveal">
+        <div class="flex items-center gap-3 text-white/70"><i class="ph-bold ph-target text-2xl text-coral"></i><span class="text-sm">Dice on cameras it never saw</span></div>
+        <div class="grid grid-cols-2 gap-6 items-end">
+          <div><div class="text-5xl font-black tracking-tight" id="bentoE">0.756</div><div class="text-sm text-white/60 mt-1">TG-LiteNet</div></div>
+          <div><div class="text-5xl font-black tracking-tight text-white/45" id="bentoA">0.762</div><div class="text-sm text-white/60 mt-1">U-Net, 147 times larger</div></div>
+        </div>
+      </article>
+      <!-- C: 1x1 -->
+      <article class="spot glass rounded-[28px] p-6 col-span-1 flex flex-col justify-between reveal">
+        <i class="ph-bold ph-stack text-3xl text-coral"></i>
+        <div><div class="text-5xl font-black tracking-tight">70</div><p class="text-sm text-white/65 mt-1 leading-snug">models trained, 5 seeds per stage</p></div>
+      </article>
+      <!-- D: 1x1 -->
+      <article class="spot glass rounded-[28px] p-6 col-span-1 flex flex-col justify-between reveal">
+        <i class="ph-bold ph-shield-check text-3xl text-coral"></i>
+        <div><div class="text-5xl font-black tracking-tight">0</div><p class="text-sm text-white/65 mt-1 leading-snug">test images used for tuning</p></div>
+      </article>
+      <!-- E: 4x1 -->
+      <article class="spot glass rounded-[28px] p-0 col-span-2 lg:col-span-4 overflow-hidden group reveal">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_1.6fr] items-stretch">
+          <div class="p-8 md:p-10 flex flex-col justify-center gap-4">
+            <div class="flex items-center gap-3 text-white/70"><i class="ph-bold ph-warning-circle text-2xl text-coral"></i><span class="text-sm">The honest caveat</span></div>
+            <h3 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">It is not the most accurate model. It is the most carefully tested one.</h3>
+            <p class="text-white/65">The topology trick helped less than it first appeared, and a plain small U-Net matches our network. The controls are the real finding.</p>
+            <a href="#verdict" class="inline-flex items-center gap-2 text-coral font-bold w-fit">See the verdict <i class="ph-bold ph-arrow-right"></i></a>
+          </div>
+          <div class="grid grid-cols-3 gap-px bg-white/10">
+            <div class="overflow-hidden min-h-[210px]"><div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105" style="background-image:url('assets/viewer/hrf_img.jpg'); filter: grayscale(.3) contrast(1.1)"></div></div>
+            <div class="overflow-hidden min-h-[210px]"><div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105" style="background-image:url('assets/viewer/hrf_prob_E.png'); filter: contrast(1.3)"></div></div>
+            <div class="overflow-hidden min-h-[210px]"><div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105" style="background-image:url('assets/viewer/hrf_unc_E.png'); filter: contrast(1.5) hue-rotate(-10deg)"></div></div>
+          </div>
+        </div>
+      </article>
+    </div>
   </div>
-  <div class="hero-sub">
-    <div>
-      <p class="lead">A tiny neural network that traces the blood vessels in eye photographs, trained on <b>one</b> dataset and tested on <b>three it has never seen</b>. We did not just build it. We tested every ingredient, and the honest results are more interesting than a simple win.</p>
-      <div class="cta">
-        <a class="btn" href="#viewer">▶ Try the live viewer</a>
-        <a class="btn alt" href="paper.pdf">Read the paper (PDF)</a>
-        <a class="btn alt" href="https://github.com/Deltasthicc/ML-Project">GitHub repo</a>
+</section>
+
+<!-- ============================================================ PROBLEM (Desire: scrubbed text) -->
+<section id="problem" class="relative px-6 py-32 md:py-48 mesh">
+  <div class="max-w-5xl mx-auto">
+    <p id="scrubText" class="font-bold tracking-[-0.025em] leading-[1.18]" style="font-size: clamp(1.7rem, 3.3vw, 3rem)">
+      Doctors check the tiny blood vessels at the back of the eye to spot diseases such as diabetes early. Tracing them by hand is slow, so we ask a computer. But a model that learns on one camera can stumble on another, and a vessel with a gap in it can look almost right while being wrong where it matters.
+    </p>
+  </div>
+
+  <div class="max-w-6xl mx-auto mt-28 md:mt-40 grid md:grid-cols-3 gap-4">
+    <article class="spot glass rounded-[26px] p-7 reveal"><i class="ph-bold ph-share-network text-3xl text-coral"></i><h3 class="mt-5 text-xl font-black tracking-tight">Stay connected</h3><p class="mt-2 text-white/65">A cut vessel barely changes the usual score, yet it breaks the connectivity doctors measure. We use scores that notice gaps.</p></article>
+    <article class="spot glass rounded-[26px] p-7 reveal"><i class="ph-bold ph-camera text-3xl text-coral"></i><h3 class="mt-5 text-xl font-black tracking-tight">Work on a new camera</h3><p class="mt-2 text-white/65">Train on DRIVE only, test on STARE, CHASE_DB1 and HRF. Like learning one person's handwriting, then reading someone else's.</p></article>
+    <article class="spot glass rounded-[26px] p-7 reveal"><i class="ph-bold ph-cpu text-3xl text-coral"></i><h3 class="mt-5 text-xl font-black tracking-tight">Run on cheap hardware</h3><p class="mt-2 text-white/65">A rural clinic may have a basic laptop. The standard U-Net has 31 million numbers to learn; ours has 0.21 million.</p></article>
+  </div>
+
+  <!-- dataset explorer -->
+  <div class="max-w-6xl mx-auto mt-28 md:mt-40">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05]" style="font-size: clamp(1.9rem, 3.4vw, 3.2rem)">Why a new camera is hard.</h2>
+    <p class="mt-4 text-white/65 max-w-2xl">Pick a dataset. The brightness, size and vessel width all change, and that is the shift the model has to survive.</p>
+    <div class="ctl-row mt-8" id="dsTabs"><span class="ctl-label"><i class="ph ph-database"></i>Dataset</span></div>
+    <div class="grid lg:grid-cols-[1.15fr_1fr] gap-5 items-start">
+      <div class="vstage" style="min-height:0"><canvas id="dsCanvas"></canvas></div>
+      <div>
+        <dl class="readout" id="dsStats"></dl>
+        <div class="insight mt-4" id="dsInsight"></div>
+        <div class="ctl-row mt-5" id="dsView"><span class="ctl-label"><i class="ph ph-eye"></i>View</span></div>
       </div>
     </div>
-    <div class="mono">
-      <p style="margin:0 0 6px">&gt;&gt;&gt; Topology-aware loss<br>&gt;&gt;&gt; Robustness augmentation<br>&gt;&gt;&gt; Depthwise-separable backbone<br>&gt;&gt;&gt; Monte-Carlo-dropout uncertainty</p>
-      <p class="mute" style="margin:0">Abhiraj Agarwal · Shashwat Rajan · Tanish Shitanshu<br>Shiv Nadar Institution of Eminence</p>
-    </div>
-  </div>
-  <div class="grid g4 stats" id="heroStats"></div>
-  <span class="cross" style="left:8px;bottom:8px"></span><span class="cross" style="right:8px;bottom:8px"></span>
-</section>
-<div class="stripes" aria-hidden="true"></div>
-
-<!-- ===================================================================== 01 PROBLEM -->
-<section id="problem">
-  <div class="sec-head">
-    <div class="sec-no">01</div>
-    <div>
-      <h2 class="macro-2">The problem</h2>
-      <p class="lead">Doctors look at the tiny blood vessels at the back of your eye to spot diseases like diabetes early. Tracing them by hand is slow, so we want a computer to do it.</p>
-    </div>
-  </div>
-  <div class="grid g3">
-    <div class="fade"><span class="cell-no">[ 01 ] CONNECTED</span><h3>Keep vessels in one piece</h3><p>If a model draws a branch with a gap in it, it still <i>looks</i> almost right, but a doctor measuring branching would be misled. Normal accuracy scores barely notice a gap. We use scores that do.</p></div>
-    <div class="fade"><span class="cell-no">[ 02 ] PORTABLE</span><h3>Work on a new camera</h3><p>A model trained on photos from one camera often gets confused by another, like learning one person’s handwriting and then reading someone else’s. We train on <b>DRIVE only</b> and test on <b>STARE, CHASE_DB1 and HRF</b>.</p></div>
-    <div class="fade"><span class="cell-no">[ 03 ] SMALL</span><h3>Run on cheap hardware</h3><p>A rural clinic may have a basic laptop and no graphics card. So the model should be small and fast. The standard U-Net has 31 million numbers to learn; ours has 0.21 million.</p></div>
-  </div>
-
-  <h3 style="margin-top:44px">Why “another camera” is hard — explore the four datasets</h3>
-  <div class="controls" id="dsTabs"><div class="grp"><span class="label">Dataset</span></div></div>
-  <div class="cols" style="align-items:start">
-    <figure class="fig" style="background:#111"><canvas id="dsCanvas" style="width:100%;height:auto"></canvas>
-      <figcaption id="dsCap" style="background:var(--paper)"></figcaption></figure>
-    <div>
-      <dl class="readout" id="dsStats" style="border:var(--line)"></dl>
-      <div class="insight" id="dsInsight"></div>
-      <div class="controls" style="margin-top:14px"><div class="grp"><span class="label">View</span>
-        <button class="tab" data-v="img" aria-pressed="true">Photo</button><button class="tab" data-v="gt" aria-pressed="false">Traced vessels</button><button class="tab" data-v="both" aria-pressed="false">Overlay</button></div></div>
-    </div>
-  </div>
-  <figure class="fig" style="margin-top:34px"><img src="img/data_overview.png" alt="The four datasets with vessel labels in green and field-of-view outlines in red" loading="lazy">
-    <figcaption><b>Fig. 1</b> The four datasets: vessel labels (green) and field-of-view outlines (red). Cameras, colours and resolutions differ clearly, which is the dataset shift we study.</figcaption></figure>
-</section>
-
-<!-- ===================================================================== 02 METHOD -->
-<section id="method">
-  <div class="sec-head">
-    <div class="sec-no">02</div>
-    <div>
-      <h2 class="macro-2">The method</h2>
-      <p class="lead">We start from a plain U-Net and add one ingredient at a time. Click a stage to see what changed and what it did to the scores.</p>
-    </div>
-  </div>
-  <div class="controls" id="stageTabs"><div class="grp"><span class="label">Stage</span></div></div>
-  <div class="stage-step">
-    <div id="stageText"></div>
-    <div id="stageBars"></div>
-  </div>
-  <figure class="fig" style="margin-top:34px"><img src="img/architecture.png" alt="Architecture diagram of TG-LiteNet" loading="lazy">
-    <figcaption><b>Fig. 2</b> TG-LiteNet. A photo is resized to a fixed width, passed through a small U-Net built from depthwise-separable convolutions, and (during training only) a second output predicts vessel centrelines. Repeated runs with dropout give an uncertainty map.</figcaption></figure>
-  <div class="grid g3" style="margin-top:34px">
-    <div><span class="cell-no">[ A ] TOPOLOGY LOSS</span><p>We thin every vessel to a one-pixel centreline. The loss rewards the model when its centreline lies on a true vessel <i>and</i> the true centreline is found. Gaps now cost points. This is called <span class="term" data-def="Soft-clDice: a version of the centreline score that can be used to train a network.">soft-clDice</span>.</p></div>
-    <div><span class="cell-no">[ B ] DG AUGMENTATION</span><p>During training we randomly make photos messier: uneven light, blur, noise, JPEG artefacts, and gentle bending. A second loss asks the model to give the <i>same</i> answer for the clean and messy copy. Idea: do not rely on one camera’s look.</p></div>
-    <div><span class="cell-no">[ C ] COMPACT BACKBONE</span><p>Each 3×3 convolution is split into two cheaper steps (depthwise, then pointwise), as in MobileNets. This cuts the parameters 147-fold. Dropout adds an optional <span class="term" data-def="Monte-Carlo dropout: run the model 20 times with random units switched off. Where the runs disagree, the model is unsure.">uncertainty</span> map.</p></div>
+    <figure class="plate-card sf-img mt-16 max-w-4xl mx-auto"><img src="img/data_overview.png" alt="The four datasets with vessel labels in green and field-of-view outlines in red" loading="lazy"></figure>
+    <p class="text-center text-sm text-white/50 mt-4">The four datasets with vessel labels (green) and field-of-view outlines (red).</p>
   </div>
 </section>
 
-<!-- ===================================================================== 03 VIEWER -->
-<section id="viewer">
-  <div class="sec-head">
-    <div class="sec-no">03</div>
-    <div>
-      <h2 class="macro-2">Live viewer</h2>
-      <p class="lead">These are the <b>real</b> predictions of our trained models on <b>unseen</b> photos. Move the sliders and watch the scores and the number of broken vessel pieces change as it happens.</p>
+<!-- ============================================================ METHOD (accordion + stages) -->
+<section id="method" class="relative px-6 py-32 md:py-48">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">Three ingredients added to a plain <span class="pill-img" style="background-image:url('assets/viewer/drive_gt.png'); filter: contrast(1.2)"></span>U-Net, one at a time.</h2>
+    <div class="acc mt-14" id="acc">
+      <button class="acc-panel active" type="button" aria-expanded="true">
+        <div class="acc-bg" style="background-image:url('assets/viewer/stare_gt.png')"></div><div class="acc-shade"></div>
+        <span class="acc-title-v">Topology loss</span><span class="acc-ico"><i class="ph-bold ph-graph text-xl"></i></span>
+        <div class="acc-body"><h3 class="text-2xl md:text-3xl font-black tracking-tight">Topology loss</h3>
+          <div class="acc-more mt-3 text-white/80 leading-relaxed"><p>We thin every vessel to a one-pixel centreline. The loss rewards the model when its centreline lies on a true vessel and the true centreline is found, so gaps now cost points (soft-clDice).</p><p class="mt-3 text-sm text-coral font-bold">Result: broken pieces 75 to 32, clDice +0.007, but 0.009 Dice lost at the usual threshold.</p></div></div>
+      </button>
+      <button class="acc-panel" type="button" aria-expanded="false">
+        <div class="acc-bg" style="background-image:url('assets/viewer/chase_db1_img.jpg')"></div><div class="acc-shade"></div>
+        <span class="acc-title-v">DG augmentation</span><span class="acc-ico"><i class="ph-bold ph-sparkle text-xl"></i></span>
+        <div class="acc-body"><h3 class="text-2xl md:text-3xl font-black tracking-tight">DG augmentation</h3>
+          <div class="acc-more mt-3 text-white/80 leading-relaxed"><p>During training we make photos messier: uneven light, blur, noise, JPEG artefacts and gentle bending. A second loss asks for the same answer on the clean and the messy copy, so the model stops relying on one camera's look.</p><p class="mt-3 text-sm text-coral font-bold">Result: +0.008 Dice, and the drop on new cameras shrinks from 0.074 to 0.065.</p></div></div>
+      </button>
+      <button class="acc-panel" type="button" aria-expanded="false">
+        <div class="acc-bg" style="background-image:url('assets/viewer/hrf_img.jpg')"></div><div class="acc-shade"></div>
+        <span class="acc-title-v">Compact backbone</span><span class="acc-ico"><i class="ph-bold ph-lightning text-xl"></i></span>
+        <div class="acc-body"><h3 class="text-2xl md:text-3xl font-black tracking-tight">Compact backbone</h3>
+          <div class="acc-more mt-3 text-white/80 leading-relaxed"><p>Each 3x3 convolution is split into two cheaper steps, as in MobileNets, and optional dropout gives an uncertainty map. This is TG-LiteNet.</p><p class="mt-3 text-sm text-coral font-bold">Result: 147 times fewer parameters for 0.006 Dice, but not much faster than a plain small U-Net.</p></div></div>
+      </button>
     </div>
-  </div>
-  <div class="controls">
-    <div class="grp" id="vDs"><span class="label">Dataset</span></div>
-    <div class="grp" id="vModel"><span class="label">Model</span></div>
-    <div class="grp" id="vMode"><span class="label">Show</span></div>
-  </div>
-  <div class="controls">
-    <div class="slider"><div class="row"><label for="thr">Decision threshold <span class="term" data-def="The model gives each pixel a probability of being vessel. The threshold is the cut-off: pixels above it are drawn as vessel. We used 0.5 for all headline results.">?</span></label><output id="thrOut">0.50</output></div><input id="thr" type="range" min="0.2" max="0.8" step="0.01" value="0.5"></div>
-    <div class="slider"><div class="row"><label for="minsz">Delete fragments smaller than <span class="term" data-def="Tiny stray specks of vessel that touch no other vessel. Deleting them is a simple clean-up step that needs no retraining.">?</span></label><output id="minszOut">0 px</output></div><input id="minsz" type="range" min="0" max="200" step="5" value="0"></div>
-  </div>
-  <div class="viewer">
-    <div class="stage"><canvas id="vCanvas" aria-label="Segmentation viewer"></canvas></div>
-    <div class="side">
-      <dl class="readout">
-        <div><dt>Dice (overlap)</dt><dd id="rDice">–</dd></div>
-        <div><dt>Vessel pieces</dt><dd id="rPieces">–</dd></div>
-        <div><dt>True pieces</dt><dd id="rGt">–</dd></div>
-        <div><dt>Piece-count error</dt><dd id="rExtra">–</dd></div>
-        <div><dt>Found (recall)</dt><dd id="rRec">–</dd></div>
-        <div><dt>Correct (precision)</dt><dd id="rPre">–</dd></div>
-      </dl>
-      <div class="legend mono"><span><i style="background:#fff"></i>correct</span><span><i style="background:#E61919"></i>false alarm</span><span><i style="background:#2a7bff"></i>missed</span></div>
-      <div class="insight" id="vInsight"></div>
-      <div class="note mute">
-        <p>Try this: pick <b>A U-Net</b>, set the fragment slider to 0 and note the extra pieces. Now drag it to ~150. The count collapses, and the Dice barely moves. That is why a simple clean-up step beats most of the “topology” gain.</p>
-        <p>Scores here use the model’s working resolution, so they differ slightly from the paper’s tables, which use the original image size.</p>
+
+    <!-- stage stepper -->
+    <div class="mt-28 md:mt-40">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05]" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">Click a stage and watch the scores move.</h3>
+      <div class="ctl-row mt-8" id="stageTabs"><span class="ctl-label"><i class="ph ph-stairs"></i>Stage</span></div>
+      <div class="grid lg:grid-cols-2 gap-5">
+        <div class="glass rounded-[26px] p-8" id="stageText"></div>
+        <div class="glass rounded-[26px] p-8" id="stageBars"></div>
       </div>
     </div>
-  </div>
-  <figure class="fig" style="margin-top:34px"><img src="img/fig_qualitative.png" alt="Qualitative results on four datasets" loading="lazy">
-    <figcaption><b>Fig. 3</b> One image per dataset (seed 0). The yellow window is enlarged: ground truth, error maps of A, D and E (white correct, red false alarm, blue missed) and the uncertainty of E.</figcaption></figure>
-</section>
 
-<!-- ===================================================================== 04 RESULTS -->
-<section id="results">
-  <div class="sec-head">
-    <div class="sec-no">04</div>
-    <div>
-      <h2 class="macro-2">Results</h2>
-      <p class="lead">Five stages, five random seeds each, 70 trained models in total. Pick a score and a dataset. Remember: for <b>Betti-0 error</b> (broken pieces) <i>lower</i> is better.</p>
-    </div>
-  </div>
-  <div class="controls">
-    <div class="grp" id="rMetric"><span class="label">Score</span></div>
-    <div class="grp" id="rDs"><span class="label">Dataset</span></div>
-  </div>
-  <div class="chart"><div class="key" id="rKey"></div><svg id="stageChart" viewBox="0 0 900 360" role="img" aria-label="Stage results"></svg>
-    <div class="chart-cap mono"><span id="rCap"></span><span class="mute">Whiskers: standard deviation over seeds</span></div></div>
-  <div class="insight" id="rInsight" style="margin:14px 0 0"></div>
-
-  <h3 style="margin-top:56px">Three checks that changed the story</h3>
-  <p>These checks need no retraining. They are the most important part of the study, because without them we would have drawn the wrong conclusion.</p>
-  <div class="controls">
-    <div class="grp" id="cMode"><span class="label">Check</span></div>
-  </div>
-  <div class="chart"><div class="key" id="cKey"></div><svg id="checkChart" viewBox="0 0 900 380" role="img" aria-label="Control experiments"></svg>
-    <div class="chart-cap mono"><span id="cCap"></span><span class="mute">Unseen data average · stages A–E: 5 seeds, others: 3</span></div></div>
-  <div class="grid g3" style="margin-top:18px">
-    <div><span class="cell-no">[ 1 ] DELETE FRAGMENTS</span><p>Removing tiny specks brings <b>every</b> model to about 5 broken pieces, including the plain U-Net (75 → 4.7). So the topology loss’s big “broken pieces” win was mostly a clean-up effect.</p></div>
-    <div><span class="cell-no">[ 2 ] TUNE THE THRESHOLD</span><p>The topology-trained models over-draw at the usual 0.5 cut-off. With the cut-off tuned on validation images they have the <b>best</b> Dice (0.782 vs 0.757). The Dice “cost” was mostly calibration.</p></div>
-    <div><span class="cell-no">[ 3 ] IMAGE SCALE</span><p>Without resizing photos to a fixed width, the plain U-Net collapses (Dice 0.768 → 0.637), while the compact models hold (0.757 → 0.750). Only A, D and E were tested this way.</p></div>
-  </div>
-
-  <h3 style="margin-top:56px">All eight combinations</h3>
-  <p>We tried every mix of backbone, topology loss and DG augmentation. Toggle the chips to find a cell.</p>
-  <div class="chips" id="facChips"></div>
-  <div style="margin-top:14px;overflow-x:auto"><table class="data" id="facTable"></table></div>
-
-  <figure class="fig" style="margin-top:34px"><img src="img/fig_results.png" alt="Per-dataset results" loading="lazy">
-    <figcaption><b>Fig. 4</b> Results of stages A–E on each dataset (mean over seeds; whiskers: standard deviation). Betti-0 error is on a log scale.</figcaption></figure>
-</section>
-
-<!-- ===================================================================== 05 TRADEOFF -->
-<section id="tradeoff">
-  <div class="sec-head">
-    <div class="sec-no">05</div>
-    <div>
-      <h2 class="macro-2">Small ≠ fast</h2>
-      <p class="lead">TG-LiteNet has 147× fewer parameters than the U-Net, but it is only about 8.8× faster on a laptop CPU. And a plain small U-Net matches it. Hover a dot.</p>
-    </div>
-  </div>
-  <div class="controls">
-    <div class="grp" id="tScore"><span class="label">Y axis</span></div>
-    <div class="grp" id="tShow"><span class="label">Show</span></div>
-  </div>
-  <div class="chart"><svg id="tradeChart" viewBox="0 0 900 440" role="img" aria-label="Accuracy versus CPU time"></svg>
-    <div class="chart-cap mono"><span>X: CPU time for one 512×512 image, 4 laptop threads (log scale). Bigger dot = more parameters.</span><span class="mute">Better = up and to the left</span></div></div>
-  <div class="grid g3" style="margin-top:18px">
-    <div><span class="cell-no">[ WHY ]</span><p>Depthwise convolutions do very little arithmetic per byte of memory they read, so counting operations over-states the speed-up.</p></div>
-    <div><span class="cell-no">[ SO ]</span><p>A base-8 U-Net with the same operation count runs in 67 ms (TG-LiteNet: 209 ms) with the same Dice.</p></div>
-    <div><span class="cell-no">[ RECOMMENDATION ]</span><p>A base-16 U-Net (1.94 M parameters, still under 2 M) is as fast (187 ms) and better connected. For a CPU-only clinic, <b>that</b> is what we would deploy.</p></div>
+    <figure class="plate-card sf-img mt-24 max-w-5xl mx-auto"><img src="img/architecture.png" alt="Architecture diagram of TG-LiteNet" loading="lazy"></figure>
+    <p class="text-center text-sm text-white/50 mt-4">TG-LiteNet: resized photo in, vessel map and uncertainty out. The centreline head and the augmentation exist only during training.</p>
   </div>
 </section>
 
-<!-- ===================================================================== 06 UNCERTAINTY -->
-<section id="uncertainty">
-  <div class="sec-head">
-    <div class="sec-no">06</div>
-    <div>
-      <h2 class="macro-2">Can it say<br>“I’m not sure”?</h2>
-      <p class="lead">We run the model 20 times with random dropout. Where the runs disagree, it is unsure. If that works, we can throw away the unsure parts and keep the reliable ones.</p>
+<!-- ============================================================ VIEWER -->
+<section id="viewer" class="relative px-6 py-32 md:py-48 mesh">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">Run it yourself, right here.</h2>
+    <p class="mt-4 text-white/65 max-w-2xl">These are the real predictions of our trained models on held-out photos. Slide the threshold and the fragment filter, and watch the score and the number of broken vessel pieces update live.</p>
+    <div class="mt-10">
+      <div class="ctl-row" id="vDs"><span class="ctl-label"><i class="ph ph-database"></i>Dataset</span></div>
+      <div class="ctl-row" id="vModel"><span class="ctl-label"><i class="ph ph-brain"></i>Model</span></div>
+      <div class="ctl-row" id="vMode"><span class="ctl-label"><i class="ph ph-eye"></i>Show</span></div>
     </div>
-  </div>
-  <div class="controls"><div class="grp" id="uMode"><span class="label">Remove the most uncertain…</span></div></div>
-  <div class="chart"><div class="key" id="uKey"></div><svg id="riskChart" viewBox="0 0 900 360" role="img" aria-label="Risk coverage"></svg>
-    <div class="chart-cap mono"><span id="uCap"></span></div></div>
-  <div class="grid g2" style="margin-top:18px">
-    <div><span class="cell-no">[ PIXELS: WORKS A LITTLE ]</span><p>Removing the 10% most uncertain pixels cuts the pixel error from 4.7% to 1.6% on DRIVE and from 6.5% to 3.5% on HRF. Uncertainty correlates with real errors (0.31–0.34).</p></div>
-    <div><span class="cell-no">[ IMAGES: DOES NOT WORK ]</span><p>Removing the most uncertain <i>images</i> is no better than removing random ones on DRIVE and STARE, and is worse than random on HRF. With a 20× running cost, we would drop MC dropout.</p></div>
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+      <div class="glass rounded-3xl slider"><div class="row"><label for="thr" class="font-medium text-white/80"><i class="ph ph-sliders-horizontal mr-1"></i>Decision threshold <span class="term" data-def="The model gives each pixel a probability of being vessel. The threshold is the cut-off. We used 0.5 for all headline results.">what is this</span></label><output id="thrOut">0.50</output></div><input id="thr" type="range" min="0.2" max="0.8" step="0.01" value="0.5"></div>
+      <div class="glass rounded-3xl slider"><div class="row"><label for="minsz" class="font-medium text-white/80"><i class="ph ph-broom mr-1"></i>Delete fragments smaller than <span class="term" data-def="Tiny stray specks of vessel that touch no other vessel. Deleting them needs no retraining.">what is this</span></label><output id="minszOut">0 px</output></div><input id="minsz" type="range" min="0" max="200" step="5" value="0"></div>
+    </div>
+    <div class="grid lg:grid-cols-[1.5fr_1fr] gap-5 items-start">
+      <div class="vstage"><canvas id="vCanvas" aria-label="Segmentation viewer"></canvas></div>
+      <div class="space-y-4">
+        <dl class="readout">
+          <div><dt>Dice (overlap)</dt><dd id="rDice">-</dd></div>
+          <div><dt>Vessel pieces</dt><dd id="rPieces">-</dd></div>
+          <div><dt>True pieces</dt><dd id="rGt">-</dd></div>
+          <div><dt>Piece-count error</dt><dd id="rExtra">-</dd></div>
+          <div><dt>Found (recall)</dt><dd id="rRec">-</dd></div>
+          <div><dt>Correct (precision)</dt><dd id="rPre">-</dd></div>
+        </dl>
+        <div class="legend"><span><i style="background:#fff"></i>correct</span><span><i style="background:#ff4d3a"></i>false alarm</span><span><i style="background:#3b82f6"></i>missed</span></div>
+        <div class="insight" id="vInsight"></div>
+        <p class="text-sm text-white/55 leading-relaxed">Try this: pick the U-Net, then drag the fragment slider to about 150. The vessel-piece count collapses while the Dice barely moves. That is why a simple clean-up step explains most of the topology gain. Scores use the model's working resolution, so they differ slightly from the paper.</p>
+      </div>
+    </div>
+    <figure class="plate-card sf-img mt-20 max-w-4xl mx-auto"><img src="img/fig_qualitative.png" alt="Qualitative results on four datasets" loading="lazy"></figure>
+    <p class="text-center text-sm text-white/50 mt-4">One image per dataset. White is correct, red a false alarm, blue a missed vessel; the right panel is the uncertainty of TG-LiteNet.</p>
   </div>
 </section>
 
-<!-- ===================================================================== 07 FAILURES -->
-<section id="failures">
-  <div class="sec-head">
-    <div class="sec-no">07</div>
-    <div>
-      <h2 class="macro-2">Where it fails</h2>
-      <p class="lead">A short error analysis of the saved predictions (seed 0, unseen datasets, threshold 0.5). Which vessels are missed, and what are the false alarms?</p>
+<!-- ============================================================ RESULTS -->
+<section id="results" class="relative px-6 py-32 md:py-48">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">Five stages, five seeds each. Choose a score.</h2>
+    <p class="mt-4 text-white/65 max-w-2xl">For Betti-0 error (the number of broken pieces) lower is better. Hover any bar for exact values.</p>
+    <div class="mt-10">
+      <div class="ctl-row" id="rMetric"><span class="ctl-label"><i class="ph ph-chart-bar"></i>Score</span></div>
+      <div class="ctl-row" id="rDs"><span class="ctl-label"><i class="ph ph-database"></i>Dataset</span></div>
     </div>
-  </div>
-  <div class="grid g4" id="failStats"></div>
-  <div class="controls" style="margin-top:18px"><div class="grp" id="fKind"><span class="label">Break down by</span></div></div>
-  <div class="chart"><div class="key" id="fKey"></div><svg id="failChart" viewBox="0 0 900 340" role="img" aria-label="Failure analysis"></svg>
-    <div class="chart-cap mono"><span id="fCap"></span></div></div>
-  <div class="insight" style="margin:14px 0 0"><b>Reading it.</b> The <b>thinnest</b> vessels (2 px wide or less) are found least often (82–86%, against 94–96% for wider ones), and most false-alarm pixels (about 85%) sit right next to a real vessel: the model draws vessels slightly too thick. The stray fragments are numerous but tiny (about 1% of predicted vessel pixels). Fragments are what inflate the broken-pieces score, and the topology loss halves them (36 → 18 per image).</div>
-  <figure class="fig" style="margin-top:34px"><img src="img/fig_failure.png" alt="Failure analysis by vessel width and image zone" loading="lazy">
-    <figcaption><b>Fig. 5</b> Failure analysis from <code>scripts/failure_analysis.py</code>: vessels found by width (a) and by image zone (b), and false alarms by zone (c).</figcaption></figure>
-</section>
+    <div class="glass chart"><div class="key" id="rKey"></div><svg id="stageChart" viewBox="0 0 900 360" role="img" aria-label="Stage results"></svg><div class="cap"><span id="rCap"></span><span>Whiskers: standard deviation over seeds</span></div></div>
+    <div class="insight mt-4" id="rInsight"></div>
 
-<!-- ===================================================================== 08 VERDICT -->
-<section id="verdict">
-  <div class="sec-head">
-    <div class="sec-no">08</div>
-    <div>
-      <h2 class="macro-2">The verdict</h2>
-      <p class="lead">Did it work? Partly, and we know exactly which parts.</p>
+    <div class="mt-28 md:mt-40">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05] max-w-3xl" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">Three checks that changed the story.</h3>
+      <p class="mt-4 text-white/65 max-w-2xl">None of these needs retraining, and without them we would have drawn the wrong conclusion.</p>
+      <div class="ctl-row mt-8" id="cMode"><span class="ctl-label"><i class="ph ph-flask"></i>Check</span></div>
+      <div class="glass chart"><div class="key" id="cKey"></div><svg id="checkChart" viewBox="0 0 900 380" role="img" aria-label="Control experiments"></svg><div class="cap"><span id="cCap"></span><span>Unseen average. Stages A to E: 5 seeds, others: 3</span></div></div>
+      <div class="grid md:grid-cols-3 gap-4 mt-5">
+        <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-broom text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Delete fragments</h4><p class="mt-2 text-white/65 text-[15px]">Every model drops to about 5 broken pieces, the plain U-Net included (75 to 4.7).</p></article>
+        <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-sliders text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Tune the threshold</h4><p class="mt-2 text-white/65 text-[15px]">Topology-trained models then score best: 0.782 against 0.757 for the U-Net.</p></article>
+        <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-arrows-out text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Image scale</h4><p class="mt-2 text-white/65 text-[15px]">Without resizing, the U-Net collapses (0.768 to 0.637); the compact models hold.</p></article>
+      </div>
     </div>
-  </div>
-  <div class="verdict">
-    <div class="yes"><h3>What worked</h3><ul>
-      <li>147× fewer parameters (0.21 M vs 31 M) for only 0.006 Dice loss on unseen data.</li>
-      <li>DG augmentation: +0.008 Dice and a smaller drop between DRIVE and unseen cameras (gap 0.074 → 0.065).</li>
-      <li>The topology loss halves broken pieces and adds a little connectivity (clDice +0.007).</li>
-      <li>With a tuned threshold, topology-trained models have the best Dice (stage C 0.782 vs 0.757).</li>
-      <li>A strict protocol: DRIVE only for training, no test image used for tuning, 70 models, open code.</li>
-    </ul></div>
-    <div class="no"><h3>What did not</h3><ul>
-      <li>The topology gain is mostly a clean-up effect: deleting specks gives every model ≈5 broken pieces.</li>
-      <li>The compact backbone saves parameters, not time. A plain base-16 U-Net matches it and is better connected.</li>
-      <li>Skeleton head, consistency loss and dropout add nothing measurable.</li>
-      <li>MC-dropout uncertainty cannot reliably flag bad images and costs 20× more.</li>
-      <li>Not a new state-of-the-art method. It is a careful comparison.</li>
-    </ul></div>
-  </div>
-  <div class="kid" style="margin-top:34px">
-    <span class="label">[ EXPLAIN IT LIKE I’M 15 ]</span>
-    <p style="margin-top:14px">We taught a small computer program to trace blood vessels in eye photos, and we wanted it to stay accurate on photos from other cameras while staying tiny. Our clever trick to keep the vessels connected helped a little, but when we ran extra checks we found a simple clean-up step gave nearly the same benefit to every program. So the real lesson is not “our trick is amazing”. It is that we tested honestly and found out what actually works.</p>
+
+    <div class="mt-28 md:mt-40">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05]" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">All eight combinations.</h3>
+      <p class="mt-4 text-white/65 max-w-2xl">Toggle a chip to light up the matching rows.</p>
+      <div class="flex flex-wrap gap-2 mt-6" id="facChips"></div>
+      <div class="glass rounded-[26px] p-4 mt-5 overflow-x-auto"><table class="data" id="facTable"></table></div>
+    </div>
   </div>
 </section>
 
-<!-- ===================================================================== 09 REPRODUCE -->
-<section id="reproduce">
-  <div class="sec-head">
-    <div class="sec-no">09</div>
-    <div>
-      <h2 class="macro-2">Reproduce it</h2>
-      <p class="lead">Every number in the paper and on this page is generated from the saved runs by scripts in the repository.</p>
+<!-- ============================================================ FINDINGS CAROUSEL -->
+<section id="findings" class="relative px-6 py-32 md:py-48 mesh">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex items-end justify-between gap-6 flex-wrap">
+      <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-3xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">What the data actually says.</h2>
+      <div class="flex items-center gap-3"><button class="iconbtn" id="prevSlide" aria-label="Previous finding"><i class="ph-bold ph-arrow-left"></i></button><button class="iconbtn" id="nextSlide" aria-label="Next finding"><i class="ph-bold ph-arrow-right"></i></button></div>
+    </div>
+    <div class="slides mt-14" id="slides" tabindex="0" aria-label="Findings carousel">
+      <article class="slide on">
+        <div class="plate"><img src="img/fig_cleanup.png" alt="Cleanup and threshold checks" loading="lazy"></div>
+        <div class="quote glass"><i class="ph-fill ph-quotes text-4xl text-coral"></i><p class="mt-4 text-2xl md:text-3xl font-bold tracking-tight leading-snug">Deleting tiny fragments gives every model about 5 broken pieces. The topology loss's big win was mostly clean-up.</p><p class="mt-5 text-white/55 text-sm">Betti-0 error, 5 seeds. The U-Net goes from 75.0 to 4.7.</p></div>
+      </article>
+      <article class="slide">
+        <div class="plate"><img src="img/fig_cleanup.png" alt="Dice at tuned threshold" loading="lazy" style="object-fit:cover; object-position:100% 50%; width:100%; aspect-ratio: 16/10"></div>
+        <div class="quote glass"><i class="ph-fill ph-quotes text-4xl text-coral"></i><p class="mt-4 text-2xl md:text-3xl font-bold tracking-tight leading-snug">With the threshold tuned on validation images, the topology-trained models have the best Dice.</p><p class="mt-5 text-white/55 text-sm">Stage C 0.782 against 0.757 for the plain U-Net. The Dice cost at 0.5 was mostly calibration.</p></div>
+      </article>
+      <article class="slide">
+        <div class="plate"><img src="img/fig_tradeoff.png" alt="Accuracy against CPU time" loading="lazy"></div>
+        <div class="quote glass"><i class="ph-fill ph-quotes text-4xl text-coral"></i><p class="mt-4 text-2xl md:text-3xl font-bold tracking-tight leading-snug">Small does not mean fast. A plain base-16 U-Net matches our network at the same speed and is better connected.</p><p class="mt-5 text-white/55 text-sm">147 times fewer parameters, but only 8.8 times faster on a laptop CPU.</p></div>
+      </article>
+      <article class="slide">
+        <div class="plate"><img src="img/fig_risk_coverage.png" alt="Risk coverage curves" loading="lazy"></div>
+        <div class="quote glass"><i class="ph-fill ph-quotes text-4xl text-coral"></i><p class="mt-4 text-2xl md:text-3xl font-bold tracking-tight leading-snug">The uncertainty map finds some wrong pixels, but it cannot reliably tell us which whole images to distrust.</p><p class="mt-5 text-white/55 text-sm">At 20 times the cost, we would drop MC dropout.</p></div>
+      </article>
+      <article class="slide">
+        <div class="plate"><img src="img/fig_failure.png" alt="Failure analysis" loading="lazy"></div>
+        <div class="quote glass"><i class="ph-fill ph-quotes text-4xl text-coral"></i><p class="mt-4 text-2xl md:text-3xl font-bold tracking-tight leading-snug">The thinnest vessels are missed most, and most false alarms are vessels drawn slightly too thick.</p><p class="mt-5 text-white/55 text-sm">Single-run error analysis on unseen data, threshold 0.5.</p></div>
+      </article>
+    </div>
+    <div class="flex items-center justify-center gap-2 mt-10" id="dotNav" role="tablist" aria-label="Choose a finding"></div>
+  </div>
+</section>
+
+<!-- ============================================================ COST -->
+<section id="cost" class="relative px-6 py-32 md:py-48">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">Small is not the same as fast.</h2>
+    <p class="mt-4 text-white/65 max-w-2xl">Each dot is one model. Higher is more accurate, further left is faster, and bigger dots have more parameters. Hover for details.</p>
+    <div class="ctl-row mt-10"><span class="ctl-label"><i class="ph ph-chart-scatter"></i>Y axis</span><span id="tScore" class="contents"></span><span class="ctl-label ml-4"><i class="ph ph-funnel"></i>Show</span><span id="tShow" class="contents"></span></div>
+    <div class="glass chart"><svg id="tradeChart" viewBox="0 0 900 440" role="img" aria-label="Accuracy versus CPU time"></svg><div class="cap"><span>X: CPU time for one 512x512 image on 4 laptop threads (log scale)</span><span>Better is up and to the left</span></div></div>
+    <div class="grid md:grid-cols-3 gap-4 mt-5">
+      <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-memory text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Why</h4><p class="mt-2 text-white/65 text-[15px]">Depthwise convolutions do little arithmetic per byte of memory read, so counting operations over-states the speed-up.</p></article>
+      <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-timer text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">So</h4><p class="mt-2 text-white/65 text-[15px]">A base-8 U-Net with the same operation count runs in 67 ms (TG-LiteNet: 209 ms) with the same Dice.</p></article>
+      <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-check-circle text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Recommendation</h4><p class="mt-2 text-white/65 text-[15px]">A base-16 U-Net (1.94 M parameters) is as fast (187 ms) and better connected. That is what we would deploy on a CPU-only clinic machine.</p></article>
+    </div>
+
+    <div class="mt-28 md:mt-40">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05] max-w-3xl" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">Can it say it is not sure?</h3>
+      <p class="mt-4 text-white/65 max-w-2xl">We run the model 20 times with random dropout. Where the runs disagree, it is unsure. If that works, removing the unsure parts should lower the error.</p>
+      <div class="ctl-row mt-8" id="uMode"><span class="ctl-label"><i class="ph ph-scissors"></i>Remove the most uncertain</span></div>
+      <div class="glass chart"><div class="key" id="uKey"></div><svg id="riskChart" viewBox="0 0 900 360" role="img" aria-label="Risk coverage"></svg><div class="cap"><span id="uCap"></span></div></div>
+      <div class="grid md:grid-cols-2 gap-4 mt-5">
+        <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-check text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Pixels: works a little</h4><p class="mt-2 text-white/65 text-[15px]">Removing the 10% most uncertain pixels cuts the error from 4.7% to 1.6% on DRIVE and from 6.5% to 3.5% on HRF.</p></article>
+        <article class="spot glass rounded-[24px] p-6"><i class="ph-bold ph-x text-2xl text-coral"></i><h4 class="mt-3 font-black text-lg">Images: does not work</h4><p class="mt-2 text-white/65 text-[15px]">Removing the most uncertain images is no better than removing random ones, and worse on HRF.</p></article>
+      </div>
+    </div>
+
+    <div class="mt-28 md:mt-40">
+      <h3 class="font-black tracking-[-0.03em] leading-[1.05] max-w-3xl" style="font-size: clamp(1.7rem, 3vw, 2.8rem)">Where it fails.</h3>
+      <p class="mt-4 text-white/65 max-w-2xl">An error analysis of the saved predictions (seed 0, unseen datasets, threshold 0.5).</p>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8" id="failStats"></div>
+      <div class="ctl-row mt-8" id="fKind"><span class="ctl-label"><i class="ph ph-magnifying-glass"></i>Break down by</span></div>
+      <div class="glass chart"><div class="key" id="fKey"></div><svg id="failChart" viewBox="0 0 900 340" role="img" aria-label="Failure analysis"></svg><div class="cap"><span id="fCap"></span></div></div>
     </div>
   </div>
-  <div class="cols">
-    <div>
-      <h3>Quick start</h3>
-<pre class="code" data-copy><span class="c"># install (PyTorch separately, CUDA build)</span>
+</section>
+
+<!-- ============================================================ VERDICT -->
+<section id="verdict" class="relative px-6 py-32 md:py-48 mesh">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.03em] leading-[1.05] max-w-4xl" style="font-size: clamp(2rem, 3.8vw, 3.6rem)">Did it work? Partly, and we know exactly which parts.</h2>
+    <div class="grid md:grid-cols-2 gap-5 mt-14">
+      <article class="glass rounded-[30px] p-8 md:p-10">
+        <h3 class="flex items-center gap-3 text-2xl font-black tracking-tight"><i class="ph-fill ph-check-circle text-3xl text-emerald-400"></i>What worked</h3>
+        <ul class="mt-6 space-y-4 text-white/80 leading-relaxed">
+          <li class="flex gap-3"><i class="ph-bold ph-check text-emerald-400 mt-1"></i>147 times fewer parameters for only 0.006 Dice on unseen data.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-check text-emerald-400 mt-1"></i>DG augmentation: +0.008 Dice and a smaller drop on new cameras.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-check text-emerald-400 mt-1"></i>The topology loss adds connectivity (+0.007 clDice) and halves broken pieces.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-check text-emerald-400 mt-1"></i>With a tuned threshold the topology models score best (0.782).</li>
+          <li class="flex gap-3"><i class="ph-bold ph-check text-emerald-400 mt-1"></i>A strict protocol: 70 models, no test image used for tuning, open code.</li>
+        </ul>
+      </article>
+      <article class="glass rounded-[30px] p-8 md:p-10">
+        <h3 class="flex items-center gap-3 text-2xl font-black tracking-tight"><i class="ph-fill ph-x-circle text-3xl text-coral"></i>What did not</h3>
+        <ul class="mt-6 space-y-4 text-white/80 leading-relaxed">
+          <li class="flex gap-3"><i class="ph-bold ph-x text-coral mt-1"></i>The topology gain is mostly a clean-up effect: deleting specks gives every model about 5 pieces.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-x text-coral mt-1"></i>The compact backbone saves parameters, not time. A plain base-16 U-Net matches it.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-x text-coral mt-1"></i>The skeleton head, consistency loss and dropout add nothing measurable.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-x text-coral mt-1"></i>The uncertainty map cannot flag bad images and costs 20 times more.</li>
+          <li class="flex gap-3"><i class="ph-bold ph-x text-coral mt-1"></i>It is a careful comparison, not a new state-of-the-art method.</li>
+        </ul>
+      </article>
+    </div>
+    <article class="spot glass rounded-[32px] p-8 md:p-12 mt-5">
+      <div class="flex items-center gap-3 text-coral font-bold"><i class="ph-bold ph-chat-circle-dots text-2xl"></i>Explained like you are 15</div>
+      <p class="mt-5 text-xl md:text-2xl leading-relaxed text-white/85 max-w-4xl">We taught a small computer program to trace blood vessels in eye photos, and we wanted it to stay accurate on photos from other cameras while staying tiny. Our clever trick to keep the vessels connected helped a little, but extra checks showed a simple clean-up step gave nearly the same benefit to every program. The real lesson is not that our trick is amazing. It is that we tested honestly and found out what actually works.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================ ACTION -->
+<section id="reproduce" class="relative px-6 pt-32 md:pt-48 pb-16 overflow-hidden grain">
+  <div class="absolute inset-0 mesh"></div>
+  <div class="relative max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.045em] leading-[0.98] text-white max-w-5xl" style="font-size: clamp(2.8rem, 7.2vw, 7rem)">Trace. Test. Tell the truth.</h2>
+    <p class="mt-6 text-xl text-white/65 max-w-2xl">Every number on this page is generated from the saved runs by scripts in the repository. Run it on your own machine.</p>
+    <div class="mt-10 flex flex-col sm:flex-row gap-4">
+      <a href="https://github.com/Deltasthicc/ML-Project" class="btn-primary"><i class="ph-bold ph-github-logo text-xl"></i>Open the repository</a>
+      <a href="paper.pdf" class="btn-ghost"><i class="ph-bold ph-file-pdf text-xl"></i>Download the paper</a>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-5 mt-20">
+      <pre class="code" data-copy><span class="c"># set up</span>
 pip install -r requirements.txt
 pip install -e .
-pytest -q                       <span class="c"># 36 tests</span>
+pytest -q
 python scripts/download_data.py
 python scripts/prepare_data.py</pre>
-<pre class="code" data-copy><span class="c"># the experiments (resumable)</span>
+      <pre class="code" data-copy><span class="c"># run the study (resumable)</span>
 python scripts/run_experiments.py --groups primary --native-eval
 python scripts/aggregate_results.py
 python scripts/make_report_assets.py
 python scripts/failure_analysis.py
 python scripts/make_website_data.py</pre>
     </div>
-    <div>
-      <h3>Repository map</h3>
-      <table class="data">
-        <tr><th>Path</th><th>What it holds</th></tr>
-        <tr><td class="num">tglite/</td><td>models, losses, data, metrics, training</td></tr>
-        <tr><td class="num">configs/base.yaml</td><td>every hyper-parameter</td></tr>
-        <tr><td class="num">scripts/</td><td>download, train, evaluate, aggregate, figures</td></tr>
-        <tr><td class="num">results/runs/</td><td>per-image results of all 70 runs</td></tr>
-        <tr><td class="num">report/</td><td>IEEE paper (LaTeX) and figures</td></tr>
-        <tr><td class="num">docs/</td><td>this website</td></tr>
-      </table>
+    <div class="mt-16">
+      <h3 class="font-black text-2xl tracking-tight mb-5">Honest limits</h3>
+      <details class="lim"><summary>Only 16 training images <i class="ph-bold ph-plus"></i></summary><div>Seed-to-seed variation can match small gains: stage A's unseen Dice ranges from 0.755 to 0.769 over five seeds.</div></details>
+      <details class="lim"><summary>The test sets were seen while designing the analyses <i class="ph-bold ph-plus"></i></summary><div>No test image was used for training, tuning or choosing checkpoints, but we looked at the results while designing the experiments, so the test sets are held-out rather than untouched. The fragment size and tuned thresholds were chosen after the fact, on four validation images.</div></details>
+      <details class="lim"><summary>Speed was measured on a laptop, not an edge device <i class="ph-bold ph-plus"></i></summary><div>Standard PyTorch on a laptop CPU. Cloud machines varied by up to 2 times for identical models, which is why we use a controlled benchmark.</div></details>
+      <details class="lim"><summary>The failure analysis uses seed 0 only <i class="ph-bold ph-plus"></i></summary><div>Only seed 0 kept its prediction maps, so those numbers describe kinds of error and are not used for headline claims.</div></details>
+      <details class="lim"><summary>One training dataset is harder than other setups <i class="ph-bold ph-plus"></i></summary><div>Our absolute numbers cannot be compared with papers that train on several datasets or adapt at test time.</div></details>
     </div>
-  </div>
-
-  <h3 style="margin-top:44px">Honest limits</h3>
-  <details><summary>Only 16 training images</summary><div><p>Seed-to-seed variation can match small gains: stage A’s unseen Dice ranges from 0.755 to 0.769 over five seeds.</p></div></details>
-  <details><summary>The test sets were seen while designing the analyses</summary><div><p>No test image was used for training, tuning or picking checkpoints, but we looked at the results while designing the experiments, so the test sets are held-out, not untouched. The comparisons are uncorrected, and the fragment size and tuned thresholds (chosen on four validation images) were chosen after the fact.</p></div></details>
-  <details><summary>Speed was measured on a laptop, not an edge device</summary><div><p>Standard PyTorch on a laptop CPU. Cloud machines varied up to 2× for identical models, which is why we use a controlled laptop benchmark.</p></div></details>
-  <details><summary>The failure analysis uses seed 0 only</summary><div><p>Only seed 0 kept its prediction maps, so those numbers describe kinds of error and are not used for headline claims.</p></div></details>
-  <details><summary>Training on one dataset is harder than other protocols</summary><div><p>Our absolute numbers cannot be compared with papers that train on several datasets or adapt at test time.</p></div></details>
-
-  <h3 style="margin-top:44px">Team</h3>
-  <div class="team">
-    <div><b>Abhiraj Agarwal</b><span class="mono">Roll No. 2510110002</span></div>
-    <div><b>Shashwat Rajan</b><span class="mono">Roll No. 2510111019</span></div>
-    <div><b>Tanish Shitanshu</b><span class="mono">Roll No. 2510110008</span></div>
+    <footer class="mt-24 pt-10 border-t border-white/10 flex flex-wrap gap-8 justify-between items-start text-white/60 text-sm">
+      <div class="flex items-center gap-3 text-white"><svg class="w-9 h-9"><use href="#logo"/></svg><div><div class="font-black text-lg tracking-tight">TG-LiteNet</div><div class="text-white/50 text-sm">CSD361 Introduction to Machine Learning</div></div></div>
+      <div class="space-y-1"><div class="text-white/85 font-medium">Abhiraj Agarwal, 2510110002</div><div class="text-white/85 font-medium">Shashwat Rajan, 2510111019</div><div class="text-white/85 font-medium">Tanish Shitanshu, 2510110008</div></div>
+      <div class="space-y-1"><div>Department of CSE, Shiv Nadar Institution of Eminence</div><div>MIT licence, 2026</div><a class="inline-flex items-center gap-2 text-coral font-bold mt-2" href="v1/"><i class="ph-bold ph-swap"></i>Switch to the original design</a></div>
+    </footer>
   </div>
 </section>
 
-<footer>
-  <div class="macro">Trace.<br>Test.<br>Tell the truth.</div>
-  <div class="mono"><p style="margin:0">CSD361 — Introduction to Machine Learning<br>Department of CSE, Shiv Nadar Institution of Eminence<br>MIT licence · ©&nbsp;2026</p>
-    <p style="margin:12px 0 0"><a href="paper.pdf">Paper</a> · <a href="https://github.com/Deltasthicc/ML-Project">Code</a></p></div>
-</footer>
+</main>
 
 <div class="tip" id="tip"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="data/results.js"></script>
-<script src="js/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

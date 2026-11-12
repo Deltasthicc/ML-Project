@@ -135,7 +135,7 @@
     let cur = "drive", view = "img";
     const load = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = src; });
     async function ensure(ds) {
-      if (!imgs[ds]) imgs[ds] = { img: await load(`assets/viewer/${ds}_img.jpg`), gt: await load(`assets/viewer/${ds}_gt.png`) };
+      if (!imgs[ds]) imgs[ds] = { img: await load(`../assets/viewer/${ds}_img.jpg`), gt: await load(`../assets/viewer/${ds}_gt.png`) };
       return imgs[ds];
     }
     async function draw() {
@@ -210,7 +210,7 @@
     }
     async function ensure(d) {
       if (cache[d]) return cache[d];
-      const base = `assets/viewer/${d}_`;
+      const base = `../assets/viewer/${d}_`;
       const [img, gt, fov, pA, pC, pE, unc] = await Promise.all([load(base + "img.jpg"), load(base + "gt.png"), load(base + "fov.png"), load(base + "prob_A.png"), load(base + "prob_C.png"), load(base + "prob_E.png"), load(base + "unc_E.png")]);
       const w = img.width, hh = img.height, ch = (im) => { const p = pixels(im), o = new Uint8Array(w * hh); for (let i = 0; i < o.length; i++) o[i] = p[i * 4]; return o; };
       const c = { w, h: hh, photo: pixels(img), gt: ch(gt), fov: ch(fov), prob: { A: ch(pA), C: ch(pC), E: ch(pE) }, unc: ch(unc) };

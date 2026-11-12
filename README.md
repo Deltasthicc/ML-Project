@@ -9,7 +9,7 @@ Abhiraj Agarwal (2510110002) · Shashwat Rajan (2510111019) · Tanish Shitanshu 
 A **controlled study** of three properties that a vessel segmenter for a rural screening camp needs at the same time:
 vessels that stay **connected** (topology), a model that works on cameras it was **never trained on** (domain shift) and a
 model that is **small and fast** (efficiency). Everything is trained on **one** source dataset (DRIVE, 16 training images) and
-evaluated on three held-out datasets (STARE, CHASE_DB1, HRF). The paper is [`report/main.pdf`](report/main.pdf) (8 pages, IEEE format); an interactive project page (live segmentation viewer, results explorer) is in [`docs/`](docs/index.html) — run `python -m http.server --directory docs` and open <http://localhost:8000>, or publish `docs/` with GitHub Pages.
+evaluated on three held-out datasets (STARE, CHASE_DB1, HRF). The paper is [`report/main.pdf`](report/main.pdf) (8 pages, IEEE format); an interactive project page (live segmentation viewer, results explorer) is in [`docs/`](docs/index.html) — run `python -m http.server --directory docs` and open <http://localhost:8000>, or open the live site at <https://deltasthicc.github.io/ML-Project/> (GitHub Pages, source `docs/`; the first design is kept in `docs/v1/`).
 
 It is a trade-off study, **not** a state-of-the-art claim, and several of our own ideas did not survive their controls:
 
@@ -168,7 +168,7 @@ in [`results/tables/`](results/tables); [`results/findings.md`](results/findings
 │   ├── tables/              every aggregate table as CSV (summary, stage/factorial deltas, paired image deltas, confusion, ...)
 │   └── findings.md          auto-generated facts
 ├── report/                  main.tex, main.pdf, generated/ (tables + number macros), figures/
-├── docs/                    project website (index.html, css/, js/, data/results.js, assets/viewer/, img/); built by scripts/make_website_data.py
+├── docs/                    project website (index.html, style.css, app.js, data/results.js, assets/viewer/, img/; original design in v1/); data built by scripts/make_website_data.py
 ├── notebooks/colab_warmup.ipynb   Colab notebook for the topology-weight warm-up experiment (group `warmup`)
 ├── RUNBOOK.md               step-by-step checklist for the full run on a powerful machine
 └── data/                    NOT in git: raw/, processed/, MANIFEST.json (checksums)
