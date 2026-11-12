@@ -124,13 +124,27 @@
     const sfIn = (n) => gsap.to(n, { scale: 1, opacity: 1, filter: "brightness(1)", duration: 0.9, ease: "power3.out", overwrite: "auto" });
     const sfOut = (n) => gsap.to(n, { scale: 0.97, opacity: 0.25, filter: "brightness(0.5)", duration: 0.7, ease: "power2.out", overwrite: "auto" });
     const sfReset = (n) => gsap.to(n, { scale: 0.86, opacity: 0.45, filter: "brightness(1)", duration: 0.5, overwrite: "auto" });
-    $$(".sf-img").forEach((n) => {
-      if (n.getBoundingClientRect().top > innerHeight * 0.92) gsap.set(n, { scale: 0.86, opacity: 0.45 });
-      ScrollTrigger.create({ trigger: n, start: "top 92%", end: "bottom 6%", onEnter: () => sfIn(n), onEnterBack: () => sfIn(n), onLeave: () => sfOut(n), onLeaveBack: () => sfReset(n) });
-    });
-    // fonts, lazy images and async canvases change the page height: recompute every trigger whenever it does
+    // The state is recomputed from the element's real position (never remembered), so a height change caused by switching a dataset,
+    // a late-loading image or a font cannot leave an on-screen image dimmed.
+    const sfEls = $$(".sf-img");
+    const sfUpdate = () => {
+      const vh = innerHeight;
+      sfEls.forEach((n) => {
+        const r = n.getBoundingClientRect();
+        const want = r.top > vh * 0.92 ? "pre" : r.bottom < vh * 0.06 ? "out" : "in";
+        if (n._sf === want) return;
+        n._sf = want;
+        (want === "in" ? sfIn : want === "out" ? sfOut : sfReset)(n);
+      });
+    };
+    let sfRaf = 0;
+    const sfSchedule = () => { if (!sfRaf) sfRaf = requestAnimationFrame(() => { sfRaf = 0; sfUpdate(); }); };
+    addEventListener("scroll", sfSchedule, { passive: true }); addEventListener("resize", sfSchedule);
+    setInterval(sfUpdate, 400);                 // failsafe for any layout change that fires neither event
+    sfUpdate();
+    // fonts, lazy images and async canvases change the page height: recompute every scroll trigger and the image states whenever it does
     let rt = 0;
-    const refresh = () => { clearTimeout(rt); rt = setTimeout(() => ScrollTrigger.refresh(), 180); };
+    const refresh = () => { clearTimeout(rt); rt = setTimeout(() => { ScrollTrigger.refresh(); sfUpdate(); }, 180); };
     addEventListener("load", refresh);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
     if (window.ResizeObserver) new ResizeObserver(refresh).observe(document.body);
