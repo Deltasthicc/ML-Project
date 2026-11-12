@@ -106,8 +106,11 @@
     gsap.fromTo("#heroBg", { scale: 1.18 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true } });
     gsap.to("#heroBg", { yPercent: 14, ease: "none", scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true } });
 
-    // generic reveal
-    $$(".reveal").forEach((n, i) => gsap.from(n, { y: 44, opacity: 0, duration: 1, ease: "power3.out", delay: (i % 4) * 0.06, scrollTrigger: { trigger: n, start: "top 88%", once: true } }));
+    // generic reveal: driven by an IntersectionObserver, so a layout shift can never leave a card hidden
+    const rio = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.isIntersecting) { gsap.to(e.target, { y: 0, opacity: 1, duration: 1, ease: "power3.out", overwrite: "auto" }); rio.unobserve(e.target); }
+    }), { rootMargin: "0px 0px -6% 0px" });
+    $$(".reveal").forEach((n) => { gsap.set(n, { y: 44, opacity: 0 }); rio.observe(n); });
 
     // scrubbing text reveal: words go from 12% to full opacity as the paragraph scrolls through
     const p = $("#scrubText");
@@ -116,18 +119,21 @@
       gsap.fromTo($$(".word", p), { opacity: 0.12 }, { opacity: 1, ease: "none", stagger: 0.12, scrollTrigger: { trigger: p, start: "top 78%", end: "bottom 46%", scrub: true } });
     }
 
-    // image scale and fade: one timeline per figure, so the grow-in and the fade-out never fight each other.
-    // The figure is fully bright and full size through the middle of its scroll range and only dims at the very end.
+    // image scale and fade, state-based instead of scrubbed: the image grows to full size and full brightness while it is on screen
+    // and only fades after it has almost left the viewport, so an image the reader can see is never dimmed.
+    const sfIn = (n) => gsap.to(n, { scale: 1, opacity: 1, filter: "brightness(1)", duration: 0.9, ease: "power3.out", overwrite: "auto" });
+    const sfOut = (n) => gsap.to(n, { scale: 0.97, opacity: 0.25, filter: "brightness(0.5)", duration: 0.7, ease: "power2.out", overwrite: "auto" });
+    const sfReset = (n) => gsap.to(n, { scale: 0.86, opacity: 0.45, filter: "brightness(1)", duration: 0.5, overwrite: "auto" });
     $$(".sf-img").forEach((n) => {
-      const tl = gsap.timeline({ scrollTrigger: { trigger: n, start: "top 95%", end: "bottom 0%", scrub: true } });
-      tl.fromTo(n, { scale: 0.82, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.35, ease: "none", immediateRender: true })
-        .to(n, { duration: 0.45 })
-        .to(n, { opacity: 0.35, scale: 0.97, duration: 0.2, ease: "none" });
+      if (n.getBoundingClientRect().top > innerHeight * 0.92) gsap.set(n, { scale: 0.86, opacity: 0.45 });
+      ScrollTrigger.create({ trigger: n, start: "top 92%", end: "bottom 6%", onEnter: () => sfIn(n), onEnterBack: () => sfIn(n), onLeave: () => sfOut(n), onLeaveBack: () => sfReset(n) });
     });
-    // fonts and lazy images move things around: recompute every trigger once the page has settled
-    const refresh = () => ScrollTrigger.refresh();
+    // fonts, lazy images and async canvases change the page height: recompute every trigger whenever it does
+    let rt = 0;
+    const refresh = () => { clearTimeout(rt); rt = setTimeout(() => ScrollTrigger.refresh(), 180); };
     addEventListener("load", refresh);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
+    if (window.ResizeObserver) new ResizeObserver(refresh).observe(document.body);
   })();
 
   /* ---------------------------------------------------------------- bento numbers */
@@ -141,7 +147,12 @@
     bars.forEach((b) => { b.style.width = "0%"; b.style.transition = "width 1.4s cubic-bezier(.2,.8,.2,1)"; });
     if (!hasGsap || reduce) { num.textContent = ratio; set(); return; }
     const obj = { v: 0 };
-    ScrollTrigger.create({ trigger: "#bento", start: "top 75%", once: true, onEnter: () => { gsap.to(obj, { v: ratio, duration: 1.8, ease: "power2.out", onUpdate: () => (num.textContent = Math.round(obj.v)) }); set(); } });
+    const bio = new IntersectionObserver((es) => es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      bio.disconnect(); set();
+      gsap.to(obj, { v: ratio, duration: 1.8, ease: "power2.out", onUpdate: () => (num.textContent = Math.round(obj.v)), onComplete: () => (num.textContent = ratio) });
+    }), { threshold: 0.25 });
+    bio.observe($("#bento"));
   })();
 
   /* ---------------------------------------------------------------- dataset explorer */
