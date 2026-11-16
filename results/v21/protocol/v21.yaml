@@ -1,0 +1,56 @@
+# TG-LiteNet v2.1 (protocol/PROTOCOL_v2.1.md). Every v2.1 run = configs/base.yaml + `defaults` below
+# + the architecture / loss weights decided on DRIVE-val (protocol/decisions_v21.json) + one experiment entry + a seed.
+# configs/base.yaml and configs/experiments.yaml (frozen v2 protocol) are NOT modified.
+#
+#   arch: headline   -> decisions_v21.arch      (L_cap or L_wnet, chosen on DRIVE-val)
+#   weights: chosen  -> decisions_v21.weights   (lambda_topo, lambda_kd_skel chosen on DRIVE-val)
+
+defaults:
+  model: {skeleton_head: true, dropout: 0.0}
+  loss:
+    topo: cldice
+    lambda_topo: 0.5
+    cons_mode: skeleton          # novelty 4: skeleton-level consistency (v2: pixel MSE)
+    lambda_aux: 0.5              # W-Net first stage
+  dg: {enabled: true, p_randconv: 0.5, p_fourier: 0.5}     # stronger, still simple style augmentation (no target data)
+  distill:                       # novelty 3: topology-aware distillation from the v2 stage-C U-Net ensemble (DRIVE-train maps)
+    enabled: true
+    teacher: C_unet_topo_dg
+    teacher_seeds: [0, 1, 2, 3, 4]
+    lambda_kd: 0.5               # pixel distillation (BCE to the teacher probabilities)
+    lambda_kd_skel: 0.5          # skeleton distillation (soft-clDice to the teacher)
+  train: {iters: 10000}
+
+archs:
+  L_cap:  {backbone: unet, width: 8, channels: [8, 12, 16, 24, 32]}      # 66 K parameters, capped channels
+  L_wnet: {backbone: wnet, width: 4, channels: [4, 8, 12, 16, 24]}       # 64 K parameters, two chained tiny U-Nets
+
+weight_grid:                     # 2 seeds each, chosen arch; criterion: mean of (val Dice + val clDice) / 2 at the best checkpoint
+  lambda_topo: [0.25, 0.5]
+  lambda_kd_skel: [0.5, 1.0]
+
+experiments:
+  # selection (DRIVE only)
+  L_cap:  {role: selection, arch: L_cap}
+  L_wnet: {role: selection, arch: L_wnet}
+  # main (evaluated on every dataset after the v2.1 freeze)
+  H_tglite70k: {role: main, arch: headline, weights: chosen}
+  R_lite_w16:  {role: main, weights: chosen, model: {backbone: lite, width: 16}}
+  R_unet_w8:   {role: main, weights: chosen, model: {backbone: unet, width: 8}}
+  # ablations of the headline (one ingredient removed)
+  Z_no_kdskel:  {role: main, arch: headline, weights: chosen, distill: {lambda_kd_skel: 0.0}}
+  Z_no_kd:      {role: main, arch: headline, weights: chosen, distill: {enabled: false}}
+  Z_pixcons:    {role: main, arch: headline, weights: chosen, loss: {cons_mode: pixel}}
+  Z_noaug:      {role: main, arch: headline, weights: chosen, dg: {p_randconv: 0.0, p_fourier: 0.0}}
+  Z_v2recipe:   {role: main, arch: headline, distill: {enabled: false}, loss: {cons_mode: pixel, lambda_topo: 0.5}, dg: {p_randconv: 0.0, p_fourier: 0.0}}
+
+seeds:
+  selection: [0, 1, 2]
+  headline: [0, 1, 2, 3, 4]
+  reference: [0, 1, 2]
+  ablation: [0, 1, 2]
+
+# v2 models re-evaluated with the v2.1 evaluation (novelties 1 and 2, network-resolution metrics); no retraining
+reeval:
+  runs: {A_unet: [0, 1, 2, 3, 4], C_unet_topo_dg: [0, 1, 2, 3, 4], D_compact: [0, 1, 2, 3, 4], E_tglitenet: [0, 1, 2, 3, 4]}
+  ensembles: [ENS_D_compact, ENS_A_unet]

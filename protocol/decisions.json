@@ -1,0 +1,76 @@
+{
+  "budget_iters": 10000,
+  "budget": {
+    "rule": "fixed by the team before any v2 training (replaces the pilot rule)",
+    "decided": "2026-11-11T16:11:27"
+  },
+  "compact_model": {
+    "backbone": "unet",
+    "width": 8
+  },
+  "backbone": {
+    "compact_model": {
+      "backbone": "unet",
+      "width": 8
+    },
+    "compact_choice": "K_unet_w8",
+    "candidates": {
+      "K_lite_w16": {
+        "mean_val_dice": 0.8163242943271358,
+        "val_dice": [
+          0.8158255647296793,
+          0.8163412675701466,
+          0.816806050681582
+        ],
+        "cpu_ms": 108.78839995712042,
+        "params": 211569,
+        "eligible": true,
+        "within_tol": true
+      },
+      "K_hybrid_w16": {
+        "mean_val_dice": 0.8171662734602317,
+        "val_dice": [
+          0.8181246795146159,
+          0.8168208454594252,
+          0.8165532954066542
+        ],
+        "cpu_ms": 89.18830001493916,
+        "params": 259777,
+        "eligible": true,
+        "within_tol": true
+      },
+      "K_unet_w8": {
+        "mean_val_dice": 0.8161628635218113,
+        "val_dice": [
+          0.8161173764220809,
+          0.8158769689509405,
+          0.8164942451924126
+        ],
+        "cpu_ms": 38.506649958435446,
+        "params": 486409,
+        "eligible": true,
+        "within_tol": true
+      },
+      "K_unet_w16": {
+        "mean_val_dice": 0.8182139898225844,
+        "val_dice": [
+          0.8182988849511634,
+          0.8173163308815138,
+          0.8190267536350762
+        ],
+        "cpu_ms": 86.03950001997873,
+        "params": 1942289,
+        "eligible": true,
+        "within_tol": true
+      }
+    },
+    "rule": "params <= 2000000; mean DRIVE-val Dice within 0.005 of the best candidate; lowest CPU latency"
+  },
+  "frozen": true,
+  "frozen_at": "2026-11-11T18:52:55",
+  "frozen_files_sha256": {
+    "protocol/PROTOCOL.md": "485a277ec49e6e81409f9bad142df34637f797569c8505900db69cf2227e6cf3",
+    "configs/base.yaml": "301e8f4bc68de16d5d8c0ca967e842aa9844c09d6a3481c91a0a7d9573cad3bd",
+    "configs/experiments.yaml": "6a6332f12c88df9b678691318b36fd7e7c55ee34a7b1fc829f38441832d38cb9"
+  }
+}

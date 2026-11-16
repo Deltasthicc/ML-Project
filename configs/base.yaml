@@ -1,72 +1,75 @@
-# Defaults shared by every experiment. Each experiment overrides only what differs (registry in tglite/experiments.py).
-name: base
+# Defaults shared by every run. An experiment (configs/experiments.yaml) overrides only what differs.
+# Two values are resolved from protocol/decisions.json (written by the DRIVE-only selection phases):
+#   train.iters: auto        -> decisions.budget_iters       (training budget, pilot phase)
+#   model.backbone: compact  -> decisions.compact_model      (TG-LiteNet backbone, backbone-selection phase)
+
 seed: 0
 
-paths:
-  processed: data/processed       # output of scripts/prepare_data.py
-  cache: data/cache               # scale-normalised arrays (auto-created)
-  runs: results/runs
-  split_file: splits/drive_split.json
-
 data:
-  fov_target_width: 527           # every image is rescaled so its FOV is this wide (= median DRIVE FOV width)
+  fov_target_width: 540           # every image is rescaled so its FOV is this wide (= median DRIVE FOV width, official masks)
   patch_size: 256
   clahe_clip: 2.0
-  clahe_tile_px: 64               # tile size in *pixels* so full images and crops are treated alike
-  train_dataset: drive
-  eval_datasets: [drive, stare, chase_db1, hrf]   # drive == official DRIVE test split; add `fives` if downloaded
+  clahe_tile_px: 64               # CLAHE tile size in pixels, so full images and crops are treated alike
+  split_seed: 2026                # DRIVE: 15 train / 5 val drawn once from the 20 official training images
+  n_val: 5
+  targets: [stare, chase_db1, hrf]      # "unseen" average (primary)
+  extra_targets: [fives]                # reported separately, never averaged into "unseen"
 
 model:
-  backbone: unet                  # unet | lite
-  base_channels: 64               # unet width (64 -> ~31M params, the classic U-Net)
-  width: 16                       # lite width multiplier (see tglite/models/litenet.py)
-  dropout: 0.0                    # Dropout2d prob; >0 enables MC-dropout uncertainty
-  skeleton_head: false            # auxiliary skeleton head (training only)
+  backbone: unet                  # unet | lite (depthwise-separable) | hybrid (plain convs at high resolution, depthwise deeper) | compact
+  width: 64                       # base channels; widths are (w, 2w, 4w, 8w, 16w) for unet, (w, 2w, 4w, 8w, 8w) for lite / hybrid
+  dropout: 0.0                    # Dropout2d probability at bottleneck + decoder; > 0 enables MC dropout
+  skeleton_head: false            # auxiliary centreline head (training only)
 
 loss:
   lambda_bce: 1.0
-  topo: none                      # none | cldice | skeleton_recall | cldice_skeleton_recall
+  topo: none                      # none | cldice | skeleton_recall | cbdice
   lambda_topo: 0.5
   lambda_skel_head: 0.5
   lambda_cons: 0.5
-  skel_iters: 10                  # soft-skeleton iterations (>= max vessel radius in pixels)
+  skel_iters: 10                  # soft-skeleton iterations (>= max vessel radius in px)
+  topo_warmup_iters: 0            # > 0: topology terms ramp linearly from 0 to full weight over this many iterations
 
 dg:
-  enabled: false                  # style + structure augmentation and consistency loss
-  p_color: 0.8
-  p_illum: 0.6
-  p_blur: 0.4
+  enabled: false                  # style + structure augmentation of a second view, and consistency loss
+  p_mix: 0.5                      # random RGB channel mixing before the green channel is taken
+  p_color: 0.8                    # gain / gamma / contrast / brightness
+  p_illum: 0.6                    # smooth multiplicative illumination field
+  p_haze: 0.4                     # additive low-frequency veil (lowers vessel contrast; not undone by CLAHE)
+  p_lowres: 0.4                   # down- then up-sampling (camera resolution / optics)
+  p_blur: 0.3
   p_noise: 0.4
   p_jpeg: 0.3
-  p_dropout: 0.6                  # local intensity dropout (structural perturbation)
-  elastic_alpha: 12.0             # peak displacement (px); also capped so the warp never folds (see augment.elastic_maps)
+  p_dropout: 0.5                  # local contrast dropout (lesions, shadows, dust) - perturbed view only
+  p_elastic: 0.5                  # elastic warp applied to both views and the label
+  elastic_alpha: 12.0
   elastic_sigma: 8.0
-  p_elastic: 0.5
 
 train:
-  iters: 5000
-  batch_size: 8
+  iters: auto
+  views_per_step: 16              # forward-pass samples per step for EVERY stage: 16 clean patches, or 8 clean + 8 perturbed (DG)
   lr: 0.001
+  lr_schedule: cosine             # cosine decay to 1 % (all real runs); the pilots use constant so their plateau reflects convergence
   weight_decay: 0.0001
-  warmup_iters: 200
+  warmup_iters: 300
   grad_clip: 1.0
-  val_every: 250
-  num_workers: 4
-  amp: true                       # only used on CUDA
+  val_every: 500                  # validation on DRIVE-val + resumable checkpoint
   log_every: 50
+  num_workers: 12
+  amp: true                       # CUDA only
 
 eval:
-  threshold: 0.5
-  mc_samples: 20                  # T stochastic passes for MC dropout
-  scale_mode: fov                 # fov = FOV-width normalisation, none = native resolution
-  save_preds_seed: 0              # save probability / uncertainty maps for this seed only (null = never)
-  max_eval_pixels: null           # metrics use NATIVE-resolution ground truth (null); set e.g. 2500000 to cap cost (inflates HRF Betti-0)
-  metric_workers: 0               # >0: compute per-image metrics in a process pool (native HRF metrics take ~10 s/image)
-  max_images: null                # cap images per dataset (smoke tests only)
-  uncertainty_pixels: 200000      # random pixel subsample (per image) for Spearman computation
+  threshold: 0.5                  # headline threshold (fixed)
+  threshold_grid: [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
+  fragment_grid: [0, 10, 20, 30, 50, 75, 100, 150, 200, 300]     # min component size, in px at the normalised (540-px FOV) scale
+  mc_samples: 20
+  save_prob_maps: [0]             # seeds whose probability maps are stored (figures)
+  metric_workers: 12
+  uncertainty_pixels: 200000      # random pixel subsample per image for Spearman / ECE
+  ece_bins: 15
 
 efficiency:
   input_hw: [512, 512]
-  warmup: 10
-  repeats: 50
+  warmup: 20                      # GPU warm-up passes (cuDNN autotuning happens here)
+  repeats: 100
   cpu_threads: 4

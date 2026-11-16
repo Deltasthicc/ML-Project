@@ -1,0 +1,67 @@
+# Every run = configs/base.yaml + one entry below + a seed.
+#
+# role:  pilot      DRIVE-train/val only; decides the training budget (protocol/decisions.json: budget_iters)
+#        selection  DRIVE-train/val only; decides the compact backbone (decisions.compact_model). After the protocol is
+#                   frozen these runs are also evaluated on the targets as "compact U-Net / backbone" controls.
+#        main       evaluated on every dataset, only after the protocol is frozen
+#
+# Groups run in the order listed in `order`. `seeds` is the default seed list of a group.
+
+# pilot is not in the order: the budget was fixed at 10 000 iterations by the team (protocol/PROTOCOL.md section 3)
+order: [backbone, primary, factorial, topology, warmup, controls, width]
+
+groups:
+  pilot:     {seeds: [0],             experiments: [pilot_unet, pilot_lite]}
+  backbone:  {seeds: [0, 1, 2],       experiments: [K_lite_w16, K_hybrid_w16, K_unet_w8, K_unet_w16]}
+  primary:   {seeds: [0, 1, 2, 3, 4], experiments: [A_unet, B_unet_topo, C_unet_topo_dg, D_compact, E_tglitenet]}
+  factorial: {seeds: [0, 1, 2],       experiments: [X_unet_dg, X_compact_plain, X_compact_topo, X_compact_dg]}
+  topology:  {seeds: [0, 1, 2],       experiments: [V_compact_cbdice, V_compact_srl]}
+  warmup:    {seeds: [0, 1, 2],       experiments: [W_unet_topo_dg_warm, W_compact_warm]}
+  controls:  {seeds: [0, 1, 2],       experiments: [Z_compact_noskel, Z_compact_nocons]}
+  width:     {seeds: [0, 1, 2],       experiments: [S_compact_w8, S_compact_w24, S_compact_w32]}
+
+experiments:
+  # ---------------------------------------------------------------- pilot: training budget (stage-C recipe, long run)
+  pilot_unet:   {role: pilot, model: {backbone: unet, width: 64, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}, train: {iters: 20000, lr_schedule: constant}}
+  pilot_lite:   {role: pilot, model: {backbone: lite, width: 16, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}, train: {iters: 20000, lr_schedule: constant}}
+
+  # ---------------------------------------------------------------- backbone selection (stage-D recipe, <= 2 M parameters)
+  K_lite_w16:   {role: selection, model: {backbone: lite,   width: 16, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  K_hybrid_w16: {role: selection, model: {backbone: hybrid, width: 16, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  K_unet_w8:    {role: selection, model: {backbone: unet,   width: 8,  skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  K_unet_w16:   {role: selection, model: {backbone: unet,   width: 16, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- primary staged ablation (each stage adds one component)
+  A_unet:          {role: main, model: {backbone: unet, width: 64}}
+  B_unet_topo:     {role: main, model: {backbone: unet, width: 64, skeleton_head: true}, loss: {topo: cldice}}
+  C_unet_topo_dg:  {role: main, model: {backbone: unet, width: 64, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  D_compact:       {role: main, model: {backbone: compact, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  E_tglitenet:     {role: main, model: {backbone: compact, skeleton_head: true, dropout: 0.1}, loss: {topo: cldice}, dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- remaining cells of the 2x2x2 factorial (backbone x topology x DG)
+  X_unet_dg:       {role: main, model: {backbone: unet, width: 64}, dg: {enabled: true}}
+  X_compact_plain: {role: main, model: {backbone: compact}}
+  X_compact_topo:  {role: main, model: {backbone: compact, skeleton_head: true}, loss: {topo: cldice}}
+  X_compact_dg:    {role: main, model: {backbone: compact}, dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- topology-loss variants on the stage-D recipe
+  V_compact_cbdice: {role: main, model: {backbone: compact, skeleton_head: true}, loss: {topo: cbdice},          dg: {enabled: true}}
+  V_compact_srl:    {role: main, model: {backbone: compact, skeleton_head: true}, loss: {topo: skeleton_recall}, dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- topology weight warm-up (pre-registered: 0 -> full over the first 40 % of the budget)
+  W_unet_topo_dg_warm: {role: main, model: {backbone: unet, width: 64, skeleton_head: true}, loss: {topo: cldice, topo_warmup_iters: 0.4}, dg: {enabled: true}}
+  W_compact_warm:      {role: main, model: {backbone: compact, skeleton_head: true},          loss: {topo: cldice, topo_warmup_iters: 0.4}, dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- controls on stage D: remove one ingredient
+  Z_compact_noskel: {role: main, model: {backbone: compact, skeleton_head: false}, loss: {topo: cldice, lambda_skel_head: 0.0}, dg: {enabled: true}}
+  Z_compact_nocons: {role: main, model: {backbone: compact, skeleton_head: true},  loss: {topo: cldice, lambda_cons: 0.0},      dg: {enabled: true}}
+
+  # ---------------------------------------------------------------- capacity sweep of the chosen compact backbone (stage-D recipe)
+  S_compact_w8:  {role: main, model: {backbone: compact, width: 8,  skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  S_compact_w24: {role: main, model: {backbone: compact, width: 24, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+  S_compact_w32: {role: main, model: {backbone: compact, width: 32, skeleton_head: true}, loss: {topo: cldice}, dg: {enabled: true}}
+
+# Evaluation-only models built from trained runs (no extra training)
+ensembles:
+  ENS_D_compact:  {members: D_compact,   seeds: [0, 1, 2, 3, 4]}      # 5-seed deep ensemble of stage D (RQ4 baseline for MC dropout)
+  ENS_A_unet:     {members: A_unet,      seeds: [0, 1, 2, 3, 4]}
