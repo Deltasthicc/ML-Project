@@ -421,6 +421,11 @@ def copy_run_records(runs: Path, out: Path) -> None:
     for f in runs.glob("*/efficiency.json"):
         (dst_root / f.parent.name).mkdir(parents=True, exist_ok=True)
         shutil.copy2(f, dst_root / f.parent.name / "efficiency.json")
+    for name in ("suite.log", "history.json"):          # the suite's own log of every step and decision
+        f = runs / "_suite" / name
+        if f.exists():
+            (dst_root / "_suite").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst_root / "_suite" / name)
 
 
 def build_report(runs: Path, out: Path, log=print) -> None:

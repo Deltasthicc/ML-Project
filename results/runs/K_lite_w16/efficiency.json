@@ -1,0 +1,36 @@
+{
+  "params": 211569,
+  "params_m": 0.211569,
+  "input_hw": [
+    512,
+    512
+  ],
+  "gflops": 5.52599552,
+  "hardware": {
+    "cpu": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "gpu": "NVIDIA RTX A4000",
+    "torch": "2.11.0+cu128"
+  },
+  "cpu_4t": {
+    "median_ms": 108.78839995712042,
+    "p90_ms": 131.99629995506257
+  },
+  "cpu_1t": {
+    "median_ms": 270.08875005412847,
+    "p90_ms": 291.16644002497196
+  },
+  "onnx_cpu_4t": {
+    "median_ms": 27.85805001622066,
+    "p90_ms": 30.75607002247125
+  },
+  "gpu_fp32": {
+    "median_ms": 6.879499997012317,
+    "p90_ms": 7.067630032543093
+  },
+  "gpu_fp16": {
+    "median_ms": 5.60575001873076,
+    "p90_ms": 5.807379982434213
+  },
+  "gpu_peak_mem_mb": 161.85009765625,
+  "mc_samples": 1
+}

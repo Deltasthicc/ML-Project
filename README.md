@@ -30,8 +30,14 @@ scripts/      run_all.py (whole study), monitor.py (live tracker), prepare_data.
 tests/        unit tests + resume test
 results/      exported, committed final results (tables, figures, per-run records) - generated, never hand-edited
 data/         downloaded archives + processed data (not committed, see data/README.md)
-runs/         checkpoints, logs, probability maps, suite state (not committed)
+runs/         checkpoints, probability maps, TensorBoard, suite state (not committed: ~14 GB)
+requirements-lock.txt   exact package versions of the environment that produced the results
 ```
+
+**What is not in git and why.** Only the trained weights (`*.pt`), the saved probability maps and the datasets.
+Everything needed to rebuild every table, figure and number from the repository alone is committed: per-image metrics
+of every model, every run's config / training curve / DRIVE-val choices / cost (`results/runs/`), the decision records
+and the full suite log (`results/runs/_suite/`).
 
 ## Setup (Windows, NVIDIA GPU)
 
