@@ -1,0 +1,11 @@
+\begin{tabular}{l p{4.5cm} p{1.5cm}}
+\toprule
+ & Novelty and result (66K model, unseen, tuned) & Verdict \\
+\midrule
+N1 & Connectivity reliability score. $\rho$(fragments) $-$ $\rho$(entropy): $+0.1073$ against MC dropout (stage E), $\ensuremath{-}0.1374$ for the 66K model & Not met \\
+N2 & Calibre-guided scale selection. Unseen Dice $+0.0114\,[\pm0.0005]$ (66K); HRF $+0.034$, FIVES $\ensuremath{-}0.061$ & \textbf{Supported} \\
+N3 & Topology-aware distillation. $\Delta$Dice $\ensuremath{-}0.0051\,[\pm0.0148]$, $\Delta$clDice $+0.0019$ & Not shown \\
+N4 & Skeleton-level consistency. $\Delta$Dice $\ensuremath{-}0.0091\,[\pm0.0045]$ (clear), $\Delta$clDice $+0.0011$ & Harms Dice \\
+-- & RandConv + Fourier augmentation. $\Delta$Dice $\ensuremath{-}0.0094\,[\pm0.0267]$ & Not shown \\
+\bottomrule
+\end{tabular}
