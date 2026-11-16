@@ -72,33 +72,11 @@ TensorBoard: `.venv\python.exe -m tensorboard.main --logdir runs`.
 
 See [results/README.md](results/README.md) and [results/summary.md](results/summary.md) (generated).
 
-## v2.1 follow-up: ~70 K model and four topology novelties
+## Branches
 
-Branches: `v2` holds the v2 study only (code, protocol, `results/`); `v2.1-tglite70k` (this branch) adds v2.1 on top
-(`results/v21/`, `reports/GROUP_UPDATE_v2.1.md`). The v2 files are identical on both branches.
-
-v2.1 (`protocol/PROTOCOL_v2.1.md`, `configs/v21.yaml`) keeps the frozen v2 study untouched and adds:
-
-* a **~70 K-parameter headline model** (capped-channel U-Net or two chained tiny U-Nets, chosen on DRIVE-val), with
-  0.21 M / 0.49 M reference models and a pre-registered size rule;
-* **novelty 1** - a label-free *connectivity reliability score* (fragment density of the prediction) that flags bad
-  images, compared with entropy, MC dropout and deep ensembles;
-* **novelty 2** - *centreline-calibre-guided test-time scale selection* (no labels, no weight change; targets thin-vessel
-  datasets such as HRF);
-* **novelty 3** - *topology-aware distillation* from the v2 U-Net ensemble (the student matches the teacher's soft
-  centrelines);
-* **novelty 4** - *skeleton-level consistency* between the clean and the perturbed view;
-* stronger, still simple augmentation (RandConv, Fourier amplitude jitter), network-resolution metrics for a fairer
-  comparison with published work, and an INT8 deployment check.
-
-```
-.venv\python.exe scripts\run_v21.py --smoke     # quick end-to-end check (runs_smoke/v21)
-.venv\python.exe scripts\run_v21.py             # full v2.1 study in a new window (resumable) + monitor window
-.venv\python.exe scripts\monitor.py --v21       # live progress
-```
-
-Results: `results/v21/` (`summary.md`, `tables/main.md`, `tables/sota.md`, `tables/novelty1_reliability.md`,
-`tables/novelty2_scale.md`, `tables/ablations.md`, `tables/int8.md`, `figures/`).
+This branch (`v2`) holds the v2 study only. The v2.1 follow-up (~70 K model, topology novelties, `results/v21/`)
+is on branch `v2.1-tglite70k`. Shared modules (`models.py`, `losses.py`, `train.py`, `augment.py`, `monitor.py`) contain
+the v2.1 options as well; they are off by default and do not change any v2 run.
 
 ## Licence and data
 

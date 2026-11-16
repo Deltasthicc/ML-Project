@@ -23,7 +23,6 @@ Read `README.md` and `protocol/PROTOCOL.md` first. v1 is archived in the git tag
 .venv\python.exe scripts\run_all.py                  # whole study (new window, resumable)
 .venv\python.exe scripts\monitor.py                  # live progress
 .venv\python.exe scripts\make_report.py              # rebuild results/ from runs/
-.venv\python.exe scripts\run_v21.py [--smoke]       # v2.1 follow-up (protocol/PROTOCOL_v2.1.md) -> results/v21/
 ```
 
 ## Conventions
