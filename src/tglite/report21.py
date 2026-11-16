@@ -276,6 +276,43 @@ def _figures(pr, df, cost_of, out: Path, log):
             plt.close("all")
 
 
+# ------------------------------------------------------------------------------------------------ export
+RECORD_FILES = ("config.yaml", "train_log.csv", "train_done.json", "run_meta.json", "val_selection_*.json",
+                "val_scale_rule_*.json", "members.json", "efficiency.json", "int8.json")
+
+
+def copy_run_records21(v2_runs: Path, root21: Path, out: Path) -> None:
+    """Light-weight records of every v2.1 run (no checkpoints / probability maps) -> results/v21/runs/, the v2.1
+    re-evaluation of the v2 models -> results/v21/runs/v2_reeval/, and both suite logs -> results/v21/logs/."""
+    def grab(src: Path, dst: Path):
+        for pat in RECORD_FILES:
+            for f in src.glob(pat):
+                dst.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, dst / f.name)
+        for f in src.glob("eval21/per_image_*.csv"):
+            dst.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst / f.name)
+
+    for d in sorted(p for p in root21.iterdir() if p.is_dir() and not p.name.startswith("_")):
+        grab(d, out / "runs" / d.name)
+        for sd in sorted(d.glob("seed*")):
+            grab(sd, out / "runs" / d.name / sd.name)
+    for d in sorted(p for p in v2_runs.iterdir() if p.is_dir() and not p.name.startswith("_") and p.name != "v21"):
+        for src in [d] + sorted(d.glob("seed*")):
+            if list(src.glob("eval21/per_image_*.csv")):
+                dst = out / "runs" / "v2_reeval" / src.relative_to(v2_runs)
+                for pat in ("val_scale_rule_*.json", "eval21/per_image_*.csv"):
+                    for f in src.glob(pat):
+                        dst.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(f, dst / f.name)
+    logs = out / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    for tag, sd in (("v2", v2_runs / "_suite"), ("v21", root21 / "_suite")):
+        for name in ("suite.log", "history.json"):
+            if (sd / name).exists():
+                shutil.copy2(sd / name, logs / f"{tag}_{name}")
+
+
 # ------------------------------------------------------------------------------------------------ main
 def build_report21(v2_runs: Path, root21: Path, out: Path, log=print) -> None:
     from .suite21 import decisions21_file
@@ -399,6 +436,10 @@ def build_report21(v2_runs: Path, root21: Path, out: Path, log=print) -> None:
                 f"* CPU 512x512, 4 threads: fp32 {r['cpu_fp32_onnx_ms']:.1f} ms -> int8 {r['cpu_int8_onnx_ms']:.1f} ms\n"
                 f"* file size: {r['size_fp32_kb']:.0f} KB -> {r['size_int8_kb']:.0f} KB\n\n" + "\n".join(t), encoding="utf-8")
 
+    try:
+        copy_run_records21(Path(v2_runs), Path(root21), out)
+    except Exception as exc:  # noqa: BLE001
+        log(f"  v2.1 run-record export failed: {exc}")
     try:
         _figures(pr, df, cost_of, out / "figures", log)
     except Exception as exc:  # noqa: BLE001

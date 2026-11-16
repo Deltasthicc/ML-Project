@@ -12,9 +12,9 @@ data/*
 !data/README.md
 
 # heavy run artefacts (checkpoints, probability maps, TensorBoard, suite state). The small, final files are exported to results/.
-runs/
-runs_smoke/
-runs_scratch/
+/runs/
+/runs_smoke/
+/runs_scratch/
 
 # model weights anywhere
 *.pt

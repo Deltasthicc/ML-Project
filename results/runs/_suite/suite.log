@@ -1,0 +1,285 @@
+2026-11-11 16:11:58  study started: groups=['backbone', 'primary', 'factorial', 'topology', 'warmup', 'controls', 'width'], runs dir=C:\Users\sr970\ML-Project\runs, smoke=False
+2026-11-11 16:12:01  ===== prepare data
+2026-11-11 16:12:01    data already prepared
+2026-11-11 16:12:01  ===== backbone selection (DRIVE only)
+2026-11-11 16:12:03    K_lite_w16 seed 0: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-11 16:29:30    done K_lite_w16 s0: best DRIVE-val Dice 0.8158 @ 3000, 17.4 min
+2026-11-11 16:29:31    K_hybrid_w16 seed 0: hybrid w=16 params=0.260M, 10000 iters x 16 views, device=cuda
+2026-11-11 16:43:41    done K_hybrid_w16 s0: best DRIVE-val Dice 0.8181 @ 3000, 14.2 min
+2026-11-11 16:43:41    K_unet_w8 seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 16:54:04    done K_unet_w8 s0: best DRIVE-val Dice 0.8161 @ 6000, 10.4 min
+2026-11-11 16:54:05    K_unet_w16 seed 0: unet w=16 params=1.942M, 10000 iters x 16 views, device=cuda
+2026-11-11 17:06:28    done K_unet_w16 s0: best DRIVE-val Dice 0.8183 @ 4500, 12.4 min
+2026-11-11 17:06:29    K_lite_w16 seed 1: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-11 17:22:57    done K_lite_w16 s1: best DRIVE-val Dice 0.8163 @ 7000, 16.5 min
+2026-11-11 17:22:57    K_hybrid_w16 seed 1: hybrid w=16 params=0.260M, 10000 iters x 16 views, device=cuda
+2026-11-11 17:36:55    done K_hybrid_w16 s1: best DRIVE-val Dice 0.8168 @ 4000, 14.0 min
+2026-11-11 17:36:55    K_unet_w8 seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 17:46:49    done K_unet_w8 s1: best DRIVE-val Dice 0.8159 @ 9000, 9.9 min
+2026-11-11 17:46:49    K_unet_w16 seed 1: unet w=16 params=1.942M, 10000 iters x 16 views, device=cuda
+2026-11-11 17:58:55    done K_unet_w16 s1: best DRIVE-val Dice 0.8173 @ 7000, 12.1 min
+2026-11-11 17:58:55    K_lite_w16 seed 2: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-11 18:15:23    done K_lite_w16 s2: best DRIVE-val Dice 0.8168 @ 7500, 16.5 min
+2026-11-11 18:15:24    K_hybrid_w16 seed 2: hybrid w=16 params=0.260M, 10000 iters x 16 views, device=cuda
+2026-11-11 18:29:22    done K_hybrid_w16 s2: best DRIVE-val Dice 0.8166 @ 4500, 14.0 min
+2026-11-11 18:29:22    K_unet_w8 seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 18:39:17    done K_unet_w8 s2: best DRIVE-val Dice 0.8165 @ 8500, 9.9 min
+2026-11-11 18:39:17    K_unet_w16 seed 2: unet w=16 params=1.942M, 10000 iters x 16 views, device=cuda
+2026-11-11 18:51:23    done K_unet_w16 s2: best DRIVE-val Dice 0.8190 @ 7000, 12.1 min
+2026-11-11 18:51:53    cost K_lite_w16: 0.212 M params, 5.53 GFLOPs, CPU 109 ms, GPU 6.9 ms
+2026-11-11 18:52:12    cost K_hybrid_w16: 0.260 M params, 15.13 GFLOPs, CPU 89 ms, GPU 5.5 ms
+2026-11-11 18:52:30    cost K_unet_w8: 0.486 M params, 6.05 GFLOPs, CPU 39 ms, GPU 3.3 ms
+2026-11-11 18:52:55    cost K_unet_w16: 1.942 M params, 24.11 GFLOPs, CPU 86 ms, GPU 5.3 ms
+2026-11-11 18:52:55    DECISION compact backbone = K_unet_w8 {'backbone': 'unet', 'width': 8}
+2026-11-11 18:52:55  ===== freeze protocol
+2026-11-11 18:52:55    protocol frozen: target datasets unlocked
+2026-11-11 18:52:57  ===== group backbone
+2026-11-11 18:55:59    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 18:57:27    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 18:59:38    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:01:27    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:02:34    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:03:40    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:04:48    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:05:54    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:07:02    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:08:10    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:09:18    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:10:26    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:10:30    report: 4 models, 3756 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-11 19:10:30  ===== group primary
+2026-11-11 19:10:31    A_unet seed 0: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-11 19:44:44    done A_unet s0: best DRIVE-val Dice 0.8216 @ 3000, 34.2 min
+2026-11-11 19:46:48    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 19:46:51    B_unet_topo seed 0: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-11 20:24:45    done B_unet_topo s0: best DRIVE-val Dice 0.8239 @ 2500, 37.9 min
+2026-11-11 20:25:51    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 20:25:53    C_unet_topo_dg seed 0: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-11 21:03:47    done C_unet_topo_dg s0: best DRIVE-val Dice 0.8205 @ 3000, 37.9 min
+2026-11-11 21:04:54    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 21:04:57    D_compact seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 21:14:56    done D_compact s0: best DRIVE-val Dice 0.8161 @ 6000, 10.0 min
+2026-11-11 21:16:03    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 21:16:05    E_tglitenet seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 21:26:07    done E_tglitenet s0: best DRIVE-val Dice 0.8153 @ 7500, 10.0 min
+2026-11-11 21:27:14    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 21:28:30    evaluated mc: drive, stare, chase_db1, hrf, fives
+2026-11-11 21:28:35    report: 10 models, 5634 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-11 21:28:36    A_unet seed 1: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-11 22:02:04    done A_unet s1: best DRIVE-val Dice 0.8207 @ 1500, 33.5 min
+2026-11-11 22:03:09    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 22:03:11    B_unet_topo seed 1: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-11 22:40:49    done B_unet_topo s1: best DRIVE-val Dice 0.8226 @ 1500, 37.6 min
+2026-11-11 22:41:50    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 22:41:53    C_unet_topo_dg seed 1: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-11 23:19:29    done C_unet_topo_dg s1: best DRIVE-val Dice 0.8214 @ 3500, 37.6 min
+2026-11-11 23:20:30    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 23:20:33    D_compact seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 23:30:21    done D_compact s1: best DRIVE-val Dice 0.8159 @ 9000, 9.8 min
+2026-11-11 23:31:22    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 23:31:24    E_tglitenet seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-11 23:41:16    done E_tglitenet s1: best DRIVE-val Dice 0.8152 @ 8500, 9.9 min
+2026-11-11 23:42:17    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-11 23:43:26    evaluated mc: drive, stare, chase_db1, hrf, fives
+2026-11-11 23:43:34    report: 10 models, 7512 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-11 23:43:35    A_unet seed 2: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 00:17:01    done A_unet s2: best DRIVE-val Dice 0.8209 @ 4000, 33.4 min
+2026-11-12 00:18:02    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 00:18:05    B_unet_topo seed 2: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 00:55:44    done B_unet_topo s2: best DRIVE-val Dice 0.8200 @ 2500, 37.6 min
+2026-11-12 00:56:45    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 00:56:47    C_unet_topo_dg seed 2: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 01:34:24    done C_unet_topo_dg s2: best DRIVE-val Dice 0.8206 @ 5000, 37.6 min
+2026-11-12 01:35:26    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 01:35:28    D_compact seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 01:45:18    done D_compact s2: best DRIVE-val Dice 0.8165 @ 8500, 9.8 min
+2026-11-12 01:46:19    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 01:46:21    E_tglitenet seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 01:56:13    done E_tglitenet s2: best DRIVE-val Dice 0.8153 @ 8500, 9.9 min
+2026-11-12 01:57:14    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 01:58:23    evaluated mc: drive, stare, chase_db1, hrf, fives
+2026-11-12 01:58:32    report: 10 models, 9390 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 01:58:32    A_unet seed 3: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 02:32:01    done A_unet s3: best DRIVE-val Dice 0.8216 @ 1500, 33.5 min
+2026-11-12 02:33:03    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 02:33:05    B_unet_topo seed 3: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 03:10:53    done B_unet_topo s3: best DRIVE-val Dice 0.8226 @ 1000, 37.8 min
+2026-11-12 03:11:55    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 03:11:57    C_unet_topo_dg seed 3: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 03:49:46    done C_unet_topo_dg s3: best DRIVE-val Dice 0.8243 @ 3500, 37.8 min
+2026-11-12 03:50:48    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 03:50:49    D_compact seed 3: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 04:00:41    done D_compact s3: best DRIVE-val Dice 0.8161 @ 8500, 9.8 min
+2026-11-12 04:01:43    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 04:01:45    E_tglitenet seed 3: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 04:11:40    done E_tglitenet s3: best DRIVE-val Dice 0.8165 @ 3000, 9.9 min
+2026-11-12 04:12:40    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 04:13:49    evaluated mc: drive, stare, chase_db1, hrf, fives
+2026-11-12 04:13:58    report: 10 models, 11268 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 04:13:59    A_unet seed 4: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 04:47:35    done A_unet s4: best DRIVE-val Dice 0.8202 @ 3000, 33.6 min
+2026-11-12 04:48:37    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 04:48:39    B_unet_topo seed 4: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 05:26:28    done B_unet_topo s4: best DRIVE-val Dice 0.8212 @ 1000, 37.8 min
+2026-11-12 05:27:28    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 05:27:30    C_unet_topo_dg seed 4: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 06:05:21    done C_unet_topo_dg s4: best DRIVE-val Dice 0.8221 @ 7000, 37.8 min
+2026-11-12 06:06:22    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:06:24    D_compact seed 4: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 06:16:16    done D_compact s4: best DRIVE-val Dice 0.8181 @ 6500, 9.8 min
+2026-11-12 06:17:17    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:17:19    E_tglitenet seed 4: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 06:27:15    done E_tglitenet s4: best DRIVE-val Dice 0.8172 @ 8500, 9.9 min
+2026-11-12 06:28:16    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:29:25    evaluated mc: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:29:34    report: 10 models, 13146 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 06:32:42    cost A_unet: 31.036 M params, 384.74 GFLOPs, CPU 936 ms, GPU 27.8 ms
+2026-11-12 06:35:41    cost B_unet_topo: 31.036 M params, 384.74 GFLOPs, CPU 989 ms, GPU 27.6 ms
+2026-11-12 06:38:39    cost C_unet_topo_dg: 31.036 M params, 384.74 GFLOPs, CPU 1003 ms, GPU 27.6 ms
+2026-11-12 06:38:45    cost D_compact: 0.486 M params, 6.05 GFLOPs, CPU 31 ms, GPU 3.4 ms
+2026-11-12 06:38:51    cost E_tglitenet: 0.486 M params, 6.05 GFLOPs, CPU 30 ms, GPU 3.3 ms
+2026-11-12 06:39:54    evaluated ens: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:41:08    evaluated ens: drive, stare, chase_db1, hrf, fives
+2026-11-12 06:41:16    report: 12 models, 13772 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 06:41:16  ===== group factorial
+2026-11-12 06:41:17    X_unet_dg seed 0: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 07:14:55    done X_unet_dg s0: best DRIVE-val Dice 0.8247 @ 6000, 33.6 min
+2026-11-12 07:15:57    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 07:15:59    X_compact_plain seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 07:21:42    done X_compact_plain s0: best DRIVE-val Dice 0.8167 @ 3500, 5.7 min
+2026-11-12 07:22:45    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 07:22:47    X_compact_topo seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 07:32:33    done X_compact_topo s0: best DRIVE-val Dice 0.8186 @ 2500, 9.8 min
+2026-11-12 07:33:36    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 07:33:37    X_compact_dg seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 07:39:30    done X_compact_dg s0: best DRIVE-val Dice 0.8186 @ 6000, 5.9 min
+2026-11-12 07:40:33    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 07:40:34    X_unet_dg seed 1: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 08:14:14    done X_unet_dg s1: best DRIVE-val Dice 0.8214 @ 5500, 33.7 min
+2026-11-12 08:15:17    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 08:15:18    X_compact_plain seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 08:21:02    done X_compact_plain s1: best DRIVE-val Dice 0.8176 @ 2500, 5.7 min
+2026-11-12 08:22:03    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 08:22:05    X_compact_topo seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 08:31:52    done X_compact_topo s1: best DRIVE-val Dice 0.8180 @ 3500, 9.8 min
+2026-11-12 08:32:53    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 08:32:54    X_compact_dg seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 08:38:48    done X_compact_dg s1: best DRIVE-val Dice 0.8167 @ 3000, 5.9 min
+2026-11-12 08:39:48    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 08:39:49    X_unet_dg seed 2: unet w=64 params=31.036M, 10000 iters x 16 views, device=cuda
+2026-11-12 09:13:28    done X_unet_dg s2: best DRIVE-val Dice 0.8238 @ 7000, 33.6 min
+2026-11-12 09:14:29    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 09:14:30    X_compact_plain seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 09:20:13    done X_compact_plain s2: best DRIVE-val Dice 0.8163 @ 3000, 5.7 min
+2026-11-12 09:21:15    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 09:21:16    X_compact_topo seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 09:31:00    done X_compact_topo s2: best DRIVE-val Dice 0.8125 @ 4500, 9.7 min
+2026-11-12 09:32:02    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 09:32:03    X_compact_dg seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 09:37:55    done X_compact_dg s2: best DRIVE-val Dice 0.8186 @ 7500, 5.9 min
+2026-11-12 09:38:56    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 09:41:53    cost X_unet_dg: 31.036 M params, 384.74 GFLOPs, CPU 957 ms, GPU 27.6 ms
+2026-11-12 09:42:00    cost X_compact_plain: 0.486 M params, 6.05 GFLOPs, CPU 30 ms, GPU 3.4 ms
+2026-11-12 09:42:06    cost X_compact_topo: 0.486 M params, 6.05 GFLOPs, CPU 31 ms, GPU 3.5 ms
+2026-11-12 09:42:13    cost X_compact_dg: 0.486 M params, 6.05 GFLOPs, CPU 30 ms, GPU 3.5 ms
+2026-11-12 09:42:23    report: 16 models, 17528 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 09:42:23  ===== group topology
+2026-11-12 09:42:23    V_compact_cbdice seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 09:53:21    done V_compact_cbdice s0: best DRIVE-val Dice 0.8112 @ 6000, 10.9 min
+2026-11-12 09:54:25    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 09:54:26    V_compact_srl seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 10:00:33    done V_compact_srl s0: best DRIVE-val Dice 0.8070 @ 4000, 6.1 min
+2026-11-12 10:01:37    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 10:01:38    V_compact_cbdice seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 10:12:37    done V_compact_cbdice s1: best DRIVE-val Dice 0.8124 @ 5000, 11.0 min
+2026-11-12 10:13:39    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 10:13:40    V_compact_srl seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 10:19:48    done V_compact_srl s1: best DRIVE-val Dice 0.8054 @ 4000, 6.1 min
+2026-11-12 10:20:49    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 10:20:50    V_compact_cbdice seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 10:31:49    done V_compact_cbdice s2: best DRIVE-val Dice 0.8110 @ 7000, 11.0 min
+2026-11-12 10:32:52    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 10:32:53    V_compact_srl seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 10:39:00    done V_compact_srl s2: best DRIVE-val Dice 0.8077 @ 7000, 6.1 min
+2026-11-12 10:40:02    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 10:40:09    cost V_compact_cbdice: 0.486 M params, 6.05 GFLOPs, CPU 39 ms, GPU 3.4 ms
+2026-11-12 10:40:16    cost V_compact_srl: 0.486 M params, 6.05 GFLOPs, CPU 31 ms, GPU 3.4 ms
+2026-11-12 10:40:26    report: 18 models, 19406 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 10:40:26  ===== group warmup
+2026-11-12 10:40:27    W_unet_topo_dg_warm seed 0: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 11:18:11    done W_unet_topo_dg_warm s0: best DRIVE-val Dice 0.8224 @ 3000, 37.7 min
+2026-11-12 11:19:13    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 11:19:14    W_compact_warm seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 11:29:04    done W_compact_warm s0: best DRIVE-val Dice 0.8175 @ 7500, 9.8 min
+2026-11-12 11:30:08    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 11:30:09    W_unet_topo_dg_warm seed 1: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 12:07:51    done W_unet_topo_dg_warm s1: best DRIVE-val Dice 0.8207 @ 3500, 37.7 min
+2026-11-12 12:08:53    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 12:08:54    W_compact_warm seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 12:18:45    done W_compact_warm s1: best DRIVE-val Dice 0.8167 @ 3500, 9.8 min
+2026-11-12 12:19:48    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 12:19:49    W_unet_topo_dg_warm seed 2: unet w=64 params=31.037M, 10000 iters x 16 views, device=cuda
+2026-11-12 12:57:25    done W_unet_topo_dg_warm s2: best DRIVE-val Dice 0.8215 @ 2500, 37.6 min
+2026-11-12 12:58:27    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 12:58:28    W_compact_warm seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 13:08:16    done W_compact_warm s2: best DRIVE-val Dice 0.8165 @ 7000, 9.8 min
+2026-11-12 13:09:17    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 13:12:11    cost W_unet_topo_dg_warm: 31.036 M params, 384.74 GFLOPs, CPU 906 ms, GPU 27.5 ms
+2026-11-12 13:12:18    cost W_compact_warm: 0.486 M params, 6.05 GFLOPs, CPU 31 ms, GPU 3.3 ms
+2026-11-12 13:12:29    report: 20 models, 21284 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 13:12:29  ===== group controls
+2026-11-12 13:12:30    Z_compact_noskel seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 13:22:05    done Z_compact_noskel s0: best DRIVE-val Dice 0.8182 @ 5000, 9.6 min
+2026-11-12 13:23:08    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 13:23:09    Z_compact_nocons seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 13:32:55    done Z_compact_nocons s0: best DRIVE-val Dice 0.8154 @ 4500, 9.8 min
+2026-11-12 13:33:58    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 13:33:58    Z_compact_noskel seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 13:43:34    done Z_compact_noskel s1: best DRIVE-val Dice 0.8154 @ 3000, 9.6 min
+2026-11-12 13:44:35    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 13:44:35    Z_compact_nocons seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 13:54:28    done Z_compact_nocons s1: best DRIVE-val Dice 0.8169 @ 5000, 9.9 min
+2026-11-12 13:55:36    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 13:55:37    Z_compact_noskel seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 14:05:17    done Z_compact_noskel s2: best DRIVE-val Dice 0.8171 @ 4500, 9.7 min
+2026-11-12 14:06:17    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 14:06:17    Z_compact_nocons seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 14:16:06    done Z_compact_nocons s2: best DRIVE-val Dice 0.8175 @ 7500, 9.8 min
+2026-11-12 14:17:07    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 14:17:13    cost Z_compact_noskel: 0.486 M params, 6.05 GFLOPs, CPU 32 ms, GPU 3.4 ms
+2026-11-12 14:17:20    cost Z_compact_nocons: 0.486 M params, 6.05 GFLOPs, CPU 31 ms, GPU 3.4 ms
+2026-11-12 14:17:32    report: 22 models, 23162 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 14:17:32  ===== group width
+2026-11-12 14:17:32    S_compact_w8 seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 14:27:27    done S_compact_w8 s0: best DRIVE-val Dice 0.8161 @ 6000, 9.9 min
+2026-11-12 14:28:34    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 14:28:35    S_compact_w24 seed 0: unet w=24 params=4.368M, 10000 iters x 16 views, device=cuda
+2026-11-12 14:44:33    done S_compact_w24 s0: best DRIVE-val Dice 0.8206 @ 2000, 16.0 min
+2026-11-12 14:46:27    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 14:46:27    S_compact_w32 seed 0: unet w=32 params=7.762M, 10000 iters x 16 views, device=cuda
+2026-11-12 15:05:21    done S_compact_w32 s0: best DRIVE-val Dice 0.8203 @ 2000, 18.9 min
+2026-11-12 15:07:16    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 15:07:16    S_compact_w8 seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 15:17:02    done S_compact_w8 s1: best DRIVE-val Dice 0.8159 @ 9000, 9.8 min
+2026-11-12 15:18:04    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 15:18:04    S_compact_w24 seed 1: unet w=24 params=4.368M, 10000 iters x 16 views, device=cuda
+2026-11-12 15:33:30    done S_compact_w24 s1: best DRIVE-val Dice 0.8183 @ 3500, 15.4 min
+2026-11-12 15:34:31    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 15:34:31    S_compact_w32 seed 1: unet w=32 params=7.762M, 10000 iters x 16 views, device=cuda
+2026-11-12 15:53:04    done S_compact_w32 s1: best DRIVE-val Dice 0.8195 @ 5500, 18.5 min
+2026-11-12 15:54:05    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 15:54:06    S_compact_w8 seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-12 16:03:54    done S_compact_w8 s2: best DRIVE-val Dice 0.8165 @ 8500, 9.8 min
+2026-11-12 16:04:55    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 16:04:56    S_compact_w24 seed 2: unet w=24 params=4.368M, 10000 iters x 16 views, device=cuda
+2026-11-12 16:20:22    done S_compact_w24 s2: best DRIVE-val Dice 0.8198 @ 7000, 15.4 min
+2026-11-12 16:21:23    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 16:21:23    S_compact_w32 seed 2: unet w=32 params=7.762M, 10000 iters x 16 views, device=cuda
+2026-11-12 16:39:55    done S_compact_w32 s2: best DRIVE-val Dice 0.8187 @ 4000, 18.5 min
+2026-11-12 16:40:56    evaluated det: drive, stare, chase_db1, hrf, fives
+2026-11-12 16:41:03    cost S_compact_w8: 0.486 M params, 6.05 GFLOPs, CPU 30 ms, GPU 3.4 ms
+2026-11-12 16:41:45    cost S_compact_w24: 4.368 M params, 54.18 GFLOPs, CPU 163 ms, GPU 8.7 ms
+2026-11-12 16:42:46    cost S_compact_w32: 7.762 M params, 96.27 GFLOPs, CPU 260 ms, GPU 11.6 ms
+2026-11-12 16:42:58    report: 25 models, 25979 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 16:43:11    report: 25 models, 25979 image rows -> C:\Users\sr970\ML-Project\results
+2026-11-12 16:43:11  study finished - results exported to C:\Users\sr970\ML-Project\results

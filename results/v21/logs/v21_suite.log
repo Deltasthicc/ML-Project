@@ -1,0 +1,154 @@
+2026-11-13 12:45:28  v2.1 study started: root=C:\Users\sr970\ML-Project\runs\v21, smoke=False
+2026-11-13 12:45:28  ===== v2.1 rules
+2026-11-13 12:45:28    v2.1 rules recorded (protocol + config hashes)
+2026-11-13 12:45:28  ===== teacher maps (DRIVE-train)
+2026-11-13 12:45:35    teacher maps: C_unet_topo_dg seeds [0, 1, 2, 3, 4] (+ flip averaging) on DRIVE-train -> C:\Users\sr970\ML-Project\runs\v21\_teacher
+2026-11-13 12:45:35  ===== re-evaluate v2 models (novelties 1, 2)
+2026-11-13 12:49:28    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 12:53:20    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 12:57:16    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:01:07    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:05:01    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:08:53    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:12:45    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:16:37    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:20:28    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:24:19    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:27:29    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:30:40    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:33:51    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:37:01    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:40:12    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:43:21    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:50:03    evaluated v2.1 mc: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:53:13    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 13:59:54    evaluated v2.1 mc: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:03:05    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:09:46    evaluated v2.1 mc: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:12:56    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:19:37    evaluated v2.1 mc: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:22:48    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:29:30    evaluated v2.1 mc: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:33:09    evaluated v2.1 ens: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:42:01    evaluated v2.1 ens: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-13 14:42:04    v2.1 report: 7 models, 8451 image rows -> C:\Users\sr970\ML-Project\results\v21
+2026-11-13 14:42:04  ===== v2.1 architecture (DRIVE-val)
+2026-11-13 14:42:06    L_cap seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 15:08:10    done L_cap s0: best DRIVE-val Dice 0.8095 @ 10000, 26.1 min, 66134 params
+2026-11-13 15:08:11    L_wnet seed 0: wnet w=4 params=0.064M, 10000 iters x 16 views, device=cuda
+2026-11-13 15:34:20    done L_wnet s0: best DRIVE-val Dice 0.8144 @ 6000, 26.1 min, 64267 params
+2026-11-13 15:34:20    L_cap seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 15:59:57    done L_cap s1: best DRIVE-val Dice 0.8114 @ 3500, 25.6 min, 66134 params
+2026-11-13 15:59:58    L_wnet seed 1: wnet w=4 params=0.064M, 10000 iters x 16 views, device=cuda
+2026-11-13 16:25:51    done L_wnet s1: best DRIVE-val Dice 0.8088 @ 8000, 25.9 min, 64267 params
+2026-11-13 16:25:52    L_cap seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 16:51:12    done L_cap s2: best DRIVE-val Dice 0.8101 @ 7000, 25.3 min, 66134 params
+2026-11-13 16:51:12    L_wnet seed 2: wnet w=4 params=0.064M, 10000 iters x 16 views, device=cuda
+2026-11-13 17:16:50    done L_wnet s2: best DRIVE-val Dice 0.8080 @ 5500, 25.6 min, 64267 params
+2026-11-13 17:17:06    cost L_cap: 66125 params, 2.73 GFLOPs, CPU 24.7 ms
+2026-11-13 17:17:24    cost L_wnet: 64262 params, 2.03 GFLOPs, CPU 29.1 ms
+2026-11-13 17:17:24    DECISION v2.1 architecture = L_cap  (val Dice {'L_cap': 0.8103191068801022, 'L_wnet': 0.8104203869622539})
+2026-11-13 17:17:24  ===== v2.1 loss weights (DRIVE-val)
+2026-11-13 17:17:25    G_t025_k050 seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 17:42:48    done G_t025_k050 s0: best DRIVE-val Dice 0.8130 @ 6000, 25.4 min, 66134 params
+2026-11-13 17:42:48    G_t025_k050 seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 18:06:17    done G_t025_k050 s1: best DRIVE-val Dice 0.8094 @ 9500, 23.5 min, 66134 params
+2026-11-13 18:06:17    G_t025_k100 seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 18:31:28    done G_t025_k100 s0: best DRIVE-val Dice 0.8117 @ 6000, 25.2 min, 66134 params
+2026-11-13 18:31:28    G_t025_k100 seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 18:56:45    done G_t025_k100 s1: best DRIVE-val Dice 0.8088 @ 3500, 25.3 min, 66134 params
+2026-11-13 18:56:45    G_t050_k100 seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 19:21:59    done G_t050_k100 s0: best DRIVE-val Dice 0.8113 @ 6000, 25.2 min, 66134 params
+2026-11-13 19:21:59    G_t050_k100 seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 19:47:13    done G_t050_k100 s1: best DRIVE-val Dice 0.8068 @ 9500, 25.2 min, 66134 params
+2026-11-13 19:47:13    DECISION v2.1 loss weights = {'loss': {'lambda_topo': 0.5}, 'distill': {'lambda_kd_skel': 1.0}}
+2026-11-13 19:47:13  ===== v2.1 training: headline, references, ablations
+2026-11-13 19:47:13    H_tglite70k seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 20:12:54    done H_tglite70k s0: best DRIVE-val Dice 0.8113 @ 6000, 25.7 min, 66134 params
+2026-11-13 20:12:54    H_tglite70k seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 20:38:19    done H_tglite70k s1: best DRIVE-val Dice 0.8068 @ 9500, 25.4 min, 66134 params
+2026-11-13 20:38:19    H_tglite70k seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 21:03:33    done H_tglite70k s2: best DRIVE-val Dice 0.8073 @ 4000, 25.2 min, 66134 params
+2026-11-13 21:03:33    H_tglite70k seed 3: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 21:28:51    done H_tglite70k s3: best DRIVE-val Dice 0.8094 @ 8000, 25.3 min, 66134 params
+2026-11-13 21:28:51    H_tglite70k seed 4: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-13 21:54:03    done H_tglite70k s4: best DRIVE-val Dice 0.8117 @ 6500, 25.2 min, 66134 params
+2026-11-13 21:54:03    R_lite_w16 seed 0: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-13 22:20:03    done R_lite_w16 s0: best DRIVE-val Dice 0.8142 @ 3500, 26.0 min, 211586 params
+2026-11-13 22:20:04    R_unet_w8 seed 0: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-13 22:45:33    done R_unet_w8 s0: best DRIVE-val Dice 0.8113 @ 6000, 25.5 min, 486418 params
+2026-11-13 22:45:34    R_lite_w16 seed 1: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-13 23:11:11    done R_lite_w16 s1: best DRIVE-val Dice 0.8151 @ 4500, 25.6 min, 211586 params
+2026-11-13 23:11:11    R_unet_w8 seed 1: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-13 23:36:37    done R_unet_w8 s1: best DRIVE-val Dice 0.8113 @ 8000, 25.4 min, 486418 params
+2026-11-13 23:36:37    R_lite_w16 seed 2: lite w=16 params=0.212M, 10000 iters x 16 views, device=cuda
+2026-11-14 00:02:01    done R_lite_w16 s2: best DRIVE-val Dice 0.8126 @ 7000, 25.4 min, 211586 params
+2026-11-14 00:02:02    R_unet_w8 seed 2: unet w=8 params=0.486M, 10000 iters x 16 views, device=cuda
+2026-11-14 00:27:16    done R_unet_w8 s2: best DRIVE-val Dice 0.8107 @ 5000, 25.2 min, 486418 params
+2026-11-14 00:27:17    Z_no_kdskel seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 00:52:17    done Z_no_kdskel s0: best DRIVE-val Dice 0.8100 @ 10000, 25.0 min, 66134 params
+2026-11-14 00:52:17    Z_no_kd seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 01:17:03    done Z_no_kd s0: best DRIVE-val Dice 0.8114 @ 6000, 24.8 min, 66134 params
+2026-11-14 01:17:03    Z_pixcons seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 01:42:10    done Z_pixcons s0: best DRIVE-val Dice 0.8125 @ 6000, 25.1 min, 66134 params
+2026-11-14 01:42:10    Z_noaug seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 01:59:14    done Z_noaug s0: best DRIVE-val Dice 0.8085 @ 4000, 17.1 min, 66134 params
+2026-11-14 01:59:14    Z_v2recipe seed 0: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 02:08:49    done Z_v2recipe s0: best DRIVE-val Dice 0.8156 @ 7500, 9.6 min, 66134 params
+2026-11-14 02:08:49    Z_no_kdskel seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 02:33:59    done Z_no_kdskel s1: best DRIVE-val Dice 0.8114 @ 9500, 25.2 min, 66134 params
+2026-11-14 02:33:59    Z_no_kd seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 02:58:52    done Z_no_kd s1: best DRIVE-val Dice 0.8105 @ 9500, 24.9 min, 66134 params
+2026-11-14 02:58:53    Z_pixcons seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 03:24:02    done Z_pixcons s1: best DRIVE-val Dice 0.8096 @ 9500, 25.1 min, 66134 params
+2026-11-14 03:24:02    Z_noaug seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 03:41:06    done Z_noaug s1: best DRIVE-val Dice 0.8066 @ 5000, 17.1 min, 66134 params
+2026-11-14 03:41:07    Z_v2recipe seed 1: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 03:50:41    done Z_v2recipe s1: best DRIVE-val Dice 0.8158 @ 5000, 9.6 min, 66134 params
+2026-11-14 03:50:41    Z_no_kdskel seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 04:15:38    done Z_no_kdskel s2: best DRIVE-val Dice 0.8131 @ 5500, 24.9 min, 66134 params
+2026-11-14 04:15:38    Z_no_kd seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 04:40:25    done Z_no_kd s2: best DRIVE-val Dice 0.8137 @ 5500, 24.8 min, 66134 params
+2026-11-14 04:40:25    Z_pixcons seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 05:05:24    done Z_pixcons s2: best DRIVE-val Dice 0.8121 @ 5500, 25.0 min, 66134 params
+2026-11-14 05:05:24    Z_noaug seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 05:22:28    done Z_noaug s2: best DRIVE-val Dice 0.8102 @ 7000, 17.0 min, 66134 params
+2026-11-14 05:22:28    Z_v2recipe seed 2: unet w=8 params=0.066M, 10000 iters x 16 views, device=cuda
+2026-11-14 05:32:03    done Z_v2recipe s2: best DRIVE-val Dice 0.8131 @ 7000, 9.6 min, 66134 params
+2026-11-14 05:32:03  ===== v2.1 size rule + freeze
+2026-11-14 05:32:08    cost H_tglite70k: 66125 params, 2.73 GFLOPs, CPU 24.7 ms
+2026-11-14 05:32:38    cost R_lite_w16: 211569 params, 5.53 GFLOPs, CPU 106.7 ms
+2026-11-14 05:32:53    cost R_unet_w8: 486409 params, 6.05 GFLOPs, CPU 55.0 ms
+2026-11-14 05:32:53    DECISION v2.1 headline model = R_lite_w16  ({'H_tglite70k': {'mean_val_dice': 0.8084697863929202, 'params': 66125}, 'R_lite_w16': {'mean_val_dice': 0.8139588123964329, 'params': 211569}, 'R_unet_w8': {'mean_val_dice': 0.8111212926140413, 'params': 486409}});  v2.1 protocol frozen: targets unlocked
+2026-11-14 05:32:53  ===== v2.1 evaluation
+2026-11-14 05:40:02    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 05:43:14    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 05:46:27    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 05:49:39    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 05:52:51    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:04:09    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:07:22    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:10:39    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:13:54    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:17:11    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:20:27    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:23:42    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:26:58    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:30:11    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:33:23    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:36:37    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:39:51    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:43:03    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:46:16    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:49:28    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:52:42    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:55:56    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 06:59:09    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 07:02:23    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 07:05:36    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 07:08:50    evaluated v2.1 det: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 07:12:33    evaluated v2.1 ens: drive, stare, chase_db1, hrf, fives  (scale rule on DRIVE-val: passed)
+2026-11-14 07:12:38    cost Z_v2recipe: 66125 params, 2.73 GFLOPs, CPU 24.2 ms
+2026-11-14 07:13:43    int8: CPU 16.3 -> 24.8 ms, 266 -> 109 KB, Dice {'drive': {'fp32': 0.8105391531253691, 'int8': 0.8104708775655258, 'n': 20}, 'stare': {'fp32': 0.8058165211439027, 'int8': 0.8063495772064189, 'n': 20}, 'chase_db1': {'fp32': 0.7632732228993959, 'int8': 0.7633709758777417, 'n': 28}, 'hrf': {'fp32': 0.7312888174982424, 'int8': 0.7315862232810171, 'n': 45}, 'fives': {'fp32': 0.8112927298285589, 'int8': 0.8123042834996406, 'n': 200}}
+2026-11-14 07:13:48    v2.1 report: 16 models, 16902 image rows -> C:\Users\sr970\ML-Project\results\v21
+2026-11-14 07:13:48  v2.1 study finished - results exported to C:\Users\sr970\ML-Project\results\v21

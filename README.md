@@ -29,9 +29,21 @@ src/tglite/   data/ (prepare, preprocess, augment, dataset), models, losses, tra
 scripts/      run_all.py (whole study), monitor.py (live tracker), prepare_data.py, train.py (single run), make_report.py
 tests/        unit tests + resume test
 results/      exported, committed final results (tables, figures, per-run records) - generated, never hand-edited
+  runs/         v2: config, training log, DRIVE-val choices, per-image metrics of every run; _suite/ = full suite log
+  v21/          v2.1: summary, tables, figures, assets/ (example images + probability maps), runs/ (per-run records,
+                v2_reeval/), logs/ (v2 and v2.1 suite logs)
+reports/      write-ups for the group (GROUP_UPDATE_v2.1.md)
 data/         downloaded archives + processed data (not committed, see data/README.md)
-runs/         checkpoints, logs, probability maps, suite state (not committed)
+runs/         checkpoints, probability maps, TensorBoard, suite state (not committed: ~14 GB)
+requirements-lock.txt   exact package versions of the environment that produced the results
 ```
+
+**What is not in git and why.** Only the trained weights (`*.pt`, ~14 GB with the 31 M U-Nets), the saved
+probability maps (~2.3 GB) and the datasets. Everything needed to rebuild every table, figure and number in the
+reports from the repository alone is committed: per-image metrics of every model on every test image, every run's
+config / training curve / DRIVE-val choices / cost, the decision records, and the suite logs. Re-running the models
+themselves needs the data and either retraining (`run_all.py`, `run_v21.py`) or the weights (available on request).
+`results/v21/assets/` contains one example image per dataset with its label, only for illustration.
 
 ## Setup (Windows, NVIDIA GPU)
 
@@ -98,7 +110,9 @@ v2.1 (`protocol/PROTOCOL_v2.1.md`, `configs/v21.yaml`) keeps the frozen v2 study
 ```
 
 Results: `results/v21/` (`summary.md`, `tables/main.md`, `tables/sota.md`, `tables/novelty1_reliability.md`,
-`tables/novelty2_scale.md`, `tables/ablations.md`, `tables/int8.md`, `figures/`).
+`tables/novelty2_scale.md`, `tables/ablations.md`, `tables/int8.md`, `figures/`, `runs/`, `logs/`, `assets/`).
+Website / report assets (needs the weights in `runs/`): `.venv\python.exe scripts\export_assets.py`.
+Group write-up: [reports/GROUP_UPDATE_v2.1.md](reports/GROUP_UPDATE_v2.1.md).
 
 ## Licence and data
 

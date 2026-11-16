@@ -219,6 +219,10 @@ compete?*
 | v2 results | `results/summary.md`, `results/tables/`, `results/figures/` |
 | v2.1 results | `results/v21/summary.md`, `results/v21/tables/`, `results/v21/figures/` |
 | Per-image scores (all models) | `results/tables/per_image_all.csv.gz`, `results/v21/tables/per_image_all.csv.gz` |
+| Per-run records: config, training curve, DRIVE-val choices, per-image metrics | v2: `results/runs/`; v2.1: `results/v21/runs/` (v2 re-evaluation in `runs/v2_reeval/`) |
+| Full suite logs, with every step and decision timestamped | `results/runs/_suite/suite.log`, `results/v21/logs/` |
+| Website assets: example image, label and probability/error maps per dataset for 5 models | `results/v21/assets/`, `results/v21/figures/qualitative_v21.png` |
+| Exact environment | `requirements-lock.txt`; each run's `run_meta.json` (git commit, versions, GPU) |
 | Code | `src/tglite/` (models, losses, training, evaluation, `suite21.py`, `report21.py`) |
 | How to run | `README.md`; `scripts/run_all.py` (v2), `scripts/run_v21.py` (v2.1), `scripts/monitor.py` |
 | Trained weights | not in git (`runs/`, local machine); available on request |
