@@ -74,6 +74,9 @@ See [results/README.md](results/README.md) and [results/summary.md](results/summ
 
 ## v2.1 follow-up: ~70 K model and four topology novelties
 
+Branches: `v2` holds the v2 study only (code, protocol, `results/`); `v2.1-tglite70k` (this branch) adds v2.1 on top
+(`results/v21/`, `reports/GROUP_UPDATE_v2.1.md`). The v2 files are identical on both branches.
+
 v2.1 (`protocol/PROTOCOL_v2.1.md`, `configs/v21.yaml`) keeps the frozen v2 study untouched and adds:
 
 * a **~70 K-parameter headline model** (capped-channel U-Net or two chained tiny U-Nets, chosen on DRIVE-val), with
