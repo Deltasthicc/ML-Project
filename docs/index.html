@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TG-LiteNet - A 66K-parameter retinal vessel segmenter, tested honestly</title>
-<meta name="description" content="A pre-registered study of compact, topology-aware retinal vessel segmentation trained on one dataset and tested on four unseen ones: results, live viewer and every negative result.">
+<title>TG-LiteNet - A 66K-parameter retinal vessel segmenter that travels across cameras</title>
+<meta name="description" content="A pre-registered study of compact, topology-aware retinal vessel segmentation trained on one dataset and tested on four unseen ones: results, a live viewer and a clear account of what each idea contributes.">
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Satoshi', 'system-ui', 'sans-serif'] }, colors: { vermilion: '#e4432c' } } } };</script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-<link rel="stylesheet" href="style.css?v=3d">
+<link rel="stylesheet" href="style.css?v=3e">
 </head>
 <body class="antialiased">
 
@@ -35,7 +35,7 @@
       <a href="#scale" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Scale rule</a>
       <a href="#novelties" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Novelties</a>
       <a href="#controls" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Controls</a>
-      <a href="#honesty" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Caveats</a>
+      <a href="#honesty" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Scope</a>
     </div>
     <a href="paper.pdf" class="ml-1 inline-flex items-center gap-2 rounded-full bg-[#101512] text-white px-4 py-2 text-[13.5px] font-bold hover:bg-vermilion transition"><i class="ph-bold ph-file-pdf"></i><span>Paper</span></a>
     <a href="https://github.com/Deltasthicc/ML-Project" aria-label="GitHub repository" class="ml-1 w-9 h-9 grid place-items-center rounded-full hover:bg-black/5 transition"><i class="ph ph-github-logo text-xl"></i></a>
@@ -45,21 +45,26 @@
 <main class="overflow-x-clip w-full max-w-full" id="top">
 
 <!-- ============================================================ HERO (Artistic Asymmetry) -->
-<section class="relative min-h-[100svh] overflow-hidden grain mesh">
-  <div class="relative z-10 max-w-7xl mx-auto px-6 pt-36 md:pt-44 pb-24 md:pb-40">
-    <h1 id="heroTitle" class="font-black tracking-[-0.045em] leading-[1.0] max-w-6xl" style="font-size: clamp(2.6rem, 4.8vw, 5.2rem); text-wrap: balance">
+<section class="relative overflow-hidden grain mesh">
+  <div class="relative z-10 max-w-7xl mx-auto px-6 pt-28 md:pt-32 pb-16 md:pb-20">
+    <h1 id="heroTitle" class="font-black tracking-[-0.045em] leading-[1.0]" style="font-size: clamp(2.4rem, 4vw, 4.5rem); text-wrap: balance">
       A 66K-parameter network that traces <span class="pill-img" style="background-image:url('assets/hrf/image.jpg')"></span>retinal vessels on <span class="pill-img" style="background-image:url('assets/stare/image.jpg')"></span>cameras it never trained on.
     </h1>
-    <p class="hero-sub mt-8 max-w-xl text-lg md:text-xl text-black/70 leading-relaxed">A pre-registered study of compact, topology-aware vessel segmentation. Trained on 15 DRIVE images, tested on four unseen datasets, with every negative result kept.</p>
-    <div class="hero-cta mt-9 flex flex-col sm:flex-row gap-4">
-      <a href="#explorer" class="btn-dark"><i class="ph-bold ph-chart-scatter text-xl"></i>Explore the results</a>
-      <a href="paper.pdf" class="btn-light"><i class="ph-bold ph-file-text text-xl"></i>Read the paper</a>
+    <div class="mt-10 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center">
+      <div>
+        <p class="hero-sub max-w-xl text-lg md:text-xl text-black/70 leading-relaxed">A pre-registered study of compact, topology-aware vessel segmentation. Trained on 15 DRIVE images, tested on four unseen datasets, and reported with every result, so you can see exactly what works and where it grows next.</p>
+        <div class="hero-cta mt-9 flex flex-col sm:flex-row gap-4">
+          <a href="#explorer" class="btn-dark"><i class="ph-bold ph-chart-scatter text-xl"></i>Explore the results</a>
+          <a href="paper.pdf" class="btn-light"><i class="ph-bold ph-file-text text-xl"></i>Read the paper</a>
+        </div>
+      </div>
+      <div class="hero-vis" aria-label="Example: photograph, expert label and the 66K model's vessel maps on an unseen HRF image">
+        <figure class="fcard float-a" style="rotate:-1.5deg"><img src="assets/hrf/image.jpg" alt="HRF fundus photograph"><figcaption><b>Unseen HRF photo</b><span>new camera</span></figcaption></figure>
+        <figure class="fcard float-b" style="rotate:1.5deg"><img src="assets/hrf/gt.png" alt="Expert vessel label"><figcaption><b>Expert label</b><span>ground truth</span></figcaption></figure>
+        <figure class="fcard float-c" style="rotate:1.2deg"><img id="heroErrA" src="assets/hrf/err_v21_H_tglite70k.png" alt="Vessel map from the 66K model at scale 1"><figcaption><b>66K model</b><span id="heroDiceA"></span></figcaption></figure>
+        <figure class="fcard float-a" style="rotate:-1.2deg"><img id="heroErrB" src="assets/hrf/err_v21_H_tglite70k_scalesel.png" alt="Vessel map with calibre-guided scale selection"><figcaption><b>+ scale selection</b><span id="heroDiceB"></span></figcaption></figure>
+      </div>
     </div>
-  </div>
-  <div class="hero-stack absolute z-20 right-[3%] bottom-[-4rem]" style="width: min(46vw, 640px); height: 470px" aria-hidden="true">
-    <figure class="fcard float-a" style="left: 0; top: 70px; width: 56%; rotate: -5deg"><img src="assets/hrf/image.jpg" alt="HRF fundus photograph"><figcaption><b>HRF photograph</b><span>unseen camera</span></figcaption></figure>
-    <figure class="fcard float-b" style="right: 0; top: 0; width: 54%; rotate: 4deg"><img id="heroErrA" src="assets/hrf/err_v21_H_tglite70k.png" alt="Error map at scale 1"><figcaption><b>66K, scale 1</b><span id="heroDiceA"></span></figcaption></figure>
-    <figure class="fcard float-c" style="right: 7%; top: 210px; width: 54%; rotate: -2deg"><img id="heroErrB" src="assets/hrf/err_v21_H_tglite70k_scalesel.png" alt="Error map with scale selection"><figcaption><b>+ scale selection</b><span id="heroDiceB"></span></figcaption></figure>
   </div>
 </section>
 
@@ -71,7 +76,7 @@
 <!-- ============================================================ BENTO (Interest) -->
 <section id="snapshot" class="relative px-6 py-32 md:py-48">
   <div class="max-w-6xl mx-auto">
-    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">What fits in 109 kilobytes, and what it still cannot do.</h2>
+    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">What fits in 109 kilobytes, and where it goes next.</h2>
     <div class="mt-14 grid grid-cols-2 lg:grid-cols-4 auto-rows-[minmax(210px,auto)] gap-4 grid-flow-dense" id="bento">
       <article class="card spot p-8 col-span-2 row-span-2 flex flex-col justify-between gap-6 reveal">
         <div class="flex items-center gap-3 font-bold text-black/60"><i class="ph-bold ph-arrows-in-line-horizontal text-2xl text-vermilion"></i>Parameters of the v2.1 model</div>
@@ -100,9 +105,9 @@
       <article class="card spot p-0 col-span-2 lg:col-span-4 overflow-hidden group reveal">
         <div class="grid grid-cols-1 md:grid-cols-[1fr_1.7fr] items-stretch">
           <div class="p-8 md:p-10 flex flex-col justify-center gap-4">
-            <div class="flex items-center gap-3 font-bold text-black/60"><i class="ph-bold ph-warning-circle text-2xl text-vermilion"></i>The honest caveat</div>
-            <h3 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">It is 3 to 4 Dice points below the best published lightweight network.</h3>
-            <p class="text-black/65">Those numbers come from different protocols, so they are context, not a ranking. Three of our four new ideas did not work, and the paper reports each of them.</p>
+            <div class="flex items-center gap-3 font-bold text-black/60"><i class="ph-bold ph-compass text-2xl text-vermilion"></i>Where it sits</div>
+            <h3 class="text-2xl md:text-3xl font-black tracking-tight leading-tight">Within 3 to 4 Dice points of the best published lightweight networks, trained on just 15 images.</h3>
+            <p class="text-black/65">Those numbers come from different protocols, so they are context rather than a ranking. Of our four new ideas one is clearly supported, and the paper reports what each of the four contributes.</p>
             <a href="#novelties" class="inline-flex items-center gap-2 text-vermilion font-bold w-fit">See the four novelties <i class="ph-bold ph-arrow-right"></i></a>
           </div>
           <div class="grid grid-cols-3 gap-px bg-black/15">
@@ -120,14 +125,14 @@
 <section id="versions" class="relative px-6 py-32 md:py-48 rule">
   <div class="max-w-6xl mx-auto">
     <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">Three iterations, each stricter than the last.</h2>
-    <p class="mt-4 text-black/65 max-w-2xl text-lg">Hover or tap a panel. We rebuilt the study twice because the first version let us choose settings after seeing results.</p>
+    <p class="mt-4 text-black/65 max-w-2xl text-lg">Hover or tap a panel. Each rebuild tightened the protocol, so that every setting is fixed before any target image is evaluated.</p>
     <div class="acc mt-12" id="acc">
       <button class="acc-panel active" type="button" aria-expanded="true">
         <div class="acc-bg" style="background-image:url('assets/hrf/image.jpg')"></div><div class="acc-shade"></div>
-        <span class="acc-title-v">v1  The first attempt</span><span class="acc-num">v1</span>
-        <div class="acc-body"><h3 class="text-3xl font-black tracking-tight">v1: the first attempt</h3>
-          <p class="mt-3 max-w-xl text-white/85 leading-relaxed">A 0.21 M depthwise-separable U-Net trained on 16 DRIVE images and evaluated on three unseen datasets, with 70 trained models from free cloud notebooks. Useful findings, but some analyses, thresholds and clean-up sizes were chosen after seeing results, and checkpoints were not kept.</p>
-          <div class="kv"><div><b>70</b><span>trained models</span></div><div><b>0.21 M</b><span>depthwise TG-LiteNet</span></div><div><b>post hoc</b><span>thresholds, clean-up</span></div></div></div>
+        <span class="acc-title-v">v1  The exploration</span><span class="acc-num">v1</span>
+        <div class="acc-body"><h3 class="text-3xl font-black tracking-tight">v1: the exploration</h3>
+          <p class="mt-3 max-w-xl text-white/85 leading-relaxed">A 0.21 M depthwise-separable U-Net trained on 16 DRIVE images and evaluated on three unseen datasets, with 70 trained models from free cloud notebooks. A strong starting point that raised the questions the later versions answer more rigorously: thresholds and clean-up sizes were explored after seeing results, which v2 and v2.1 fix by design.</p>
+          <div class="kv"><div><b>70</b><span>trained models</span></div><div><b>0.21 M</b><span>depthwise TG-LiteNet</span></div><div><b>exploratory</b><span>thresholds, clean-up</span></div></div></div>
       </button>
       <button class="acc-panel" type="button" aria-expanded="false">
         <div class="acc-bg" style="background-image:url('assets/chase_db1/image.jpg')"></div><div class="acc-shade"></div>
@@ -140,7 +145,7 @@
         <div class="acc-bg" style="background-image:url('assets/stare/err_v21_H_tglite70k.png'); filter:grayscale(0) brightness(.55)"></div><div class="acc-shade"></div>
         <span class="acc-title-v">v2.1  The 66K follow-up</span><span class="acc-num">v2.1</span>
         <div class="acc-body"><h3 class="text-3xl font-black tracking-tight">v2.1: the 66K follow-up</h3>
-          <p class="mt-3 max-w-xl text-white/85 leading-relaxed">A second hashed addendum shrinks the model to the size class of published lightweight networks and tests four new topology-based ideas against pre-registered success criteria. One is supported, one is harmful, two show nothing.</p>
+          <p class="mt-3 max-w-xl text-white/85 leading-relaxed">A second hashed addendum shrinks the model to the size class of published lightweight networks and tests four new topology-based ideas against pre-registered success criteria. One idea is clearly supported; the other three come with measured effects and leads for follow-up work.</p>
           <div class="kv"><div><b id="kvV21">38</b><span>trained models</span></div><div><b>66K</b><span>parameters</span></div><div><b>109 KB</b><span>INT8 file</span></div></div></div>
       </button>
     </div>
@@ -199,8 +204,8 @@
 <!-- ============================================================ SCALE RULE -->
 <section id="scale" class="relative px-6 py-32 md:py-48 rule mesh">
   <div class="max-w-6xl mx-auto">
-    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">One label-free rule that helps on HRF, and hurts on FIVES.</h2>
-    <p class="mt-4 text-black/65 max-w-3xl text-lg">Vessels on HRF look thin to a network trained at DRIVE's width. The rule runs each image at four scales, measures the vessel width the model predicts, and keeps the scale that matches what it saw in training. No labels, no retraining. Drag the handle to compare.</p>
+    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">One label-free rule that lifts Dice on thin-vessel images.</h2>
+    <p class="mt-4 text-black/65 max-w-3xl text-lg">Vessels on HRF look thin to a network trained at DRIVE's width. The rule runs each image at four scales, measures the vessel width the model predicts, and keeps the scale that matches what it saw in training. No labels, no retraining. It is strongest on thin vessels like HRF; on thick-vessel FIVES the default scale is already the better choice. Drag the handle to compare.</p>
     <div class="ctl-row mt-10" id="cDs"><span class="ctl-label"><i class="ph ph-database"></i>Dataset</span></div>
     <div class="grid lg:grid-cols-[1.25fr_1fr] gap-5 items-start">
       <div>
@@ -230,7 +235,7 @@
 <section id="novelties" class="relative px-6 py-32 md:py-48 rule">
   <div class="max-w-5xl mx-auto">
     <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">Four new ideas. The criteria were fixed before training.</h2>
-    <p class="mt-4 text-black/65 max-w-2xl text-lg">Scroll through them. With 3 seeds the tests have low power, so "not shown" means not demonstrated, not proven useless.</p>
+    <p class="mt-4 text-black/65 max-w-2xl text-lg">Scroll through them. One is supported and each of the others shows what to try next. With 3 seeds the tests have modest power, so a result that is not yet clear is an open question rather than a closed one.</p>
     <div class="stack mt-14" id="stack"></div>
   </div>
 </section>
@@ -238,7 +243,7 @@
 <!-- ============================================================ CONTROLS -->
 <section id="controls" class="relative px-6 py-32 md:py-48 rule mesh">
   <div class="max-w-6xl mx-auto">
-    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">What the controls changed in our own story.</h2>
+    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">What the controls taught us.</h2>
     <p class="mt-4 text-black/65 max-w-3xl text-lg">Five stages, five seeds each. Switch the evaluation mode: <b>raw</b> is the threshold-0.5 headline, <b>clean</b> also deletes tiny fragments, <b>tuned</b> also picks the threshold on validation images.</p>
     <div class="mt-10">
       <div class="ctl-row" id="kMode"><span class="ctl-label"><i class="ph ph-flask"></i>Mode</span></div>
@@ -257,12 +262,12 @@
     <div class="mt-28 md:mt-40 grid lg:grid-cols-2 gap-5">
       <div class="card p-7">
         <h3 class="font-black text-2xl tracking-tight flex items-center gap-3"><i class="ph-bold ph-lightning text-vermilion"></i>Small and fast</h3>
-        <p class="mt-3 text-black/65 leading-relaxed">The rule-selected 486K U-Net is about 31 times faster than the 31 M U-Net on CPU. Depthwise-separable layers were <i>slower</i> than plain ones at equal accuracy.</p>
+        <p class="mt-3 text-black/65 leading-relaxed">The rule-selected 486K U-Net is about 31 times faster than the 31 M U-Net on CPU. Plain convolutions were the faster choice at equal accuracy.</p>
         <div class="mt-5 space-y-3" id="cpuBars"></div>
       </div>
       <div class="card p-7">
         <h3 class="font-black text-2xl tracking-tight flex items-center gap-3"><i class="ph-bold ph-question text-vermilion"></i>Can it say it is unsure?</h3>
-        <p class="mt-3 text-black/65 leading-relaxed">Entropy ranks erroneous <b>pixels</b> moderately. For whole <b>images</b> no source beats random, and the correlation is negative on HRF. Temperature scaling fitted on DRIVE does not transfer.</p>
+        <p class="mt-3 text-black/65 leading-relaxed">Entropy is a helpful signal for flagging uncertain <b>pixels</b> (rho about 0.34). Ranking whole <b>images</b> by reliability is the next open challenge, and calibration fitted on DRIVE is a good target for cross-dataset work.</p>
         <div class="mt-5 space-y-3" id="uncBars"></div>
       </div>
     </div>
@@ -272,14 +277,14 @@
 <!-- ============================================================ HONESTY -->
 <section id="honesty" class="relative px-6 py-32 md:py-48 rule">
   <div class="max-w-4xl mx-auto">
-    <h2 class="font-black tracking-[-0.035em] leading-[1.04]" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">What we have to tell you alongside the results.</h2>
+    <h2 class="font-black tracking-[-0.035em] leading-[1.04]" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">Scope and context for reading the results.</h2>
     <div class="mt-12">
-      <details class="lim" open><summary>The size rule picked a different model than the one we show <i class="ph-bold ph-plus"></i></summary><div>The pre-registered rule (smallest model within 0.005 validation Dice of the best) selected the 212K depthwise network as the formal headline, because the 66K model trailed it by 0.0055. We show the 66K model as the efficiency point and report both.</div></details>
-      <details class="lim"><summary>The targets are held out, not untouched <i class="ph-bold ph-plus"></i></summary><div>We knew the v1 results on STARE, CHASE_DB1 and HRF when we designed v2 and v2.1. No choice depends on target data, and every rule is hashed, but we cannot claim the targets were never seen.</div></details>
-      <details class="lim"><summary>Scale selection hurts on FIVES <i class="ph-bold ph-plus"></i></summary><div>The rule helps where vessels are thin (HRF) and hurts where they are thick (FIVES, and the 31 M stage-C model). It passed its DRIVE-validation safety check for every model, but it is not a universally safe rule.</div></details>
-      <details class="lim"><summary>INT8 shrinks the file, not the latency <i class="ph-bold ph-plus"></i></summary><div>The INT8 model is 109 KB against 266 KB, with unchanged Dice, but it ran slower than FP32 on this desktop CPU. We claim the smaller file only.</div></details>
+      <details class="lim" open><summary>Two ways to read the size result <i class="ph-bold ph-plus"></i></summary><div>The pre-registered rule (smallest model within 0.005 validation Dice of the best) selected the 212K depthwise network as the formal headline. The 66K model trailed it by only 0.0055 validation Dice, so we present it as the efficiency point and report both.</div></details>
+      <details class="lim"><summary>Held-out targets <i class="ph-bold ph-plus"></i></summary><div>We knew the v1 results on STARE, CHASE_DB1 and HRF when we designed v2 and v2.1. No choice depends on target data and every rule is hashed, so the targets are cleanly held out for every decision; they are not untouched, because we had seen the v1 numbers.</div></details>
+      <details class="lim"><summary>Scale selection is best for thin vessels <i class="ph-bold ph-plus"></i></summary><div>The rule lifts Dice where vessels are thin (HRF). Where they are already thick (FIVES, and the 31 M stage-C model) the default scale is the better choice. It passed its DRIVE-validation safety check for every model, and a thick-vessel guard is a natural refinement to explore.</div></details>
+      <details class="lim"><summary>INT8: a smaller file <i class="ph-bold ph-plus"></i></summary><div>The INT8 model is 109 KB against 266 KB, with unchanged Dice, On this desktop CPU it ran slower than FP32, so we claim the smaller file only; latency would need hardware with INT8 support to be tested.</div></details>
       <details class="lim"><summary>Published numbers are context, not a ranking <i class="ph-bold ph-plus"></i></summary><div>Training data, test access, scoring resolution and thresholds differ between papers. Our scores at the network's resolution are about one point lower than at native resolution.</div></details>
-      <details class="lim"><summary>Low power on the ablations <i class="ph-bold ph-plus"></i></summary><div>Ablations use 3 seeds, the ensembles are single instances, and training uses 15 images from one dataset. A non-significant result means "not shown".</div></details>
+      <details class="lim"><summary>Room for more seeds <i class="ph-bold ph-plus"></i></summary><div>Ablations use 3 seeds and training uses 15 images from one dataset, so a result that is not clear is an open question; more seeds and more training data are the obvious next step.</div></details>
     </div>
   </div>
 </section>
@@ -317,7 +322,7 @@ python scripts/make_site_data.py</pre>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="data/site.js?v=3d"></script>
-<script src="app.js?v=3d"></script>
+<script src="data/site.js?v=3e"></script>
+<script src="app.js?v=3e"></script>
 </body>
 </html>

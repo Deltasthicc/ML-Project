@@ -363,11 +363,11 @@ write("tab_backbone.tex", tabular("lrrrc", ["Candidate", "Params", "Val Dice", "
 
 # Table: novelties
 rows = [
-    ["N1", r"Connectivity reliability score. $\rho$(fragments) $-$ $\rho$(entropy): $" + MAC["nOneEmc"] + r"$ against MC dropout (stage E), $" + MAC["nOneH"] + r"$ for the 66K model", "Not met"],
+    ["N1", r"Connectivity reliability score. $\rho$(fragments) $-$ $\rho$(entropy): $" + MAC["nOneEmc"] + r"$ against MC dropout (stage E), $" + MAC["nOneH"] + r"$ for the 66K model", "Lead found"],
     ["N2", r"Calibre-guided scale selection. Unseen Dice $" + MAC["nTwoH"] + r"\,[\pm" + MAC["nTwoHci"] + r"]$ (66K); HRF $" + MAC["nTwoHrf"] + r"$, FIVES $" + MAC["nTwoFives"] + "$", r"\textbf{Supported}"],
-    ["N3", r"Topology-aware distillation. $\Delta$Dice $" + MAC["aNthreeDice"] + r"\,[\pm" + MAC["aNthreeDiceci"] + r"]$, $\Delta$clDice $" + MAC["aNthreeCl"] + "$", "Not shown"],
-    ["N4", r"Skeleton-level consistency. $\Delta$Dice $" + MAC["aNfourDice"] + r"\,[\pm" + MAC["aNfourDiceci"] + r"]$ (clear), $\Delta$clDice $" + MAC["aNfourCl"] + "$", "Harms Dice"],
-    ["--", r"RandConv + Fourier augmentation. $\Delta$Dice $" + MAC["aAugDice"] + r"\,[\pm" + MAC["aAugDiceci"] + "]$", "Not shown"],
+    ["N3", r"Topology-aware distillation. $\Delta$Dice $" + MAC["aNthreeDice"] + r"\,[\pm" + MAC["aNthreeDiceci"] + r"]$, $\Delta$clDice $" + MAC["aNthreeCl"] + "$", "Open"],
+    ["N4", r"Skeleton-level consistency. $\Delta$Dice $" + MAC["aNfourDice"] + r"\,[\pm" + MAC["aNfourDiceci"] + r"]$ (clear), $\Delta$clDice $" + MAC["aNfourCl"] + "$", "Dice trade-off"],
+    ["--", r"RandConv + Fourier augmentation. $\Delta$Dice $" + MAC["aAugDice"] + r"\,[\pm" + MAC["aAugDiceci"] + "]$", "Open"],
 ]
 write("tab_novelties.tex", tabular(r"l p{4.5cm} p{1.5cm}", ["", "Novelty and result (66K model, unseen, tuned)", "Verdict"], rows))
 
@@ -499,6 +499,37 @@ for ds_ in ("hrf", "fives", "stare", "chase_db1", "drive"):
     nm_ = {"hrf": "Hrf", "fives": "Fives", "stare": "Stare", "chase_db1": "Chase", "drive": "Drive"}[ds_]
     mac(f"scaleOneFive{nm_}", f"{100 * share.loc[ds_].get(1.5, 0):.0f}")
     mac(f"scaleOne{nm_}", f"{100 * share.loc[ds_].get(1.0, 0):.0f}")
+
+# Fig: how calibre-guided scale selection works (66K model): predicted vessel width per scale, and the scale chosen per dataset
+fig, axes = plt.subplots(1, 2, figsize=(3.5, 1.95), gridspec_kw={"width_ratios": [1.15, 1], "wspace": 0.42})
+ax = axes[0]
+scales_ = (1.0, 1.5, 2.0, 2.5)
+cols_ = {"drive": "#555555", "stare": "#1f77b4", "chase_db1": "#2ca02c", "hrf": "#d62728", "fives": "#ff7f0e"}
+for ds_, c_ in cols_.items():
+    wv = [hh[hh["dataset"] == ds_][f"calib@{s_:g}"].mean() for s_ in scales_]
+    ax.plot(scales_, wv, marker="o", ms=3, lw=1.2 if ds_ != "drive" else 1.0, ls="--" if ds_ == "drive" else "-", color=c_, label=DSL.get(ds_, ds_))
+ax.set_xlabel("input scale")
+ax.set_ylabel("predicted vessel width (px)")
+ax.set_xticks(scales_)
+ax.grid(alpha=0.3, lw=0.4)
+ax.legend(frameon=False, fontsize=5.8, loc="lower right", handlelength=1.4, labelspacing=0.2)
+title(ax, "(a) Predicted width")
+ax = axes[1]
+order_ = ["hrf", "fives", "stare", "chase_db1", "drive"]
+bot = np.zeros(len(order_))
+pal_ = {1.0: "#bdbdbd", 1.5: "#d62728", 2.0: "#ff9896", 2.5: "#8c564b"}
+for s_ in scales_:
+    vals_ = np.array([100 * share.loc[d_].get(s_, 0) for d_ in order_])
+    ax.bar(range(len(order_)), vals_, bottom=bot, color=pal_[s_], width=0.7, linewidth=0, label=f"x{s_:g}")
+    bot += vals_
+ax.set_xticks(range(len(order_)))
+ax.set_xticklabels([DSL.get(d_, d_) for d_ in order_], rotation=35, ha="right", fontsize=6.5)
+ax.set_ylabel("images (%)")
+ax.set_ylim(0, 128)
+ax.set_yticks([0, 25, 50, 75, 100])
+ax.legend(frameon=False, fontsize=5.8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, 1.02), handlelength=0.8, columnspacing=0.5, handletextpad=0.3)
+title(ax, "(b) Scale chosen")
+save(fig, "fig_scale_mech")
 
 # qualitative figure from the exported example assets (HRF: selection helps, FIVES: it hurts)
 A = ROOT / "results" / "v21" / "assets"

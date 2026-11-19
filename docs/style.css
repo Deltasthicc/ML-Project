@@ -45,10 +45,11 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 
 /* ---------------------------------------------------------------- hero */
 .pill-img { display: inline-block; width: 1.8em; height: .78em; border-radius: 999px; vertical-align: -.06em; margin: 0 .1em; background-size: cover; background-position: 50% 45%; border: 2px solid var(--ink); }
-.fcard { position: absolute; background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 10px; box-shadow: var(--shadow); }
+.fcard { position: relative; margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 10px; box-shadow: var(--shadow); }
 .fcard img { width: 100%; border-radius: 14px; display: block; }
 .fcard figcaption { font-size: 11.5px; font-weight: 700; color: var(--mute); padding: 8px 4px 0; display: flex; justify-content: space-between; gap: 8px; }
 .fcard figcaption b { color: var(--ink); }
+.hero-vis { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .float-a { animation: float 7s ease-in-out infinite; }
 .float-b { animation: float 8.5s ease-in-out -2s infinite; }
 .float-c { animation: float 9.5s ease-in-out -4s infinite; }
@@ -137,7 +138,7 @@ table.data tr.hl td { background: var(--red-soft); }
 .verdict { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; padding: 7px 14px; border-radius: 999px; }
 .verdict.ok { background: var(--green); color: #fff; }
 .verdict.no { background: var(--red); color: #fff; }
-.verdict.mid { background: var(--ink); color: #fff; }
+.verdict.mid { background: #c9831f; color: #fff; }
 .big-n { font-weight: 900; letter-spacing: -.06em; line-height: .8; font-size: clamp(5rem, 12vw, 10rem); }
 
 /* ---------------------------------------------------------------- misc */
@@ -159,7 +160,6 @@ details.lim > div { padding: 0 20px 18px; color: var(--mute); font-size: 15px; l
   .acc-panel { flex: none; height: 92px; transition: height .7s cubic-bezier(.2, .8, .2, 1); }
   .acc-panel.active { height: 520px; }
   .acc-title-v { writing-mode: horizontal-tb; transform: none; left: 24px; top: 28px; }
-  .hero-stack { position: relative !important; right: auto !important; bottom: auto !important; margin: 3rem auto 0; width: min(92%, 440px) !important; height: 360px !important; }
   .stack-card { position: relative; top: 0; min-height: 0; }
 }
 @media (prefers-reduced-motion: reduce) {

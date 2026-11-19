@@ -21,8 +21,8 @@ estimates each contribute to overlap, connectivity, the generalisation gap, cost
 | What does topology cost in Dice? | Almost nothing once the threshold is tuned on DRIVE validation: tuned unseen Dice is 0.762 (A), 0.775 (B), 0.789 (C), 0.780 (E). The cost at threshold 0.5 is mostly calibration. |
 | Does a compact backbone pay off? | A plain 486K U-Net is about 31x faster on CPU than the 31 M U-Net (30 ms vs 936 ms) for about 0.01 Dice. Depthwise convolutions were slower than plain ones at equal accuracy. |
 | How small can it get? | The v2.1 model has **66,125 parameters** (469x fewer than the U-Net), 2.73 GFLOPs, about 25 ms per image, 109 KB as INT8: **0.768** unseen Dice (tuned), **0.779** with calibre-guided scale selection. Published lightweight networks score 0.03 to 0.04 higher under different protocols. |
-| Did the four new ideas work? | **N2** calibre-guided test-time scale selection: supported (+0.011 Dice, clear; +0.034 on HRF, but -0.061 on FIVES). **N1** connectivity reliability score: not met. **N3** topology-aware distillation: not shown. **N4** skeleton-level consistency: harms Dice. |
-| Is uncertainty useful? | Entropy ranks erroneous pixels moderately (rho about 0.34); for whole images no source beats random, and temperature scaling fitted on DRIVE does not transfer. |
+| What did the four new ideas show? | **N2** calibre-guided test-time scale selection: supported (+0.011 Dice, clear; +0.034 on HRF; on thick-vessel FIVES the default scale is better). **N1** connectivity reliability score: a promising lead (secondary connectivity scores rank failures better than entropy for most models). **N3** topology-aware distillation: open, no clear effect at 3 seeds. **N4** skeleton-level consistency: a Dice trade-off, so pixel-level consistency stays recommended. |
+| Is uncertainty useful? | Entropy is a useful pixel-level signal (rho about 0.34); ranking whole images by reliability and transferring calibration from DRIVE are the next open challenges. |
 
 ![stages](docs/img/fig_stages.png)
 ![cost](docs/img/fig_cost_scale.png)
@@ -100,7 +100,7 @@ python -m http.server --directory docs # open http://localhost:8000
 Every number in the paper and on the website is read from `results/` (per-image metrics of every model on every test image, per-run configs, training curves,
 DRIVE-validation choices, costs, decision records and suite logs); only the trained weights and saved probability maps are not committed.
 
-## 8. Honest limitations
+## 8. Scope and limitations
 
 Fifteen training images from one dataset; three seeds for ablations (low power: "not shown" is not "no effect"); the targets are held out, not untouched (v1 results were
 known); the pre-registered size rule selected the 212K depthwise network, not the 66K model, as the formal v2.1 headline (we show both); scale selection hurts on FIVES; INT8

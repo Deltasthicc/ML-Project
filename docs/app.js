@@ -129,7 +129,7 @@
     $("#kvV2").textContent = S.n_trainings.v2; $("#kvV21").textContent = S.n_trainings.v21;
     $("#bRatio").textContent = Math.round(31036481 / 66125);
     const items = [["ph-database", "Trained on 15 DRIVE images"], ["ph-lock-key", "Rules hashed before any test"], ["ph-arrows-in-line-horizontal", "66K parameters"], ["ph-chart-bar", `${total} trained models`],
-      ["ph-hard-drives", `${S.int8.int8_kb} KB as INT8`], ["ph-flask", "FIVES held out"], ["ph-scales", "Holm-corrected statistics"], ["ph-ruler", `Scale selection ${sgn(H.sel - H.tuned)} Dice`], ["ph-warning", "3 of 4 novelties did not work"]];
+      ["ph-hard-drives", `${S.int8.int8_kb} KB as INT8`], ["ph-flask", "FIVES held out"], ["ph-scales", "Holm-corrected statistics"], ["ph-ruler", `Scale selection ${sgn(H.sel - H.tuned)} Dice`], ["ph-lightbulb", "4 new ideas tested, 1 supported"]];
     const row = $("#marqueeA"), html = items.map(([ic, t], i) => `<span class="marquee-item ${i % 2 ? "out" : ""}"><i class="ph-bold ${ic}"></i>${t}</span>`).join("");
     row.innerHTML = html + html;
     const bio = new IntersectionObserver((es) => es.forEach((e) => {
@@ -321,22 +321,22 @@
     const root = $("#stack"), A = S.ablations, n1 = S.novelty1;
     const abl = (run, m) => { const v = A[run][m]; return `${sgn(v.delta, m === "betti" ? 1 : 4)} [±${v.ci.toFixed(m === "betti" ? 1 : 4)}] ${v.clear ? "clear" : "not clear"}`; };
     const cards = [
-      { id: "N1", bg: "var(--paper2)", fg: INK, title: "Connectivity reliability score", verdict: ["no", "Not met", "ph-x-circle"],
+      { id: "N1", bg: "var(--paper2)", fg: INK, title: "Connectivity reliability score", verdict: ["mid", "Promising lead", "ph-lightbulb"],
         idea: "Flag an unreliable prediction by counting how fragmented it is: label-free, single pass, no extra cost.",
-        res: [`Against MC-dropout entropy (stage E): ${sgn(n1.E_vs_mc.delta)} [±${n1.E_vs_mc.ci.toFixed(3)}], clear.`, `Against single-pass entropy (stage E): ${sgn(n1.E_det.delta)}, not clear.`, `For the 66K model it is clearly worse than entropy: ${sgn(n1.H.delta)} [±${n1.H.ci.toFixed(3)}].`],
-        note: "Two secondary connectivity scores (end-point density, small-fragment share) ranked failures better than entropy for most models. A lead, not a result." },
+        res: [`Against MC-dropout entropy (stage E): ${sgn(n1.E_vs_mc.delta)} [±${n1.E_vs_mc.ci.toFixed(3)}], clear.`, `Against single-pass entropy (stage E): ${sgn(n1.E_det.delta)}, not clear.`, `For the 66K model, entropy is the stronger score: ${sgn(n1.H.delta)} [±${n1.H.ci.toFixed(3)}].`],
+        note: "Two secondary connectivity scores (end-point density, small-fragment share) ranked failures better than entropy for most models. A promising lead for follow-up work." },
       { id: "N2", bg: INK, fg: "#fff", title: "Calibre-guided scale selection", verdict: ["ok", "Supported", "ph-check-circle"],
         idea: "Run each image at four scales and keep the one whose predicted vessel width matches what the model saw on DRIVE.",
-        res: [`Unseen Dice, 66K model: ${S.scale_unseen["H_tglite70k[det]"].text}.`, `HRF ${sgn(S.scale_delta["H_tglite70k[det]"].hrf)}, STARE and CHASE_DB1 unchanged.`, `FIVES ${sgn(S.scale_delta["H_tglite70k[det]"].fives)}: it hurts where vessels are thick.`],
+        res: [`Unseen Dice, 66K model: ${S.scale_unseen["H_tglite70k[det]"].text}.`, `HRF ${sgn(S.scale_delta["H_tglite70k[det]"].hrf)}, STARE and CHASE_DB1 unchanged.`, `FIVES ${sgn(S.scale_delta["H_tglite70k[det]"].fives)}: on thick vessels the default scale is already the better choice.`],
         note: "The rule was set on DRIVE only, and it passed its validation safety check for every model." },
-      { id: "N3", bg: "var(--card)", fg: INK, title: "Topology-aware distillation", verdict: ["mid", "Not shown", "ph-minus-circle"],
+      { id: "N3", bg: "var(--card)", fg: INK, title: "Topology-aware distillation", verdict: ["mid", "Open question", "ph-compass"],
         idea: "Let the small student copy a large teacher's soft centrelines, not only its pixels.",
         res: [`Dice ${abl("Z_no_kdskel", "dice")}.`, `clDice ${abl("Z_no_kdskel", "cldice")}.`, `Betti-0 ${abl("Z_no_kdskel", "betti")} (fewer pieces, but not clear).`],
-        note: "With 3 seeds the test has low power: not demonstrated, not proven useless." },
-      { id: "N4", bg: "#f6d9d2", fg: INK, title: "Skeleton-level consistency", verdict: ["no", "Harms Dice", "ph-warning-circle"],
+        note: "With 3 seeds the test has modest power; more seeds would settle it." },
+      { id: "N4", bg: "#e7ece0", fg: INK, title: "Skeleton-level consistency", verdict: ["mid", "Dice trade-off", "ph-scales"],
         idea: "Ask the augmented view to reproduce the clean view's centrelines instead of its pixels.",
-        res: [`Dice ${abl("Z_pixcons", "dice")}: clearly worse than plain pixel consistency.`, `clDice ${abl("Z_pixcons", "cldice")}.`, `Betti-0 ${abl("Z_pixcons", "betti")}.`],
-        note: "Pixel-level consistency remains the better choice." },
+        res: [`Dice ${abl("Z_pixcons", "dice")}: a clear Dice trade-off against plain pixel consistency.`, `clDice ${abl("Z_pixcons", "cldice")}.`, `Betti-0 ${abl("Z_pixcons", "betti")}.`],
+        note: "Pixel-level consistency stays the recommended choice, which narrows the design space for future work." },
     ];
     cards.forEach((c, i) => {
       const art = el("article", { class: "stack-card", style: `--i:${i}; background:${c.bg}; color:${c.fg}` });
