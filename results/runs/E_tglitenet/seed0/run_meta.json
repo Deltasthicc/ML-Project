@@ -1,0 +1,17 @@
+{
+  "config_hash": "e507e79b5f4ac510",
+  "env": {
+    "git_commit": "3e0b17096b70726d67e26a04520c02bc22dec5a9",
+    "python": "3.12.16",
+    "platform": "Windows-11-10.0.26100-SP0",
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8",
+    "cudnn": 91900,
+    "numpy": "2.5.4",
+    "opencv": "5.0.0",
+    "scikit-image": "0.26.0",
+    "scikit-learn": "1.9.1",
+    "gpu": "NVIDIA RTX A4000",
+    "cpu": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel"
+  }
+}

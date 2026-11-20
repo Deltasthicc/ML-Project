@@ -1,0 +1,175 @@
+{
+  "note": "normalised scale (FOV 540 px wide); thresholds = each model's DRIVE-val choice; Dice here is at the normalised scale (the reported results use native resolution)",
+  "datasets": {
+    "drive": {
+      "id": "14",
+      "native_hw": [
+        584,
+        565
+      ],
+      "maps": {
+        "v21_H_tglite70k": {
+          "threshold": 0.65,
+          "dice_normalised": 0.8089
+        },
+        "v21_H_tglite70k_scalesel": {
+          "threshold": 0.65,
+          "dice_normalised": 0.8089
+        },
+        "v21_R_lite_w16": {
+          "threshold": 0.6,
+          "dice_normalised": 0.8198
+        },
+        "v21_Z_v2recipe": {
+          "threshold": 0.7,
+          "dice_normalised": 0.8211
+        },
+        "v2_E_tglitenet": {
+          "threshold": 0.7,
+          "dice_normalised": 0.818
+        },
+        "v2_C_unet_topo_dg": {
+          "threshold": 0.65,
+          "dice_normalised": 0.8233
+        }
+      },
+      "selected_scale": 1.0
+    },
+    "stare": {
+      "id": "im0162",
+      "native_hw": [
+        605,
+        700
+      ],
+      "maps": {
+        "v21_H_tglite70k": {
+          "threshold": 0.65,
+          "dice_normalised": 0.7832
+        },
+        "v21_H_tglite70k_scalesel": {
+          "threshold": 0.65,
+          "dice_normalised": 0.7832
+        },
+        "v21_R_lite_w16": {
+          "threshold": 0.6,
+          "dice_normalised": 0.7879
+        },
+        "v21_Z_v2recipe": {
+          "threshold": 0.7,
+          "dice_normalised": 0.7877
+        },
+        "v2_E_tglitenet": {
+          "threshold": 0.7,
+          "dice_normalised": 0.7885
+        },
+        "v2_C_unet_topo_dg": {
+          "threshold": 0.65,
+          "dice_normalised": 0.7968
+        }
+      },
+      "selected_scale": 1.0
+    },
+    "chase_db1": {
+      "id": "Image_02L",
+      "native_hw": [
+        960,
+        999
+      ],
+      "maps": {
+        "v21_H_tglite70k": {
+          "threshold": 0.65,
+          "dice_normalised": 0.754
+        },
+        "v21_H_tglite70k_scalesel": {
+          "threshold": 0.65,
+          "dice_normalised": 0.754
+        },
+        "v21_R_lite_w16": {
+          "threshold": 0.6,
+          "dice_normalised": 0.7752
+        },
+        "v21_Z_v2recipe": {
+          "threshold": 0.7,
+          "dice_normalised": 0.7853
+        },
+        "v2_E_tglitenet": {
+          "threshold": 0.7,
+          "dice_normalised": 0.7862
+        },
+        "v2_C_unet_topo_dg": {
+          "threshold": 0.65,
+          "dice_normalised": 0.794
+        }
+      },
+      "selected_scale": 1.0
+    },
+    "hrf": {
+      "id": "07_dr",
+      "native_hw": [
+        2336,
+        3504
+      ],
+      "maps": {
+        "v21_H_tglite70k": {
+          "threshold": 0.65,
+          "dice_normalised": 0.6917
+        },
+        "v21_H_tglite70k_scalesel": {
+          "threshold": 0.65,
+          "dice_normalised": 0.7394
+        },
+        "v21_R_lite_w16": {
+          "threshold": 0.6,
+          "dice_normalised": 0.6943
+        },
+        "v21_Z_v2recipe": {
+          "threshold": 0.7,
+          "dice_normalised": 0.6956
+        },
+        "v2_E_tglitenet": {
+          "threshold": 0.7,
+          "dice_normalised": 0.7023
+        },
+        "v2_C_unet_topo_dg": {
+          "threshold": 0.65,
+          "dice_normalised": 0.7054
+        }
+      },
+      "selected_scale": 1.5
+    },
+    "fives": {
+      "id": "120_G",
+      "native_hw": [
+        2048,
+        2048
+      ],
+      "maps": {
+        "v21_H_tglite70k": {
+          "threshold": 0.65,
+          "dice_normalised": 0.8509
+        },
+        "v21_H_tglite70k_scalesel": {
+          "threshold": 0.65,
+          "dice_normalised": 0.8509
+        },
+        "v21_R_lite_w16": {
+          "threshold": 0.6,
+          "dice_normalised": 0.8799
+        },
+        "v21_Z_v2recipe": {
+          "threshold": 0.7,
+          "dice_normalised": 0.9045
+        },
+        "v2_E_tglitenet": {
+          "threshold": 0.7,
+          "dice_normalised": 0.9091
+        },
+        "v2_C_unet_topo_dg": {
+          "threshold": 0.65,
+          "dice_normalised": 0.9114
+        }
+      },
+      "selected_scale": 1.0
+    }
+  }
+}

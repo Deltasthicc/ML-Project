@@ -5,40 +5,34 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+.ipynb_checkpoints/
 
-# datasets are never committed (licences + size); see scripts/download_data.py
-data/raw/
-data/processed/
-data/cache/
-data/*.log
-data/*.sh
+# datasets: archives are copied into data/ by hand, everything under data/ is local only
+data/*
+!data/README.md
 
-# heavy run artefacts (keep the small csv/json/log files)
-results/runs/**/*.pt
-results/runs/**/*.npz
-results/smoke/
-results/_*/
-results/tuning/**/*.pt
-results/timing/
-results/sanity/**/*.pt
-results/runs/**/preds/
-report_fake/
+# heavy run artefacts (checkpoints, probability maps, TensorBoard, suite state). The small, final files are exported to results/.
+/runs/
+/runs_smoke/
+/runs_scratch/
+
+# model weights anywhere
+*.pt
+*.pth
+*.onnx
 
 # LaTeX build junk
-report/*.aux
-report/*.log
-report/*.out
-report/*.bbl
-report/*.blg
-report/*.fls
-report/*.fdb_latexmk
-report/*.synctex.gz
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
 
 .DS_Store
 Thumbs.db
 
-# downloaded Kaggle result bundles (large; the small result files are already in results/runs and results/tables)
-results_bundle*.zip
-
-# archives (result bundles, drive downloads) are never committed
-*.zip
+# stray ONNX external-data files from the INT8 export
+/*.data

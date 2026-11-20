@@ -1,0 +1,46 @@
+% Method overview of TG-LiteNet v2.1 (included with \resizebox in main.tex)
+\begin{tikzpicture}[
+  font=\footnotesize, >=Stealth,
+  blk/.style={draw, rounded corners=2pt, align=center, minimum height=9mm, inner sep=3pt, fill=white},
+  trn/.style={blk, dashed},
+  net/.style={blk, fill=black!6, minimum height=11mm},
+  hot/.style={blk, fill=red!8, draw=red!70!black},
+  lab/.style={font=\scriptsize\itshape, text=black!65},
+  arr/.style={->, thick},
+  darr/.style={->, thick, dashed}
+]
+% ---------------------------------------------------------------- training row
+\node[blk] (img) {DRIVE image\\+ label (15)};
+\node[blk, right=7mm of img] (pre) {Scale-normalise\\FOV 540\,px, green,\\CLAHE, standardise};
+\node[net, right=7mm of pre] (net) {Compact U-Net\\66K params\\(8-12-16-24-32)};
+\node[blk, right=7mm of net, yshift=4mm] (mask) {Mask head\\(vessel prob.)};
+\node[trn, right=7mm of net, yshift=-5mm] (skel) {Skeleton head\\(training only)};
+\node[trn, right=8mm of mask, xshift=2mm, yshift=-4.5mm] (loss) {Loss $\mathcal L$:\\Dice+BCE, soft-clDice,\\skeleton head, \textbf{N4} skeleton\\consistency, \textbf{N3} distillation};
+\node[trn, above=6mm of pre, xshift=2mm] (dg) {DG view: style, RandConv,\\Fourier amplitude, elastic};
+\node[trn, below=6mm of net, xshift=-4mm] (teach) {Teacher: five 31M U-Nets\\(stage C), soft maps + centrelines};
+\draw[arr] (img) -- (pre);
+\draw[arr] (pre) -- (net);
+\draw[arr] (net.east) -- ++(2mm,0) |- (mask.west);
+\draw[darr] (net.east) -- ++(2mm,0) |- (skel.west);
+\draw[arr] (mask.east) -- ++(2mm,0) |- (loss.west);
+\draw[darr] (skel.east) -- ++(2mm,0) |- (loss.west);
+\draw[darr] (img.north) |- (dg.west);
+\draw[darr] (dg.east) -| ([xshift=-3mm]net.north);
+\draw[darr] (teach.east) -| (loss.south);
+\node[lab, above=1mm of dg] {training only};
+% ---------------------------------------------------------------- test row
+\node[blk, below=22mm of img] (timg) {Unseen image\\(any camera)};
+\node[blk, right=7mm of timg] (scales) {Process at scales\\$s\in\{1,1.5,2,2.5\}$};
+\node[net, right=7mm of scales] (net2) {Same network\\(no adaptation)};
+\node[hot, right=7mm of net2] (cal) {\textbf{N2} Calibre rule:\\predicted vessel width\\on own skeleton};
+\node[blk, right=7mm of cal] (sel) {Pick scale $s^{*}$\\closest to DRIVE\\calibre};
+\node[blk, right=7mm of sel] (post) {Tuned threshold\\+ fragment\\removal};
+\node[blk, right=7mm of post] (out) {Vessel map\\+ reliability\\(\textbf{N1}, entropy)};
+\draw[arr] (timg) -- (scales);
+\draw[arr] (scales) -- (net2);
+\draw[arr] (net2) -- (cal);
+\draw[arr] (cal) -- (sel);
+\draw[arr] (sel) -- (post);
+\draw[arr] (post) -- (out);
+\node[lab, left=2mm of timg, rotate=90, anchor=south] {test time};
+\end{tikzpicture}

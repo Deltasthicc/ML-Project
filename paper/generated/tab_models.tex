@@ -1,0 +1,17 @@
+\begin{tabular}{l rrr ccc cc c cc}
+\toprule
+Model & Params & GFLOPs & CPU ms & STARE & CHASE & HRF & Unseen & + scale sel. & FIVES & clDice & Betti-0 \\
+\midrule
+DSAE-Net~\cite{zeng2025} & 78K & 4.76 & -- & 0.819 & 0.815 & 0.801 & 0.812 & -- & -- & -- & -- \\
+LightVesselNet~\cite{sobhan2026} & 75K & 1.4 & -- & -- & -- & -- & n/r & -- & -- & -- & -- \\
+DGSSA~\cite{liu2026dgssa} (multi-source) & n/r & n/r & -- & -- & -- & -- & 0.780 & -- & -- & -- & -- \\
+\midrule
+v2 stage C (U-Net) & 31.0M & 384.74 & 1003 & 0.828{\scriptsize$\pm$0.005} & 0.789{\scriptsize$\pm$0.006} & 0.749{\scriptsize$\pm$0.013} & 0.789{\scriptsize$\pm$0.008} & 0.751{\scriptsize$\pm$0.034} & 0.842{\scriptsize$\pm$0.008} & 0.836{\scriptsize$\pm$0.003} & 35.5{\scriptsize$\pm$3.0} \\
+\midrule
+v2 stage E (TG-LiteNet) & 486K & 6.05 & 30 & 0.819{\scriptsize$\pm$0.003} & 0.787{\scriptsize$\pm$0.004} & 0.733{\scriptsize$\pm$0.014} & 0.780{\scriptsize$\pm$0.007} & 0.789{\scriptsize$\pm$0.005} & 0.847{\scriptsize$\pm$0.006} & 0.825{\scriptsize$\pm$0.003} & 39.2{\scriptsize$\pm$1.5} \\
+v2.1 compact U-Net & 486K & 6.05 & 55 & 0.812{\scriptsize$\pm$0.004} & 0.775{\scriptsize$\pm$0.011} & 0.736{\scriptsize$\pm$0.016} & 0.775{\scriptsize$\pm$0.010} & 0.785{\scriptsize$\pm$0.009} & 0.822{\scriptsize$\pm$0.007} & 0.826{\scriptsize$\pm$0.004} & 31.8{\scriptsize$\pm$6.9} \\
+v2.1 depthwise (size-rule headline) & 212K & 5.53 & 107 & 0.812{\scriptsize$\pm$0.007} & 0.777{\scriptsize$\pm$0.009} & 0.736{\scriptsize$\pm$0.017} & 0.775{\scriptsize$\pm$0.011} & 0.785{\scriptsize$\pm$0.008} & 0.822{\scriptsize$\pm$0.007} & 0.826{\scriptsize$\pm$0.000} & 29.0{\scriptsize$\pm$3.4} \\
+\textbf{v2.1 TG-LiteNet 66K} & 66K & 2.73 & 25 & 0.810{\scriptsize$\pm$0.002} & 0.765{\scriptsize$\pm$0.006} & 0.729{\scriptsize$\pm$0.005} & 0.768{\scriptsize$\pm$0.004} & 0.779{\scriptsize$\pm$0.004} & 0.810{\scriptsize$\pm$0.013} & 0.820{\scriptsize$\pm$0.003} & 32.1{\scriptsize$\pm$2.2} \\
+v2.1 66K, 5-model ensemble & 66K & 2.73 & 25 & 0.817 & 0.772 & 0.730 & 0.773 & 0.785 & 0.828 & 0.827 & 26.5 \\
+\bottomrule
+\end{tabular}

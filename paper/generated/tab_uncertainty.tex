@@ -1,0 +1,11 @@
+\begin{tabular}{lccccc}
+\toprule
+Uncertainty source & $\rho_{px}$ & $\rho_{img}$ & AURC gain (\%) & ECE & ECE$_T$ \\
+\midrule
+A  U-Net (entropy) & 0.34 & -0.03 & -0.9 & 0.042 & 0.046 \\
+C  + DG (entropy) & 0.34 & +0.01 & +1.7 & 0.045 & 0.052 \\
+E  TG-LiteNet (entropy) & 0.34 & -0.08 & -9.9 & 0.046 & 0.053 \\
+E  MC dropout ($T{=}20$) & 0.34 & -0.08 & -8.6 & 0.047 & 0.054 \\
+D  5-model ensemble & 0.34 & -0.03 & +2.1 & 0.046 & 0.054 \\
+\bottomrule
+\end{tabular}

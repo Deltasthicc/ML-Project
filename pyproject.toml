@@ -4,30 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tglite"
-version = "1.0.0"
-description = "TG-LiteNet: topology-preserving, domain-generalizable, lightweight retinal vessel segmentation"
+version = "2.0.0"
+description = "TG-LiteNet: topology-aware, source-only retinal vessel segmentation study (DRIVE -> STARE / CHASE_DB1 / HRF / FIVES)"
 requires-python = ">=3.10"
-dependencies = [
-    "numpy",
-    "scipy",
-    "scikit-image",
-    "scikit-learn",
-    "opencv-python-headless",
-    "pillow",
-    "tifffile",
-    "pandas",
-    "pyyaml",
-    "tqdm",
-    "matplotlib",
-    "requests",
-    "pyarrow",
-]
-
-[project.optional-dependencies]
-dev = ["pytest"]
+license = { file = "LICENSE" }
 
 [tool.setuptools.packages.find]
-include = ["tglite*"]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-q"

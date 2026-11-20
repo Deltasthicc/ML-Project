@@ -1,0 +1,13 @@
+\begin{tabular}{l ccc c c c rr}
+\toprule
+Model & DRIVE Dice & Unseen Dice & Tuned Dice & clDice & Betti-0 & Gap & Params (M) & CPU (ms) \\
+\midrule
+A  U-Net & 0.825{\scriptsize$\pm$0.003} & 0.759{\scriptsize$\pm$0.007} & 0.762{\scriptsize$\pm$0.015} & 0.836{\scriptsize$\pm$0.003} & 72.8{\scriptsize$\pm$8.3} & 0.066{\scriptsize$\pm$0.009} & 31.04 & 936 \\
+B  + topology loss & 0.821{\scriptsize$\pm$0.002} & 0.758{\scriptsize$\pm$0.004} & 0.775{\scriptsize$\pm$0.007} & 0.842{\scriptsize$\pm$0.007} & 33.9{\scriptsize$\pm$6.5} & 0.063{\scriptsize$\pm$0.004} & 31.04 & 989 \\
+C  + DG augmentation & 0.824{\scriptsize$\pm$0.001} & 0.761{\scriptsize$\pm$0.004} & 0.789{\scriptsize$\pm$0.008} & 0.846{\scriptsize$\pm$0.002} & 35.5{\scriptsize$\pm$3.0} & 0.064{\scriptsize$\pm$0.003} & 31.04 & 1003 \\
+D  compact backbone & 0.819{\scriptsize$\pm$0.001} & 0.749{\scriptsize$\pm$0.002} & 0.780{\scriptsize$\pm$0.002} & 0.835{\scriptsize$\pm$0.001} & 40.5{\scriptsize$\pm$3.8} & 0.070{\scriptsize$\pm$0.002} & 0.49 & 31 \\
+E  TG-LiteNet & 0.817{\scriptsize$\pm$0.001} & 0.751{\scriptsize$\pm$0.006} & 0.780{\scriptsize$\pm$0.007} & 0.836{\scriptsize$\pm$0.002} & 39.2{\scriptsize$\pm$1.4} & 0.067{\scriptsize$\pm$0.007} & 0.49 & 30 \\
+\midrule
+E  + MC dropout ($T{=}20$) & 0.817{\scriptsize$\pm$0.002} & 0.752{\scriptsize$\pm$0.006} & 0.778{\scriptsize$\pm$0.007} & 0.836{\scriptsize$\pm$0.002} & 39.9{\scriptsize$\pm$1.5} & 0.066{\scriptsize$\pm$0.007} & 0.49 & 600 $\times$ 20 \\
+\bottomrule
+\end{tabular}

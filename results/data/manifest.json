@@ -1,0 +1,148 @@
+{
+  "drive": {
+    "sources": [
+      {
+        "file": "datasets.zip",
+        "bytes": 29344248,
+        "sha256": "662c3bd9168fa0531d02a9deea9a23b872bb8a8476db24ec00405280bc0736fa",
+        "verified": false
+      },
+      {
+        "file": "drive_paddleseg_mirror.zip",
+        "bytes": 32976648,
+        "sha256": "1097cde905f07b3d0ef187f456f4e5df0fe502fa0715ed09a5cfb892461e0ab3",
+        "verified": true
+      }
+    ],
+    "fov": "official",
+    "labels": "official 1st_manual (train); PaddleSeg mirror 1st_manual (test)",
+    "checks": {
+      "train_label_identical": 20,
+      "test_image_max_abs_diff": 0.0
+    },
+    "prepared_utc": "2026-11-11T09:58:38+00:00",
+    "stats": {
+      "h": 584.0,
+      "w": 565.0,
+      "vessel_frac_fov": 0.12634675062701017,
+      "fov_width": 539.075,
+      "calibre_native": 3.5111735405684867,
+      "calibre_norm": 3.4326916665646636,
+      "green_mean": 96.37232694900597,
+      "green_std": 19.1481571934435,
+      "n": 40,
+      "fov_width_median": 540.0
+    }
+  },
+  "stare": {
+    "sources": [
+      {
+        "file": "labels-ah.tar",
+        "bytes": 241664,
+        "sha256": "ebf2f1e17ca955f24579d9edd990e2dae79a5c82def69f0985d8e24f826ddd2f",
+        "verified": true
+      },
+      {
+        "file": "labels-vk.tar",
+        "bytes": 333824,
+        "sha256": "47474a701536b0cfdb369fdce012be36141e9f44d80387f0179446b5cb0f5576",
+        "verified": true
+      },
+      {
+        "file": "all-images.zip",
+        "bytes": 362095504,
+        "sha256": "6428ecc394f1b49a7192134990934f62fcd7d36110fd7c344b912dc43925e853",
+        "verified": false
+      }
+    ],
+    "fov": "estimated",
+    "labels": "Hoover (ah) = 1st observer; Kouznetsova (vk) = 2nd",
+    "prepared_utc": "2026-11-11T09:58:40+00:00",
+    "stats": {
+      "h": 605.0,
+      "w": 700.0,
+      "vessel_frac_fov": 0.10471107284576545,
+      "fov_width": 642.75,
+      "calibre_native": 4.275837317113113,
+      "calibre_norm": 3.5042272355921495,
+      "green_mean": 109.28623922677934,
+      "green_std": 24.138780272237902,
+      "n": 20,
+      "fov_width_median": 638.0
+    }
+  },
+  "chase_db1": {
+    "sources": [
+      {
+        "hf_repo": "MedOtter/CHASE_DB1",
+        "revision": "c8051462ef60e5c5ac081415493a7782826f19b5",
+        "note": "byte-identical copy of the official Kingston archive per the dataset card; Kingston server offline"
+      }
+    ],
+    "fov": "estimated",
+    "labels": "1stHO = 1st observer; 2ndHO = 2nd",
+    "prepared_utc": "2026-11-11T09:58:57+00:00",
+    "stats": {
+      "h": 960.0,
+      "w": 999.0,
+      "vessel_frac_fov": 0.10270227424415089,
+      "fov_width": 896.9285714285714,
+      "calibre_native": 6.065555295945136,
+      "calibre_norm": 3.5642851015574486,
+      "green_mean": 61.81642916874143,
+      "green_std": 26.258085891812414,
+      "n": 28,
+      "fov_width_median": 899.0
+    }
+  },
+  "hrf": {
+    "sources": [
+      {
+        "file": "all.zip",
+        "bytes": 76317613,
+        "sha256": "a914d02cda161b7f33f25d0397c276d50e9a6cbc705e9b364a54f0adafed57e4",
+        "verified": true
+      }
+    ],
+    "fov": "official",
+    "labels": "manual1",
+    "prepared_utc": "2026-11-11T09:59:46+00:00",
+    "stats": {
+      "h": 2336.0,
+      "w": 3504.0,
+      "vessel_frac_fov": 0.09126631670090316,
+      "fov_width": 3262.3333333333335,
+      "calibre_native": 8.779884465955375,
+      "calibre_norm": 1.4183197751552106,
+      "green_mean": 60.40337787136975,
+      "green_std": 16.552340400170223,
+      "n": 45,
+      "fov_width_median": 3262.0
+    }
+  },
+  "fives": {
+    "sources": [
+      {
+        "file": "FIVES A Fundus Image Dataset for AI-based Vessel Segmentation.rar",
+        "bytes": 1764974308,
+        "sha256": "be72f9af286b107bcebcc08a9dae7fc55c3fb0959409b689e14c72f9fdc4ad8e",
+        "verified": false
+      }
+    ],
+    "fov": "estimated",
+    "labels": "FIVES test split ground truth (native 2048 x 2048)",
+    "prepared_utc": "2026-11-11T10:02:41+00:00",
+    "stats": {
+      "h": 2048.0,
+      "w": 2048.0,
+      "vessel_frac_fov": 0.09675015541758941,
+      "fov_width": 1968.815,
+      "calibre_native": 13.187074715032466,
+      "calibre_norm": 3.529996268123274,
+      "green_mean": 53.255493512464454,
+      "green_std": 17.345127585903715,
+      "n": 200,
+      "fov_width_median": 1969.0
+    }
+  }
+}

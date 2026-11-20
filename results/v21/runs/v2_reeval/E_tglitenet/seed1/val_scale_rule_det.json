@@ -1,0 +1,49 @@
+{
+  "ref_calibre_drive_train": 3.904578214572467,
+  "val_dice_scale1": 0.8161138188838519,
+  "val_dice_selected": 0.8161138188838519,
+  "chosen_scales": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "shrink_check": {
+    "0.67": {
+      "gain_rule": 0.0057275047859344005,
+      "gain_oracle": 0.01213958231408383,
+      "chosen": [
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ]
+    },
+    "0.5": {
+      "gain_rule": 0.023275834962462903,
+      "gain_oracle": 0.0274547849798056,
+      "chosen": [
+        1.5,
+        2.0,
+        2.0,
+        2.0,
+        1.5
+      ]
+    },
+    "0.4": {
+      "gain_rule": 0.07326791134837259,
+      "gain_oracle": 0.07610397515341198,
+      "chosen": [
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ]
+    }
+  },
+  "rule": "calibre on own skeleton closest to the DRIVE-train calibre; used for claims only if val Dice drops <= 0.01",
+  "passed": true
+}

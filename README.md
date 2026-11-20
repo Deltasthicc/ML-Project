@@ -1,264 +1,279 @@
-# TG-LiteNet — topology, domain shift and efficiency in retinal vessel segmentation
+<div align="center">
 
-[![tests](https://github.com/Deltasthicc/ML-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Deltasthicc/ML-Project/actions/workflows/tests.yml)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# TG-LiteNet
 
-CSD361 *Introduction to Machine Learning* — final project, Shiv Nadar Institution of Eminence
-Abhiraj Agarwal (2510110002) · Shashwat Rajan (2510111019) · Tanish Shitanshu (2510110008)
+### A 66K-parameter retinal vessel segmenter that travels across cameras
 
-A **controlled study** of three properties that a vessel segmenter for a rural screening camp needs at the same time:
-vessels that stay **connected** (topology), a model that works on cameras it was **never trained on** (domain shift) and a
-model that is **small and fast** (efficiency). Everything is trained on **one** source dataset (DRIVE, 16 training images) and
-evaluated on three held-out datasets (STARE, CHASE_DB1, HRF). The paper is [`report/main.pdf`](report/main.pdf) (8 pages, IEEE format); an interactive project page (live segmentation viewer, results explorer) is in [`docs/`](docs/index.html) — run `python -m http.server --directory docs` and open <http://localhost:8000>, or open the live site at <https://deltasthicc.github.io/ML-Project/> (GitHub Pages, source `docs/`; the first design is kept in `docs/v1/`).
+Compact, topology-aware vessel segmentation, trained on **15 DRIVE images** and tested **without any adaptation** on four unseen datasets.
+A pre-registered study with **114 trained models**, a **109 KB** INT8 network and a label-free **test-time scale rule**.
 
-It is a trade-off study, **not** a state-of-the-art claim, and several of our own ideas did not survive their controls:
+[![Paper](https://img.shields.io/badge/paper-IEEE%2C%208%20pages-101512?style=for-the-badge&logo=readthedocs&logoColor=white)](paper/main.pdf)
+[![Website](https://img.shields.io/badge/interactive%20site-open-e4432c?style=for-the-badge&logo=githubpages&logoColor=white)](https://deltasthicc.github.io/ML-Project/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.11-101512?style=for-the-badge&logo=pytorch&logoColor=white)](requirements-lock.txt)
+[![Licence](https://img.shields.io/badge/licence-MIT-101512?style=for-the-badge)](LICENSE)
 
-| Question | Answer from our data |
+<table>
+  <tr>
+    <td align="center"><img src="docs/assets/hrf/image.jpg" width="230"><br><sub><b>Unseen HRF photo</b><br>a camera the model never saw</sub></td>
+    <td align="center"><img src="docs/assets/hrf/gt.png" width="230"><br><sub><b>Expert label</b><br>ground truth</sub></td>
+    <td align="center"><img src="docs/assets/hrf/err_v21_H_tglite70k.png" width="230"><br><sub><b>66K model</b><br>Dice 0.692</sub></td>
+    <td align="center"><img src="docs/assets/hrf/err_v21_H_tglite70k_scalesel.png" width="230"><br><sub><b>+ scale selection</b><br>Dice 0.739</sub></td>
+  </tr>
+</table>
+
+<sub>Black: correct vessel, red: false alarm, blue: missed. Example image, normalised scale.</sub>
+
+</div>
+
+CSD361 *Introduction to Machine Learning*, final project, Shiv Nadar Institution of Eminence.
+**Abhiraj Agarwal** (2510110002), **Shashwat Rajan** (2510111019), **Tanish Shitanshu** (2510110008).
+
+---
+
+## Contents
+
+[At a glance](#at-a-glance) · [The idea](#the-idea) · [Results](#results) · [The four new ideas](#the-four-new-ideas) · [Versions](#versions-and-branches) · [Data](#data) · [Quick start](#quick-start) · [Reproduce](#reproduce-everything) · [Repository map](#repository-map) · [Scope](#scope-and-limitations) · [Cite and licence](#cite-and-licence)
+
+---
+
+## At a glance
+
+| | |
 |---|---|
-| Does a topology loss (soft-clDice + skeleton head) help? | It raises clDice (+0.007) and cuts the raw Betti-0 error 75 → 32, at −0.009 Dice at the fixed 0.5 threshold. Simply deleting tiny components brings *every* model to Betti-0 ≈ 5, so the lasting benefit is the (modest) clDice gain. The Dice cost is a calibration effect: with a threshold tuned on DRIVE-validation (5 seeds, post-hoc) the topology-trained U-Nets have the *highest* Dice (stage C 0.782, plain U-Net 0.757). |
-| Does domain-generalisation augmentation help? | Yes, it is the clearest gain: about +0.01 unseen Dice and a smaller DRIVE→target gap. |
-| Does the depthwise-separable backbone make it light? | It saves **parameters** (147× fewer) but **not time**: plain compact U-Nets match its Dice at equal or lower CPU latency, and a base-16 U-Net (1.9 M parameters) is also better connected. On this evidence we would deploy the base-16 U-Net. |
-| Do the skeleton head, consistency loss and dropout matter? | Not measurably. |
-| Is MC-dropout uncertainty useful? | Moderately per pixel (ρ ≈ 0.31–0.34), not for whole-image triage (within 4 % of random, worse on HRF), at 20× the cost. |
+| **66,125 parameters** | **469x** smaller than the 31 M U-Net it is compared with, **7x** smaller than our v2 model |
+| **0.768 → 0.779 Dice** | on the unseen datasets (STARE, CHASE_DB1, HRF), tuned threshold, then with calibre-guided scale selection |
+| **109 KB** | as a static INT8 network (266 KB as FP32) with unchanged Dice; about 25 ms per image on a desktop CPU |
+| **+0.034 Dice on HRF** | from a label-free test-time rule that needs no retraining and no target labels |
+| **114 trained models** | 76 (v2) + 38 (v2.1), every rule written and hashed **before** any target image was evaluated |
+| **31x faster on CPU** | a plain 486K U-Net against the 31 M U-Net, for about 0.01 Dice |
 
-## 1. The model and the experiment ladder
+<p align="center"><img src="docs/img/fig_headline.png" width="92%" alt="Dice on each unseen dataset"></p>
 
-![architecture](docs/img/architecture.png)
+---
 
-```
-A  U-Net baseline (Dice+BCE)  →  B  + topology loss (soft-clDice + skeleton head)  →  C  + DG augmentation + consistency
-                              →  D  + compact backbone (0.21 M parameters)        →  E  TG-LiteNet = D + MC-dropout uncertainty
-```
+## The idea
 
-Around this ladder: a full 2×2×2 factorial design (backbone × topology × DG), topology-loss variants (cbDice, Skeleton Recall),
-a width sweep, **plain compact U-Nets** with the same recipe (`compact_unet`) and **ingredient controls** (`controls`: no skeleton head,
-no consistency loss), plus evaluation-only controls (small-component removal, validation-tuned thresholds, no-rescale evaluation).
-20 configurations, 70 trained models, every one of them recorded in [`results/runs`](results/runs).
+Retinal vessel maps help screen for diabetes, hypertension and eye disease, but a model trained on one clinic's camera usually degrades on another's.
+Real deployments also need models that are **small**, and maps whose vessels stay **connected**, since a missed junction matters more than a missed pixel.
+This project asks, under one strict protocol, what each ingredient contributes:
 
-## 2. Data and representation
-
-Four public fundus datasets (not redistributed — see §6 for the download scripts and please cite the original papers):
-
-| Dataset | Images | Size (px) | Vessel % | FOV width (px) | Vessel calibre native → normalised (px) | Role |
-|---|---:|---|---:|---:|---|---|
-| DRIVE (Staal 2004) | 40 | 565×584 | 12.9 | 527 | 3.5 → 3.5 | **source**: train 16 / validation 4 / test 20 |
-| STARE (Hoover 2000) | 20 | 700×605 | 10.5 | 638 | 4.3 → 3.5 | unseen target |
-| CHASE_DB1 (Fraz 2012) | 28 | 999×960 | 10.3 | 899 | 6.1 → 3.6 | unseen target |
-| HRF (Budai 2013) | 45 | 3504×2336 | 9.1 | 3262 | 8.8 → 1.4 | unseen target |
-
-(statistics measured on the files used in the experiments; FIVES, 200 images, is supported by the code but was not used.)
-Cameras differ in colour balance, field of view and resolution by up to 6×, which is the domain shift the study measures.
-The classes are imbalanced (9–13 % vessel pixels); there are no missing values or categorical attributes.
-
-![datasets](report/figures/data_overview.png)
-
-**How an image becomes a network input.** Every image is rescaled so its field of view is 527 px wide (DRIVE's median; this uses no
-labels and no target statistics), the green channel is kept (best vessel contrast), the outside of the FOV is replaced by the FOV
-mean, CLAHE is applied with 64-px tiles, and the result is standardised inside the FOV and set to zero outside. The topology target
-is the exact skeleton of the label, and the DG stages additionally train on a perturbed second view (style: gain/gamma/contrast,
-illumination field, blur, noise, JPEG; structure: elastic warp, local intensity dropout). Metrics are always computed against the
-**native-resolution** labels inside the FOV (the probability map is resampled to them).
-
-![preprocessing](docs/img/preprocessing.png)
-
-**Protocol.** DRIVE-train is the only data used for fitting; DRIVE-validation (4 images) is used for checkpoint selection (best Dice)
-and for choosing the cleanup size and per-model thresholds of the evaluation-only controls; STARE, CHASE_DB1 and HRF are test-only; the
-decision threshold of all main results is fixed at 0.5; all stages share one optimiser, schedule and data pipeline
-([`configs/base.yaml`](configs/base.yaml)). The targets were never used for fitting, tuning or checkpoint selection, but their results
-were inspected while designing the analyses, so they are held-out rather than untouched.
-
-## 3. Results
-
-Mean over seeds (5 for stages A–E, 3 for the others); *unseen* = macro average of STARE, CHASE_DB1 and HRF; threshold 0.5. Generated from
-`results/tables` by [`scripts/make_readme_results.py`](scripts/make_readme_results.py).
-
-**Staged ablation**
-
-|  | DRIVE Dice | unseen Dice | unseen clDice | unseen Betti-0 err | params (M) | GFLOPs | CPU ms* | seeds |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| A  U-Net (Dice+BCE) | 0.830 | 0.762 | 0.835 | 75.0 | 31.04 | 384.7 | 1834 | 5 |
-| B  + topology loss | 0.827 | 0.753 | 0.843 | 31.7 | 31.04 | 384.7 | 1834 | 5 |
-| C  + DG augmentation | 0.826 | 0.761 | 0.847 | 27.9 | 31.04 | 384.7 | 1834 | 5 |
-| D  + compact backbone | 0.822 | 0.757 | 0.832 | 44.7 | 0.21 | 5.5 | 209 | 5 |
-| E  TG-LiteNet (deterministic) | 0.822 | 0.755 | 0.833 | 41.9 | 0.21 | 5.5 | 209 | 5 |
-| E  TG-LiteNet (MC dropout, T=20) | 0.822 | 0.756 | 0.833 | 42.7 | 0.21 | 5.5 | 4178 | 5 |
-
-**Controls and compact baselines**
-
-|  | DRIVE Dice | unseen Dice | unseen clDice | unseen Betti-0 err | params (M) | GFLOPs | CPU ms* | seeds |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| U-Net + DG, no topology loss | 0.831 | 0.771 | 0.837 | 73.0 | 31.04 | 384.7 | 1834 | 3 |
-| plain compact U-Net, base 8 | 0.821 | 0.758 | 0.833 | 48.9 | 0.49 | 6.0 | 67 | 3 |
-| plain compact U-Net, base 16 | 0.823 | 0.757 | 0.840 | 33.7 | 1.94 | 24.1 | 187 | 3 |
-| D without skeleton head | 0.822 | 0.761 | 0.831 | 53.8 | 0.21 | 5.5 | 209 | 3 |
-| D without consistency loss | 0.822 | 0.759 | 0.833 | 52.2 | 0.21 | 5.5 | 209 | 3 |
-
-\* one 512×512 image, 4 CPU threads, controlled laptop benchmark (`results/tables/latency_laptop.csv`); the MC row is T = 20 passes.
-Per-run latencies measured on the shared cloud machines varied by up to 2× for identical models and are only kept in `efficiency*.json`.
-
-**Evaluation-only controls** (no retraining; cleanup = connected components below a size chosen on DRIVE-validation are removed; tuned = one threshold per model chosen on DRIVE-validation; unseen averages)
-
-|  | seeds | Dice fixed 0.5 | Dice cleanup | Dice tuned thr. | clDice fixed | clDice cleanup | Betti-0 fixed | Betti-0 cleanup |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| A  U-Net | 5 | 0.762 | 0.763 | 0.757 | 0.835 | 0.835 | 75.0 | 4.7 |
-| B  + topology loss | 5 | 0.753 | 0.754 | 0.771 | 0.843 | 0.841 | 31.7 | 4.9 |
-| C  + DG augmentation | 5 | 0.761 | 0.763 | 0.782 | 0.847 | 0.847 | 27.9 | 4.7 |
-| D  + compact backbone | 5 | 0.757 | 0.759 | 0.772 | 0.832 | 0.828 | 44.7 | 5.0 |
-| E  TG-LiteNet | 5 | 0.755 | 0.757 | 0.771 | 0.833 | 0.829 | 41.9 | 4.9 |
-| U-Net + DG, no topology | 3 | 0.771 | 0.772 | 0.777 | 0.837 | 0.839 | 73.0 | 4.8 |
-| plain compact U-Net, base 8 | 3 | 0.758 | 0.759 | 0.764 | 0.833 | 0.830 | 48.9 | 4.7 |
-| plain compact U-Net, base 16 | 3 | 0.757 | 0.759 | 0.777 | 0.840 | 0.839 | 33.7 | 4.8 |
-| lite + DG, no topology | 3 | 0.767 | 0.768 | 0.757 | 0.827 | 0.825 | 87.7 | 4.6 |
-
-Reading the controls (paired over seeds, `results/tables/postproc_deltas.csv`): cleanup changes Dice by at most +0.002 and clDice by at most −0.004 but collapses the Betti-0 error of every model to 4.6–5.0, so the raw fragment count is not a reliable topology measure. The tuned thresholds are higher for the topology-trained models (0.50–0.65, plain U-Net 0.45–0.50; `postproc_choices.csv`) because they over-segment at 0.5; tuning raises their Dice by 0.015–0.020 but not the plain U-Net's (−0.006 ± 0.007), so at tuned thresholds A→B is +0.014 ± 0.008 and A→C +0.025 ± 0.006 Dice. The thresholds come from four validation images and are post-hoc, so all headline results keep 0.5.
-
-![per-dataset results](report/figures/fig_results.png)
-
-| Accuracy vs. connectivity and cost | Evaluation-only checks |
+| Question | What we measured |
 |---|---|
-| ![trade-off](report/figures/fig_tradeoff.png) | ![cleanup](report/figures/fig_cleanup.png) |
+| **RQ1** Does a topology loss help connectivity? | soft-clDice with a skeleton head, five stages A–E, five seeds each |
+| **RQ2** Does a compact backbone pay off? | U-Net vs compact U-Net vs depthwise variants, accuracy against CPU time |
+| **RQ3** How small can the model get? | the v2.1 66K U-Net, INT8, and four new topology-based ideas (N1–N4) |
+| **RQ4** Is uncertainty useful? | entropy, MC dropout and a 5-model ensemble, at pixel and image level |
 
-*Left:* unseen Dice against unseen clDice and CPU latency (marker area ∝ parameters). *Right:* removing small components collapses the
-Betti-0 error of every model (a), and a validation-tuned threshold lifts the Dice of the topology-trained models but not the plain U-Net's (b); "no rescale" (seeds 3–4, hollow marker = fixed Dice of the same seeds) shows that the plain U-Net depends on the FOV normalisation.
+**What makes the study trustworthy.** Training uses DRIVE-train only. DRIVE-validation (5 images) is the **only** data used for any choice: checkpoint, threshold, fragment size, backbone, model size.
+STARE, CHASE_DB1, HRF and FIVES are touched only after `protocol/decisions.json` is frozen with a SHA-256 hash. Statistics are Holm-corrected, seed-paired intervals plus an image bootstrap.
 
-![qualitative](report/figures/fig_qualitative.png)
+### Method
 
-*One test image per dataset (seed 0). The yellow window is where stages A and E disagree most; white = true positive, red = false positive, blue = false negative.
-The MC-dropout uncertainty (right) marks vessel borders and thin segments in general rather than the errors in particular.*
+<p align="center"><img src="docs/img/fig_method.png" width="98%" alt="TG-LiteNet v2.1 training and test-time pipeline"></p>
 
-![risk-coverage](report/figures/fig_risk_coverage.png)
+*Top: training uses a robustness-augmented second view, a skeleton head and a teacher, and all of these are dropped at test time (dashed boxes). Bottom: the same network is applied at several scales, and the scale whose predicted vessel calibre matches DRIVE is kept (**N2**).*
 
-**Where do the models fail?** `scripts/failure_analysis.py` breaks the errors of stages A–E down by vessel width, distance from the true vessels and image zone (saved prediction maps of seed 0, threshold 0.5, unseen datasets; `results/tables/failure_analysis.csv`):
+---
 
-![failure analysis](docs/img/fig_failure.png)
+## Results
 
-The thinnest vessels (≤ 2 px wide) are found least often (recall 0.82–0.86, against 0.94–0.96 for wider vessels). About 85 % of the false-positive pixels lie within 2 px of a true vessel (vessels drawn slightly too wide); the stray fragments are numerous (18–36 per image) but tiny (≈ 1 % of the predicted vessel pixels), and the topology loss halves them (36 → 18). These are single-run numbers describing kinds of error, not headline claims.
+All numbers are read from [`results/`](results) at native resolution. "Unseen" is the mean of STARE, CHASE_DB1 and HRF; FIVES (200 images) is reported separately.
 
-All other tables (confusion matrix with precision/recall/F1, factorial design, variants, paired statistics, uncertainty) are in the paper and
-in [`results/tables/`](results/tables); [`results/findings.md`](results/findings.md) is an auto-generated list of facts with their intervals.
+### 1. Small, accurate and fast
 
-## 4. Repository map
+<p align="center"><img src="docs/img/fig_size.png" width="85%" alt="Parameters against unseen Dice"></p>
+
+| Model | Params | CPU ms / image | STARE | CHASE_DB1 | HRF | FIVES | **Unseen Dice** | Unseen clDice |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 31 M U-Net + topology + DG (stage C) | 31 M | 1003 | 0.828 | 0.789 | 0.749 | 0.842 | 0.789 | 0.836 |
+| 486K compact U-Net (v2, stage E) | 486K | 30 | 0.819 | 0.787 | 0.733 | 0.847 | 0.780 | 0.825 |
+| **66K TG-LiteNet (v2.1)** | **66K** | **25** | 0.810 | 0.765 | 0.729 | 0.810 | **0.768** | 0.820 |
+| **66K + scale selection (N2)** | **66K** | **25** | 0.810 | 0.765 | **0.763** | 0.750 | **0.779** | – |
+
+*Tuned threshold and fragment size chosen on DRIVE-validation, mean over seeds. Published lightweight networks score about 0.03–0.04 higher under different protocols (other training data, scoring resolution and thresholds), so they are context rather than a ranking.*
+
+<p align="center"><img src="docs/img/fig_cost_scale.png" width="98%" alt="Accuracy against size and CPU time, and the effect of scale selection"></p>
+
+### 2. How the topology loss really behaves
+
+<p align="center"><img src="docs/img/fig_stages.png" width="98%" alt="Stages A to E on every dataset"></p>
+
+* The topology loss lowers the **raw Betti-0 error** (fragment count) from **72.8 to 33.9** (stage A to B).
+* A simple clean-up that deletes tiny fragments brings **every** model to about **4.5**, so connectivity should be judged **after cleaning**, not from raw fragment counts.
+* With the threshold tuned on DRIVE-validation, the unseen Dice is 0.762 (A), 0.775 (B), 0.789 (C) and 0.780 (E): topology costs almost nothing, and the Dice gap at threshold 0.5 is mostly **calibration**.
+
+<p align="center"><img src="docs/img/fig_modes.png" width="62%" alt="Raw, cleaned and tuned evaluation modes"></p>
+
+A full 2x2x2 factorial (backbone x topology loss x augmentation) separates the factors: topology lowers raw Betti-0 in all four pairs and raises clDice by 0.006–0.010, robustness augmentation adds 0.006–0.015 raw Dice without topology supervision, and the compact backbone trades about 0.01 Dice for a 31x speed-up.
+Plain convolutions were also the faster choice than depthwise-separable ones at equal accuracy.
+
+### 3. A label-free scale rule
+
+Vessels on HRF look thin to a network trained at DRIVE's width. **N2** runs each image at four scales, measures the vessel width the model predicts on its own skeleton, and keeps the scale that matches what it saw in training. No labels, no retraining.
+
+<p align="center"><img src="docs/img/fig_scale_mech.png" width="52%" alt="How calibre-guided scale selection works"></p>
+
+*(a) Mean predicted width at each scale: HRF is thinner than DRIVE at scale 1 and matches it at 1.5. (b) Share of images assigned to each scale: 92% of HRF images pick 1.5, the other datasets keep scale 1.*
+
+| Unseen Dice, 66K model | Tuned | + scale selection | Change |
+|---|---:|---:|---:|
+| STARE / CHASE_DB1 | 0.810 / 0.765 | 0.810 / 0.765 | 0 (keeps scale 1) |
+| **HRF** | 0.729 | **0.763** | **+0.034** |
+| FIVES | 0.810 | 0.750 | −0.061 (thick vessels: the default scale is better) |
+| **Mean of the three unseen sets** | 0.768 | **0.779** | **+0.011 (clear)** |
+
+The rule is best suited to thin-vessel data, and a thick-vessel guard is a natural refinement. It passed its DRIVE-validation safety check for every model.
+
+### 4. What the model sees
+
+<p align="center"><img src="docs/img/fig_qualitative.png" width="85%" alt="Example predictions on HRF and FIVES"></p>
+
+<details>
+<summary><b>All five datasets, six models (click to expand)</b></summary>
+
+<p align="center"><img src="docs/img/qualitative_v21.png" width="100%" alt="Median-Dice example per dataset for six models"></p>
+
+*Median-Dice test image per dataset. Black: correct vessel, red: false positive, blue: missed.*
+
+</details>
+
+### 5. Uncertainty
+
+Entropy is a helpful pixel-level signal (Spearman rho about **0.34** with the error map; rejecting the 10% most uncertain pixels lowers the pixel error from 5.9% to 2.4%).
+Ranking whole images by reliability, and carrying calibration from DRIVE to other cameras, are the next open challenges. Ensembles (5x) and MC dropout (20x) cost much more than a single pass.
+
+---
+
+## The four new ideas
+
+The success criteria were fixed (hashed) before training. Ablations use 3 seeds, so a result that is not yet clear is an **open question**, not a closed one.
+
+| | Idea | Outcome | What it gives us |
+|---|---|---|---|
+| **N2** | Calibre-guided test-time scale selection | **Supported** | +0.011 Dice overall (clear), +0.034 on HRF; no labels, no retraining |
+| **N1** | Connectivity reliability score (fragment density) | **Promising lead** | secondary connectivity scores (end-point density, small-fragment share) rank failures better than entropy for most models |
+| **N3** | Topology-aware distillation (5x 31M teacher) | **Open question** | no clear effect at 3 seeds; more seeds and data would settle it |
+| **N4** | Skeleton-level consistency | **Dice trade-off** | pixel-level consistency stays the recommended choice, which narrows the design space |
+
+---
+
+## Versions and branches
+
+| | **v1** (`main`, tag `v1-final`) | **v2** (branch `v2`) | **v2.1** (branch `v2.1-tglite70k`) |
+|---|---|---|---|
+| Idea | exploration: compact, topology-aware model | the same study rebuilt under a strict protocol | 66K model + four new ideas |
+| Selection | explored after seeing results | DRIVE-validation only, protocol hashed | DRIVE-validation only, hashed addendum |
+| Targets | STARE, CHASE_DB1, HRF | + FIVES (200 images) | same |
+| Main model | 0.21 M depthwise | 0.49 M plain U-Net | **66K U-Net** (8-12-16-24-32 channels) |
+| Trained models | 70 (Kaggle, Colab) | 76 (RTX A4000) | 38 (RTX A4000) |
+
+`final-submission` (this branch) holds v2.1, which is a strict superset of v2, plus the paper (`paper/`) and the website (`docs/`).
+`results/` holds the v2 study and `results/v21/` the follow-up.
+
+---
+
+## Data
+
+| Dataset | Images | Size (px) | Role |
+|---|---:|---|---|
+| DRIVE | 40 | 565 x 584 | **train 15 / validation 5** / test 20 |
+| STARE | 20 | 700 x 605 | unseen test |
+| CHASE_DB1 | 28 | 999 x 960 | unseen test |
+| HRF | 45 | 3504 x 2336 | unseen test |
+| FIVES | 200 | 2048 x 2048 | extra unseen test |
+
+Datasets are **not** redistributed. Download the archives listed in [`data/README.md`](data/README.md) into `data/` (unextracted): DRIVE (grand-challenge.org; test labels from the PaddleSeg mirror), STARE (cecas.clemson.edu/~ahoover/stare), CHASE_DB1 (Hugging Face `MedOtter/CHASE_DB1`), HRF (www5.cs.fau.de/research/data/fundus-images) and FIVES (doi 10.6084/m9.figshare.19688169).
+Then `python scripts/prepare_data.py --overview` checks counts and checksums and prepares standardised copies.
+
+---
+
+## Quick start
+
+Windows, NVIDIA GPU, Python 3.10+ (the results used Python 3.12, PyTorch 2.11, CUDA 12.8):
+
+```powershell
+conda create -p .venv python=3.12 pip -c conda-forge
+.venv\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+.venv\python.exe -m pip install -r requirements.txt
+.venv\python.exe -m pip install -e .
+.venv\python.exe -m pytest
+```
+
+`requirements-lock.txt` lists the exact versions that produced the results.
+
+### Look at the results without any GPU
+
+Every number, table and figure is rebuilt from the committed per-run records:
+
+```powershell
+python scripts/make_paper.py            # paper tables, figures and number macros
+python scripts/make_site_data.py        # website data and assets
+python scripts/make_readme_figs.py      # the figures in this README
+python -m http.server --directory docs  # open http://localhost:8000
+```
+
+---
+
+## Reproduce everything
+
+```powershell
+python scripts/run_all.py --smoke      # 10-minute end-to-end check (writes only runs_smoke/)
+python scripts/run_all.py              # the v2 study (resumable)
+python scripts/run_v21.py              # the v2.1 follow-up (resumable, about 18.5 h)
+python scripts/monitor.py              # live progress
+python scripts/make_report.py          # rebuild results/ from runs/
+```
+
+Everything is resumable: finished jobs are skipped and training continues from its last checkpoint.
+Order of work: data, pilot and backbone selection (DRIVE only), **freeze**, primary stages A–E, factorial, topology variants, warm-up, controls, width. v2.1 repeats the pattern with its own freeze.
+Only the trained weights and saved probability maps (about 14 GB) are not committed.
+
+---
+
+## Repository map
 
 ```
-.
-├── tglite/                  the library
-│   ├── models/              unet.py (baseline), litenet.py (depthwise-separable backbone, mask + skeleton heads, MC dropout)
-│   ├── data/                preprocess.py (FOV, scale normalisation, CLAHE), augment.py (style/structure DG), datasets.py (train/eval datasets)
-│   ├── losses.py            Dice, BCE, soft-clDice, skeleton head loss, Skeleton Recall, cbDice, consistency
-│   ├── metrics.py           Dice/IoU/AUC, clDice, cbDice, Betti-0/1 errors (8-connectivity, Euler number)
-│   ├── uncertainty.py       MC-dropout mean/variance, entropy, risk-coverage, Spearman correlations
-│   ├── efficiency.py        parameters, FLOPs (2 x MACs), CPU/GPU latency and memory
-│   ├── train.py / evaluate.py / predict.py   training loop, per-image evaluation, inference
-│   ├── experiments.py       registry of every experiment (stages, factorial cells, variants, widths, controls) and the run groups
-│   └── analysis.py          per-run tables, seed-level paired intervals, stratified image bootstrap, confusion matrix
-├── configs/base.yaml        all hyper-parameters (experiments are overrides in tglite/experiments.py, not extra YAML files)
-├── scripts/
-│   ├── download_data.py, prepare_data.py, make_data_overview.py     data
-│   ├── train.py, run_experiments.py, evaluate.py, tune_lambdas.py   training and evaluation (resumable runner)
-│   ├── eval_postproc.py     evaluation-only controls: small-component removal, tuned threshold
-│   ├── failure_analysis.py  errors by vessel width / distance from vessels / image zone;  make_website_data.py  exports the website data
-│   ├── benchmark_latency.py controlled CPU latency benchmark
-│   ├── aggregate_results.py, auto_findings.py, make_run_manifest.py tables, findings, run manifest
-│   ├── make_report_assets.py, make_readme_results.py, make_readme_figures.py   paper tables/figures and README assets
-│   └── kaggle_run.sh, run_all.sh/.ps1                               drivers for the cloud / local full run
-├── splits/drive_split.json  fixed DRIVE split: train 16 / validation 4 / test 20
-├── tests/                   36 unit tests (losses, Betti numbers, metrics, augmentation alignment, MC dropout, statistics, ...)
-├── results/
-│   ├── runs/<exp>/seed<k>/  config.yaml, train_log.csv, per_image*.csv, efficiency*.json, env.json   (checkpoints are git-ignored)
-│   ├── tables/              every aggregate table as CSV (summary, stage/factorial deltas, paired image deltas, confusion, ...)
-│   └── findings.md          auto-generated facts
-├── report/                  main.tex, main.pdf, generated/ (tables + number macros), figures/
-├── docs/                    project website (index.html, style.css, app.js, data/results.js, assets/viewer/, img/; original design in v1/); data built by scripts/make_website_data.py
-├── notebooks/colab_warmup.ipynb   Colab notebook for the topology-weight warm-up experiment (group `warmup`)
-├── RUNBOOK.md               step-by-step checklist for the full run on a powerful machine
-└── data/                    NOT in git: raw/, processed/, MANIFEST.json (checksums)
+configs/      base.yaml (all hyper-parameters), experiments.yaml (v2 runs), v21.yaml (v2.1 runs)
+protocol/     PROTOCOL.md, PROTOCOL_v2.1.md, decisions*.json (budget, backbone, size rule, freeze records with SHA-256)
+src/tglite/   data/ (prepare, preprocess, augment, dataset), models, losses, train, inference, selection, evaluate, metrics,
+              efficiency, eval21, int8, suite, suite21, report, report21
+scripts/      run_all.py (v2), run_v21.py (v2.1), monitor.py, prepare_data.py, train.py (one run),
+              make_report.py, make_paper.py, make_site_data.py, make_readme_figs.py, export_assets.py, check_scale_rule.py
+tests/        unit tests (losses, metrics, selection, v2.1 additions, resume)
+results/      committed, generated results: tables, figures, per-run records; v21/ holds the follow-up (nothing is edited by hand)
+paper/        main.tex, overview.tex, generated/ (tables, number macros), figures/, main.pdf
+docs/         website: index.html, style.css, app.js, data/site.js, assets/ (example images and maps), img/ (figures), paper.pdf
+reports/      GROUP_UPDATE_v2.1.md (internal write-up)
+data/         downloaded archives (not committed, see data/README.md)
+runs/         checkpoints and saved probability maps (not committed)
 ```
 
-## 5. Quick start
+---
 
-```bash
-python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install torch --index-url https://download.pytorch.org/whl/cu126   # 1) PyTorch first, matching your CUDA driver (or the CPU build)
-pip install -r requirements.txt && pip install -e .                    # 2) everything else + the package
-pytest -q                                                              # 36 tests, ~15 s on CPU, no data needed
+## Scope and limitations
+
+Reading the results with the right context:
+
+* **Data:** 15 training images from one dataset. More training data and multi-dataset training are the most natural next step.
+* **Seeds:** ablations use 3 seeds, so a result that is not yet clear is an open question; more seeds would settle N1, N3 and N4.
+* **Held-out targets:** no choice depends on target data and every rule is hashed, but the targets are held out rather than untouched, since the v1 numbers were known.
+* **Size rule:** the pre-registered rule selected the 212K depthwise network as the formal headline (the 66K model trailed it by only 0.0055 validation Dice), so we show the 66K model as the efficiency point and report both.
+* **Scale selection:** best for thin vessels; on thick-vessel FIVES the default scale is better.
+* **INT8:** the file shrinks from 266 KB to 109 KB with unchanged Dice; on our desktop CPU it ran slower than FP32, so we claim the smaller file only.
+* **Published numbers** use other protocols and are context, not a ranking.
+
+---
+
+## Cite and licence
+
+```bibtex
+@misc{tglitenet2026,
+  title        = {TG-LiteNet: compact, topology-aware retinal vessel segmentation under dataset shift},
+  author       = {Agarwal, Abhiraj and Rajan, Shashwat and Shitanshu, Tanish},
+  year         = {2026},
+  howpublished = {CSD361 final project, Shiv Nadar Institution of Eminence},
+  url          = {https://github.com/Deltasthicc/ML-Project}
+}
 ```
 
-Python 3.12+ and PyTorch ≥ 2.3. The code is device-agnostic (CUDA + fp16 autocast when available, CPU otherwise).
-
-**Look at the results without any data or training:** open [`report/main.pdf`](report/main.pdf), the CSVs in `results/tables`, or regenerate
-tables and figures from the committed per-image results:
-
-```bash
-python scripts/aggregate_results.py          # results/runs -> results/tables/*.csv
-python scripts/make_report_assets.py         # -> report/generated/*.tex and report/figures/*
-python scripts/make_readme_results.py        # the Markdown tables of §3
-cd report && pdflatex main && pdflatex main  # the paper (8 pages)
-```
-
-## 6. Running the experiments
-
-**Data** (~140 MB for the four datasets; the scripts verify image counts, sizes and SHA-256 checksums):
-
-```bash
-python scripts/download_data.py            # DRIVE, STARE, CHASE_DB1, HRF   [--fives: FIVES, 1.8 GB, optional]
-python scripts/prepare_data.py             # -> data/processed/<dataset>/{images,masks,fov}/ + stats.json
-python scripts/make_data_overview.py       # contact sheet to check labels / FOV outlines visually
-```
-
-DRIVE and CHASE_DB1 come from third-party mirrors (the official sites need a login or were unreachable); STARE and HRF from the official
-sites. FOV masks of DRIVE, STARE and CHASE_DB1 are estimated; HRF has official ones. See `data/MANIFEST.json` and the paper's limitations.
-
-**Training and evaluation** (resumable: finished runs are skipped; `RUNBOOK.md` has timings and the recommended order):
-
-```bash
-python scripts/run_experiments.py --groups primary --quick                  # smoke test, ~1 min, numbers are meaningless
-python scripts/run_experiments.py --groups primary --native-eval            # stages A-E x 5 seeds
-python scripts/run_experiments.py --groups factorial topology width compact_unet controls   # the other 15 configurations x 3 seeds
-python scripts/train.py --exp E_tglitenet --seed 0 --evaluate --set train.iters=8000       # one run, any config override
-python scripts/evaluate.py results/runs/E_tglitenet/seed3 --datasets drive stare            # re-evaluate a checkpoint
-```
-
-Experiment names: `A_unet`, `B_unet_topo`, `C_unet_topo_dg`, `D_lite_topo_dg`, `E_tglitenet` (stages); `X_unet_dg`, `X_lite_plain`, `X_lite_topo`,
-`X_lite_dg` (factorial); `V_lite_cbdice`, `V_lite_srl`, `V_lite_cldice_srl` (topology variants); `W_lite_w{8,24,32,48}` (width);
-`S_unet_b8`, `S_unet_b16` (plain compact U-Nets); `Z_lite_noskel`, `Z_lite_nocons` (controls); `P_unet_topo_dg_warm`, `P_lite_topo_dg_warm` (topology-weight warm-up, group `warmup`, added after the main study: the topology terms are ramped from 0 to full over the first 2000 iterations; run it with `notebooks/colab_warmup.ipynb`). Default seeds: 5 for `primary`, 3 for every other group.
-
-Evaluation-only controls on trained checkpoints (cut-off and thresholds are chosen on DRIVE-validation only):
-
-```bash
-python scripts/eval_postproc.py --runs results/runs --exp A_unet B_unet_topo C_unet_topo_dg D_lite_topo_dg E_tglitenet --seeds 0 1 2 3 4 --workers 8 --threads
-                                                                            # cleanup + tuned threshold -> postproc_summary/choices/deltas.csv  (~10 min per U-Net run on a CPU;
-                                                                            # --threads: worker threads instead of processes, for sandboxed Windows shells)
-python scripts/eval_postproc.py --runs results/runs --no-eval --exp A_unet B_unet_topo C_unet_topo_dg D_lite_topo_dg E_tglitenet X_unet_dg X_lite_dg S_unet_b8 S_unet_b16 --seeds 0 1 2 3 4 --out results/tables   # summaries only
-python scripts/run_experiments.py --exp A_unet D_lite_topo_dg E_tglitenet --seeds 3 4 --no-train --native-eval   # no-rescale evaluation
-python scripts/benchmark_latency.py --name laptop --threads 4               # controlled CPU latency benchmark
-```
-
-**Per run** (`results/runs/<exp>/seed<k>/`): `config.yaml` (exact config), `train_log.csv`, `per_image.csv` (every metric per image and mode `det`/`mc`),
-`per_image_pp.csv` / `per_image_native.csv` (controls), `efficiency.json`, `env.json` (commit and library versions), `best.pt` (git-ignored) and `preds/` (git-ignored).
-
-## 7. Reproducibility
-
-* Seeds control initialisation, data order and augmentation. GPU kernels are not bit-wise deterministic, so re-running gives numbers that agree
-  *statistically*; that is why everything is reported as mean ± std / interval over seeds (paired over shared seeds for differences).
-* The 70 reported runs come from two environments (37 on a Kaggle T4, CUDA 12.8; 33 on a Colab L4, CUDA 13.0) and three code commits that differ only in
-  analysis code and added experiments. [`results/tables/run_manifest.csv`](results/tables/run_manifest.csv) lists the commit, GPU and PyTorch build of every run;
-  [`reported-environment.txt`](reported-environment.txt) summarises the main library versions (it is not a full lock file).
-* Every number in the paper's tables comes from `results/runs` through `aggregate_results.py` → `make_report_assets.py`. Numbers typed into the paper's
-  prose were checked against those tables; re-check them if you re-run the experiments.
-* **Checkpoints are not in the repository** (size; the authors hold all 70, about 2.4 GB, and the evaluation-only controls were run on every one of them). Re-evaluating a checkpoint (checked for stage A seed 3 on DRIVE and STARE) reproduced the committed per-image metrics to ~1e-5 (CPU vs. GPU rounding);
-  without checkpoints the committed `per_image*.csv` files are the record of the results and the experiments are reproducible by retraining.
-  `evaluate.py` loads checkpoints with `weights_only=False` (they store the config), so only load checkpoints you trust.
-
-## 8. Limitations
-
-Only 16 training images and 4 validation images; FOV masks of four datasets are estimated and labels are first-observer only; raw Betti-0 counts
-are fragile (cleanup removes the effect); the DG stage bundles augmentation, a consistency term and a second view; uncertainty is evaluated as a ranking,
-not calibrated; latency is eager-PyTorch on a laptop CPU, not an edge device; soft-clDice, Skeleton Recall and cbDice are our re-implementations;
-source-only numbers are not comparable with multi-source or test-time-adaptation papers. The paper's Section VII-A has the complete list.
-
-## 9. Licence, data, references
-
-The code is released under the [MIT licence](LICENSE). The datasets keep their own licences and are not redistributed: DRIVE (Staal et al., 2004),
-STARE (Hoover et al., 2000), CHASE_DB1 (Fraz et al., 2012), HRF (Budai et al., 2013), optionally FIVES (Jin et al., 2022). The losses follow the descriptions in
-clDice (Shit et al., CVPR 2021), cbDice (Shi et al., MICCAI 2024) and Skeleton Recall (Kirchhoff et al., ECCV 2024) and are our own implementations, not copied from the
-authors' repositories. Full references are in the paper.
+Code: MIT ([LICENSE](LICENSE)). The datasets keep their own licences and are not redistributed; please cite DRIVE (Staal et al. 2004), STARE (Hoover et al. 2000), CHASE_DB1 (Fraz et al. 2012), HRF (Budai et al. 2013) and FIVES (Jin et al. 2022), and the clDice paper (Shit et al. 2021) on which the topology loss is based.

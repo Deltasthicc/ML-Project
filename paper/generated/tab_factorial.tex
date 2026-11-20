@@ -1,0 +1,15 @@
+\begin{tabular}{lcc c cccc c}
+\toprule
+Backbone & Topo & DG & n & Dice & clDice & Betti-0 & Tuned Dice & Tuned gap \\
+\midrule
+U-Net & -- & -- & 5 & 0.759{\scriptsize$\pm$0.007} & 0.836{\scriptsize$\pm$0.003} & 72.8{\scriptsize$\pm$8.3} & 0.762{\scriptsize$\pm$0.015} & 0.061{\scriptsize$\pm$0.014} \\
+U-Net & -- & \checkmark & 3 & 0.774{\scriptsize$\pm$0.006} & 0.838{\scriptsize$\pm$0.001} & 91.1{\scriptsize$\pm$13.7} & 0.785{\scriptsize$\pm$0.007} & 0.042{\scriptsize$\pm$0.007} \\
+U-Net & \checkmark & -- & 5 & 0.758{\scriptsize$\pm$0.004} & 0.842{\scriptsize$\pm$0.007} & 33.9{\scriptsize$\pm$6.5} & 0.775{\scriptsize$\pm$0.007} & 0.043{\scriptsize$\pm$0.006} \\
+U-Net & \checkmark & \checkmark & 5 & 0.761{\scriptsize$\pm$0.004} & 0.846{\scriptsize$\pm$0.002} & 35.5{\scriptsize$\pm$3.0} & 0.789{\scriptsize$\pm$0.008} & 0.035{\scriptsize$\pm$0.009} \\
+\midrule
+Compact & -- & -- & 3 & 0.754{\scriptsize$\pm$0.003} & 0.825{\scriptsize$\pm$0.004} & 98.8{\scriptsize$\pm$13.5} & 0.753{\scriptsize$\pm$0.010} & 0.065{\scriptsize$\pm$0.011} \\
+Compact & -- & \checkmark & 3 & 0.760{\scriptsize$\pm$0.001} & 0.827{\scriptsize$\pm$0.003} & 89.0{\scriptsize$\pm$2.6} & 0.773{\scriptsize$\pm$0.003} & 0.046{\scriptsize$\pm$0.005} \\
+Compact & \checkmark & -- & 3 & 0.747{\scriptsize$\pm$0.005} & 0.835{\scriptsize$\pm$0.001} & 44.5{\scriptsize$\pm$5.4} & 0.762{\scriptsize$\pm$0.005} & 0.052{\scriptsize$\pm$0.006} \\
+Compact & \checkmark & \checkmark & 5 & 0.749{\scriptsize$\pm$0.002} & 0.835{\scriptsize$\pm$0.001} & 40.5{\scriptsize$\pm$3.8} & 0.780{\scriptsize$\pm$0.002} & 0.039{\scriptsize$\pm$0.002} \\
+\bottomrule
+\end{tabular}

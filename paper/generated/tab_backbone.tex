@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrc}
+\toprule
+Candidate & Params & Val Dice & CPU ms & Chosen \\
+\midrule
+depthwise $w{=}16$ & 212K & 0.8163 & 109 &  \\
+hybrid $w{=}16$ & 260K & 0.8172 & 89 &  \\
+plain U-Net $w{=}8$ & 486K & 0.8162 & 39 & \checkmark \\
+plain U-Net $w{=}16$ & 1942K & 0.8182 & 86 &  \\
+\bottomrule
+\end{tabular}

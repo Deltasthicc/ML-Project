@@ -1,23 +1,21 @@
-/* TG-LiteNet project site, edition 2. Vanilla JS + GSAP/ScrollTrigger. All numbers come from data/results.js (scripts/make_website_data.py). */
+/* TG-LiteNet project site, edition 3. Vanilla JS + GSAP. All numbers come from data/site.js (scripts/make_site_data.py), which reads results/. */
 (function () {
   "use strict";
-  const R = window.RESULTS;
+  const S = window.SITE;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const NS = "http://www.w3.org/2000/svg";
-  const DS = ["drive", "stare", "chase_db1", "hrf"];
-  const DS_NAME = { drive: "DRIVE", stare: "STARE", chase_db1: "CHASE_DB1", hrf: "HRF", unseen: "Unseen average" };
-  const COL = { A: "#6b7280", B: "#8b93a1", C: "#aab2bf", D: "#cdd3dc", E: "#ff6a4d", "E-MC": "#ff6a4d" };
-  const CORAL = "#ff6a4d", MUTE = "#6b7280";
-  const ASSET = "assets/viewer/";
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
-  if (hasGsap) gsap.registerPlugin(ScrollTrigger);
-
-  const h = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
-  const el = (tag, attrs = {}, html) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html !== undefined) e.innerHTML = html; return e; };
+  const INK = "#101512", RED = "#e4432c", GREEN = "#1f6f54", MUTE = "#62665f";
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const hasGsap = typeof window.gsap !== "undefined";
+  const h = (tag, a = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (text !== undefined) e.textContent = text; return e; };
+  const el = (tag, a = {}, html) => { const e = document.createElement(tag); for (const k in a) e.setAttribute(k, a[k]); if (html !== undefined) e.innerHTML = html; return e; };
   const f3 = (v) => v.toFixed(3);
-  const stageBy = (t) => R.stages.find((s) => s.tag === t);
+  const model = (key) => S.models.find((m) => m.key === key);
+  const DSN = { drive: "DRIVE", stare: "STARE", chase_db1: "CHASE_DB1", hrf: "HRF", fives: "FIVES", unseen: "Unseen average" };
+  const sgn = (v, d = 3) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(d);
+
+  const stackCards = [];   // filled by the novelties block, read by the scroll loop
 
   /* ---------------------------------------------------------------- shared helpers */
   function group(container, items, initial, onPick) {
@@ -46,43 +44,38 @@
     t.addEventListener("focus", () => { const r = t.getBoundingClientRect(); showTip(t.dataset.def, r.left, r.bottom); });
     t.addEventListener("blur", hideTip);
   });
-  function key(container, items) {
-    container.innerHTML = "";
-    items.forEach(([c, t]) => container.appendChild(el("span", {}, `<i style="background:${c}"></i>${t}`)));
-  }
+  function key(container, items) { container.innerHTML = ""; items.forEach(([c, t]) => container.appendChild(el("span", {}, `<i style="background:${c}"></i>${t}`))); }
   function niceTicks(lo, hi, n = 5) {
-    const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
-    const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p, out = [];
+    const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p, step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p, out = [];
     for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
     return out;
   }
   function barChart(svg, o) {
     svg.innerHTML = "";
-    const W = 900, H = o.H || 360, m = { l: 64, r: 16, t: 16, b: o.bottom || 56 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const tf = (v) => (o.log ? Math.log10(v) : v);
-    const y = (v) => m.t + ih - ((tf(Math.min(Math.max(v, o.yMin), o.yMax)) - tf(o.yMin)) / (tf(o.yMax) - tf(o.yMin))) * ih;
-    (o.ticks || niceTicks(o.yMin, o.yMax)).forEach((t) => {
+    const W = o.W || 900, H = o.H || 360, m = { l: 64, r: 16, t: 16, b: o.bottom || 52 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const y = (v) => m.t + ih - ((Math.min(Math.max(v, o.yMin), o.yMax) - o.yMin) / (o.yMax - o.yMin)) * ih;
+    niceTicks(o.yMin, o.yMax).forEach((t) => {
       svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: "gridline" }));
       svg.appendChild(h("text", { x: m.l - 8, y: y(t) + 4, "text-anchor": "end" }, o.fmtTick ? o.fmtTick(t) : t));
     });
-    svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: m.t + ih, y2: m.t + ih, class: "axis" }));
-    const gw = iw / o.cats.length, ns = o.series.length, bw = Math.min(46, (gw * 0.78) / ns);
+    svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: y(Math.max(o.yMin, 0)), y2: y(Math.max(o.yMin, 0)), class: "axis" }));
+    const gw = iw / o.cats.length, ns = o.series.length, bw = Math.min(44, (gw * 0.8) / ns), zero = y(Math.max(o.yMin, 0));
     o.cats.forEach((cat, i) => {
       const cx = m.l + gw * i + gw / 2;
       (Array.isArray(cat) ? cat : [cat]).forEach((line, j) => svg.appendChild(h("text", { x: cx, y: m.t + ih + 20 + j * 14, "text-anchor": "middle" }, line)));
       o.series.forEach((s, k) => {
         const v = s.vals[i]; if (v == null) return;
-        const x0 = cx - (ns * bw) / 2 + k * bw, top = y(v), base = m.t + ih;
-        const r = h("rect", { x: x0 + 1.5, y: top, width: bw - 3, height: Math.max(1, base - top), rx: 5, fill: s.color(i), class: "bar" });
+        const x0 = cx - (ns * bw) / 2 + k * bw, top = y(v), a = Math.min(top, zero), hgt = Math.max(1, Math.abs(zero - top));
+        const r = h("rect", { x: x0 + 1.5, y: a, width: bw - 3, height: hgt, rx: 4, fill: s.color(i), class: "bar" });
         const info = `<b>${Array.isArray(cat) ? cat.join(" ") : cat}</b><br>${s.name}: ${o.fmtVal(v)}`;
         r.addEventListener("mousemove", (e) => showTip(info, e.clientX, e.clientY)); r.addEventListener("mouseleave", hideTip);
         svg.appendChild(r);
         if (s.err && s.err[i]) {
           const lo = y(Math.max(o.yMin, v - s.err[i])), hi = y(Math.min(o.yMax, v + s.err[i])), mx = x0 + bw / 2;
-          [["line", { x1: mx, x2: mx, y1: lo, y2: hi }], ["line", { x1: mx - 4, x2: mx + 4, y1: hi, y2: hi }], ["line", { x1: mx - 4, x2: mx + 4, y1: lo, y2: lo }]]
-            .forEach(([t, a]) => svg.appendChild(h(t, { ...a, stroke: "rgba(255,255,255,.75)", "stroke-width": 1.5 })));
+          [{ x1: mx, x2: mx, y1: lo, y2: hi }, { x1: mx - 4, x2: mx + 4, y1: hi, y2: hi }, { x1: mx - 4, x2: mx + 4, y1: lo, y2: lo }].forEach((a_) => svg.appendChild(h("line", { ...a_, stroke: INK, "stroke-width": 1.4 })));
         }
-        if (o.valLabels !== false) svg.appendChild(h("text", { x: x0 + bw / 2, y: top - 7 - (s.err && s.err[i] ? 8 : 0), "text-anchor": "middle", style: "fill:#e6e3dd;font-weight:700;" + (ns > 2 ? "font-size:10px" : "") }, o.fmtVal(v)));
+        if (o.valLabels !== false) svg.appendChild(h("text", { x: x0 + bw / 2, y: (v >= 0 ? top - 7 : top + 14) - (s.err && s.err[i] && v >= 0 ? 8 : 0), "text-anchor": "middle", style: "fill:#101512;font-weight:800;" + (ns > 3 ? "font-size:10px" : "") }, o.fmtVal(v)));
       });
     });
   }
@@ -93,211 +86,149 @@
     const onScroll = () => { const d = document.documentElement; bar.style.transform = `scaleX(${d.scrollTop / Math.max(1, d.scrollHeight - innerHeight)})`; };
     addEventListener("scroll", onScroll, { passive: true }); onScroll();
     $$(".spot").forEach((n) => n.addEventListener("mousemove", (e) => { const r = n.getBoundingClientRect(); n.style.setProperty("--mx", e.clientX - r.left + "px"); n.style.setProperty("--my", e.clientY - r.top + "px"); }));
-    // active nav link
     const links = $$(".nav-link"), secs = links.map((a) => $(a.getAttribute("href")));
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a, i) => { const on = secs[i] === e.target; a.classList.toggle("bg-white/10", on); a.classList.toggle("text-white", on); }); }), { rootMargin: "-45% 0px -50% 0px" });
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a, i) => { const on = secs[i] === e.target; a.classList.toggle("bg-black/5", on); a.classList.toggle("text-black", on); }); }), { rootMargin: "-45% 0px -50% 0px" });
     secs.forEach((s) => s && io.observe(s));
-    if (!hasGsap || reduce) { $$(".word").forEach((w) => (w.style.opacity = 1)); return; }
+    if (!hasGsap || reduce) return;
 
-    // hero intro and parallax
-    gsap.from("#heroTitle", { y: 46, opacity: 0, duration: 1.2, ease: "power3.out", delay: 0.15 });
-    gsap.from(".hero-sub", { y: 26, opacity: 0, duration: 1, ease: "power3.out", delay: 0.55 });
-    gsap.from(".hero-cta > *", { y: 22, opacity: 0, duration: 0.9, ease: "power3.out", delay: 0.8, stagger: 0.12 });
-    gsap.fromTo("#heroBg", { scale: 1.18 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true } });
-    gsap.to("#heroBg", { yPercent: 14, ease: "none", scrollTrigger: { trigger: "#top", start: "top top", end: "bottom top", scrub: true } });
+    gsap.from("#heroTitle", { y: 46, opacity: 0, duration: 1.2, ease: "power3.out", delay: 0.1 });
+    gsap.from(".hero-sub", { y: 24, opacity: 0, duration: 1, ease: "power3.out", delay: 0.5 });
+    gsap.from(".hero-cta > *", { y: 20, opacity: 0, duration: 0.9, ease: "power3.out", delay: 0.75, stagger: 0.12 });
+    gsap.from(".fcard", { y: 80, opacity: 0, scale: 0.9, duration: 1.3, ease: "power3.out", delay: 0.4, stagger: 0.18 });
 
-    // generic reveal: driven by an IntersectionObserver, so a layout shift can never leave a card hidden
-    const rio = new IntersectionObserver((es) => es.forEach((e) => {
-      if (e.isIntersecting) { gsap.to(e.target, { y: 0, opacity: 1, duration: 1, ease: "power3.out", overwrite: "auto" }); rio.unobserve(e.target); }
-    }), { rootMargin: "0px 0px -6% 0px" });
+    // reveal (position independent)
+    const rio = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { gsap.to(e.target, { y: 0, opacity: 1, duration: 1, ease: "power3.out", overwrite: "auto" }); rio.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px" });
     $$(".reveal").forEach((n) => { gsap.set(n, { y: 44, opacity: 0 }); rio.observe(n); });
 
-    // scrubbing text reveal: words go from 12% to full opacity as the paragraph scrolls through
-    const p = $("#scrubText");
-    if (p) {
-      p.innerHTML = p.textContent.trim().split(/\s+/).map((w) => `<span class="word">${w}</span>`).join(" ");
-      gsap.fromTo($$(".word", p), { opacity: 0.12 }, { opacity: 1, ease: "none", stagger: 0.12, scrollTrigger: { trigger: p, start: "top 78%", end: "bottom 46%", scrub: true } });
-    }
-
-    // image scale and fade, state-based instead of scrubbed: the image grows to full size and full brightness while it is on screen
-    // and only fades after it has almost left the viewport, so an image the reader can see is never dimmed.
-    const sfIn = (n) => gsap.to(n, { scale: 1, opacity: 1, filter: "brightness(1)", duration: 0.9, ease: "power3.out", overwrite: "auto" });
-    const sfOut = (n) => gsap.to(n, { scale: 0.97, opacity: 0.25, filter: "brightness(0.5)", duration: 0.7, ease: "power2.out", overwrite: "auto" });
-    const sfReset = (n) => gsap.to(n, { scale: 0.86, opacity: 0.45, filter: "brightness(1)", duration: 0.5, overwrite: "auto" });
-    // The state is recomputed from the element's real position (never remembered), so a height change caused by switching a dataset,
-    // a late-loading image or a font cannot leave an on-screen image dimmed.
-    const sfEls = $$(".sf-img");
-    const sfUpdate = () => {
-      const vh = innerHeight;
-      sfEls.forEach((n) => {
-        const r = n.getBoundingClientRect();
-        const want = r.top > vh * 0.92 ? "pre" : r.bottom < vh * 0.06 ? "out" : "in";
-        if (n._sf === want) return;
-        n._sf = want;
-        (want === "in" ? sfIn : want === "out" ? sfOut : sfReset)(n);
-      });
+    // image scale and fade: state derived from the element's live position on every frame (never remembered)
+    const sf = $$(".sf");
+    const apply = (n, st) => {
+      if (st === "in") gsap.to(n, { scale: 1, opacity: 1, filter: "brightness(1)", duration: 0.9, ease: "power3.out", overwrite: "auto" });
+      else if (st === "out") gsap.to(n, { scale: 0.97, opacity: 0.3, filter: "brightness(0.6)", duration: 0.7, overwrite: "auto" });
+      else gsap.to(n, { scale: 0.88, opacity: 0.5, filter: "brightness(1)", duration: 0.5, overwrite: "auto" });
     };
-    let sfRaf = 0;
-    const sfSchedule = () => { if (!sfRaf) sfRaf = requestAnimationFrame(() => { sfRaf = 0; sfUpdate(); }); };
-    addEventListener("scroll", sfSchedule, { passive: true }); addEventListener("resize", sfSchedule);
-    setInterval(sfUpdate, 400);                 // failsafe for any layout change that fires neither event
+    const sfUpdate = () => sf.forEach((n) => {
+      const r = n.getBoundingClientRect(), want = r.top > innerHeight * 0.92 ? "pre" : r.bottom < innerHeight * 0.06 ? "out" : "in";
+      if (n._st !== want) { n._st = want; apply(n, want); }
+    });
+    let raf = 0;
+    const sched = () => { if (!raf) raf = setTimeout(() => { raf = 0; sfUpdate(); stackUpdate(); }, 16); };
+    addEventListener("scroll", sched, { passive: true }); addEventListener("resize", sched);
+    setInterval(() => { sfUpdate(); stackUpdate(); }, 400);
     sfUpdate();
-    // fonts, lazy images and async canvases change the page height: recompute every scroll trigger and the image states whenever it does
-    let rt = 0;
-    const refresh = () => { clearTimeout(rt); rt = setTimeout(() => { ScrollTrigger.refresh(); sfUpdate(); }, 180); };
-    addEventListener("load", refresh);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
-    if (window.ResizeObserver) new ResizeObserver(refresh).observe(document.body);
+    window.__sched = sched;
   })();
 
-  /* ---------------------------------------------------------------- bento numbers */
-  (function bento() {
-    const A = stageBy("A"), E = stageBy("E-MC"), ratio = Math.round(A.params_m / E.params_m);
-    $("#bentoE").textContent = f3(E.unseen_dice); $("#bentoA").textContent = f3(A.unseen_dice);
-    $("#bentoLite").textContent = E.params_m.toFixed(2) + " M"; $("#bentoUnet").textContent = A.params_m.toFixed(0) + " M";
-    const num = $("#bentoRatio"), bars = $$(".bento-bar");
-    bars[1].dataset.w = String((E.params_m / A.params_m) * 100);
-    const set = () => bars.forEach((b) => (b.style.width = Math.max(1.5, +b.dataset.w) + "%"));
-    bars.forEach((b) => { b.style.width = "0%"; b.style.transition = "width 1.4s cubic-bezier(.2,.8,.2,1)"; });
-    if (!hasGsap || reduce) { num.textContent = ratio; set(); return; }
-    const obj = { v: 0 };
+  /* ---------------------------------------------------------------- hero captions, marquee, bento */
+  (function top() {
+    const v = S.viewer.hrf.maps;
+    $("#heroDiceA").textContent = "Dice " + v.v21_H_tglite70k.dice_normalised.toFixed(3);
+    $("#heroDiceB").textContent = "Dice " + v.v21_H_tglite70k_scalesel.dice_normalised.toFixed(3);
+    const H = model("H_tglite70k[det]"), total = S.n_trainings.v2 + S.n_trainings.v21;
+    $("#bTuned").textContent = f3(H.tuned); $("#bSel").textContent = f3(H.sel); $("#bRuns").textContent = total; $("#bKb").textContent = S.int8.int8_kb;
+    $("#kvV2").textContent = S.n_trainings.v2; $("#kvV21").textContent = S.n_trainings.v21;
+    $("#bRatio").textContent = Math.round(31036481 / 66125);
+    const items = [["ph-database", "Trained on 15 DRIVE images"], ["ph-lock-key", "Rules hashed before any test"], ["ph-arrows-in-line-horizontal", "66K parameters"], ["ph-chart-bar", `${total} trained models`],
+      ["ph-hard-drives", `${S.int8.int8_kb} KB as INT8`], ["ph-flask", "FIVES held out"], ["ph-scales", "Holm-corrected statistics"], ["ph-ruler", `Scale selection ${sgn(H.sel - H.tuned)} Dice`], ["ph-lightbulb", "4 new ideas tested, 1 supported"]];
+    const row = $("#marqueeA"), html = items.map(([ic, t], i) => `<span class="marquee-item ${i % 2 ? "out" : ""}"><i class="ph-bold ${ic}"></i>${t}</span>`).join("");
+    row.innerHTML = html + html;
     const bio = new IntersectionObserver((es) => es.forEach((e) => {
       if (!e.isIntersecting) return;
-      bio.disconnect(); set();
-      gsap.to(obj, { v: ratio, duration: 1.8, ease: "power2.out", onUpdate: () => (num.textContent = Math.round(obj.v)), onComplete: () => (num.textContent = ratio) });
+      bio.disconnect();
+      $$("#bento .bar-mini > i").forEach((b) => (b.style.width = Math.max(1.2, +b.dataset.w) + "%"));
+      if (hasGsap && !reduce) { const o = { v: 0 }; gsap.to(o, { v: 66, duration: 1.6, ease: "power2.out", onUpdate: () => ($("#bParams").textContent = Math.round(o.v)) }); }
     }), { threshold: 0.25 });
     bio.observe($("#bento"));
   })();
 
-  /* ---------------------------------------------------------------- dataset explorer */
-  (function datasets() {
-    const insight = {
-      drive: "The <b>training</b> dataset. The model learns from 16 of these 40 photos (4 more pick the best checkpoint).",
-      stare: "<b>Brighter</b> photos: the green channel averages 109 against 97 for DRIVE. Never seen during training.",
-      chase_db1: "<b>Much darker</b> photos (green average 62) and bigger images. Vessels are 6.1 px wide before resizing and 3.6 px after.",
-      hrf: "<b>Huge</b> images (3504x2336, about 6 times wider than DRIVE). After resizing the vessels are only 1.4 px wide because the labels are thin, so HRF also tests a different labelling style.",
-    };
-    const cv = $("#dsCanvas"), ctx = cv.getContext("2d"), imgs = {};
-    let cur = "drive", view = "img";
-    const load = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = src; });
-    async function ensure(ds) { if (!imgs[ds]) imgs[ds] = { img: await load(`${ASSET}${ds}_img.jpg`), gt: await load(`${ASSET}${ds}_gt.png`) }; return imgs[ds]; }
-    async function draw() {
-      const { img, gt } = await ensure(cur);
-      cv.width = img.width; cv.height = img.height;
-      if (view === "gt") { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(gt, 0, 0); }
-      else {
-        ctx.drawImage(img, 0, 0);
-        if (view === "both") {
-          const t = document.createElement("canvas"); t.width = img.width; t.height = img.height;
-          const tc = t.getContext("2d"); tc.drawImage(gt, 0, 0);
-          try {
-            const d = tc.getImageData(0, 0, t.width, t.height);
-            for (let i = 0; i < d.data.length; i += 4) { const on = d.data[i] > 127; d.data[i] = 255; d.data[i + 1] = 106; d.data[i + 2] = 77; d.data[i + 3] = on ? 255 : 0; }
-            tc.putImageData(d, 0, 0); ctx.drawImage(t, 0, 0);
-          } catch (e) { /* opened from file:// */ }
-        }
-      }
-      const s = R.dataset_info[cur];
-      $("#dsStats").innerHTML = [["Images", s.n], ["Original size", `${s.w}x${s.h}`], ["Vessel pixels", s.vessel_pct + "%"], ["Vessel width, before and after resizing", `${s.calibre_native} to ${s.calibre_norm} px`], ["Brightness (green)", s.green], ["Role", cur === "drive" ? "training" : "unseen test"]]
-        .map(([k, v]) => `<div><dt>${k}</dt><dd style="font-size:1.25rem">${v}</dd></div>`).join("");
-      $("#dsInsight").innerHTML = insight[cur];
-    }
-    group($("#dsTabs"), DS.map((d) => [d, DS_NAME[d]]), "drive", (d) => { cur = d; draw(); });
-    group($("#dsView"), [["img", "Photo"], ["gt", "Traced vessels"], ["both", "Overlay"]], "img", (v) => { view = v; draw(); });
-  })();
-
-  /* ---------------------------------------------------------------- horizontal accordion */
+  /* ---------------------------------------------------------------- versions accordion */
   (function accordion() {
     const panels = $$(".acc-panel");
     const open = (p) => panels.forEach((q) => { const on = q === p; q.classList.toggle("active", on); q.setAttribute("aria-expanded", String(on)); });
     panels.forEach((p) => {
-      p.addEventListener("click", () => open(p));
-      p.addEventListener("focus", () => open(p));
+      p.addEventListener("click", () => open(p)); p.addEventListener("focus", () => open(p));
       p.addEventListener("mouseenter", () => { if (matchMedia("(hover: hover) and (min-width: 1024px)").matches) open(p); });
     });
   })();
 
-  /* ---------------------------------------------------------------- interactive pipeline */
-  (function pipeline() {
-    const MAIN = [
-      ["photo", "ph-camera", "Fundus photo", "A colour photograph of the retina together with its circular field-of-view mask."],
-      ["resize", "ph-arrows-in", "Resize to 527 px", "Every image is resized so its circular field of view is 527 pixels wide, so the same vessel is about the same number of pixels everywhere. This uses no labels and no statistics of the test datasets."],
-      ["clahe", "ph-sun", "Green channel + CLAHE", "We keep the green channel, where vessels show best, apply CLAHE (a local contrast boost) and standardise the brightness."],
-      ["net", "ph-graph", "Compact U-Net", "An encoder-decoder built from depthwise-separable convolutions: 0.21 million parameters instead of 31 million. Skip connections carry fine detail across."],
-      ["head", "ph-circle-half", "Mask head", "A 1x1 layer turns the features into the probability that each pixel is vessel."],
-      ["mc", "ph-dice-five", "20 dropout runs", "Dropout stays switched on and the model runs 20 times. The average is the prediction; where the runs disagree, the model is unsure."],
-      ["out", "ph-tree-structure", "Vessel map + uncertainty", "Threshold the average at 0.5 for the vessel map. The disagreement between the runs becomes the uncertainty map."],
-    ];
-    const TRAIN = [
-      ["aug", "ph-sparkle", "Messy-photo augmentation", "Uneven light, blur, noise, JPEG artefacts and gentle bending, so the model does not rely on one camera's look."],
-      ["skel", "ph-line-segments", "Centreline head", "A second output predicts the one-pixel centrelines of the vessels. It is dropped after training, so it adds no cost at test time."],
-      ["loss", "ph-scales", "Training loss", "Overlap (Dice and cross-entropy), plus the topology loss (soft-clDice and the centreline head), plus a consistency term that asks the clean and the messy copy of a patch to give the same answer."],
-    ];
-    const rowM = $("#pipeMain"), rowT = $("#pipeTrain"), info = $("#pipeInfo");
-    if (!rowM) return;
-    const nodes = [];
-    function add(row, list, train) {
-      list.forEach(([id, icon, title, text], k) => {
-        const b = el("button", { class: "pnode" + (train ? " train" : ""), type: "button", "aria-pressed": "false" }, `<i class="ph-bold ${icon}"></i><span>${title}</span>`);
-        b.addEventListener("click", () => pick(id)); b.addEventListener("mouseenter", () => pick(id)); b.addEventListener("focus", () => pick(id));
-        row.appendChild(b); nodes.push([id, b, title, text, train, icon]);
-        if (!train && k < list.length - 1) row.appendChild(el("div", { class: "parrow" }, '<i class="ph-bold ph-caret-right"></i>'));
+  /* ---------------------------------------------------------------- explorer (scatter) */
+  (function explorer() {
+    const svg = $("#xChart");
+    let metric = "tuned", axis = "params", show = "main", pinned = "H_tglite70k[det]";
+    const colour = (m) => (m.kind === "headline" ? RED : m.kind === "reference" ? INK : m.kind === "ablation" ? "#f0b4a8" : MUTE);
+    const AX = { params: ["parameters (log scale)", [3e4, 3e8], (m) => m.params], cpu_ms: ["CPU time per 512x512 image, ms (log scale)", [15, 6000], (m) => m.cpu_ms], gflops: ["GFLOPs at 512x512 (log scale)", [1.5, 4000], (m) => m.gflops] };
+    const MET = { raw: ["Dice, threshold 0.5", "raw"], tuned: ["Dice, tuned threshold", "tuned"], sel: ["Dice, tuned + scale selection", "sel"] };
+    group($("#xMetric"), [["raw", "Raw (0.5)"], ["tuned", "Tuned threshold"], ["sel", "Tuned + scale selection"]], "tuned", (v) => { metric = v; draw(); });
+    group($("#xAxis"), [["params", "Parameters"], ["cpu_ms", "CPU time"], ["gflops", "GFLOPs"]], "params", (v) => { axis = v; draw(); });
+    group($("#xShow"), [["main", "Stages and headline models"], ["all", "Include ablations"]], "main", (v) => { show = v; draw(); });
+    key($("#xKey"), [[MUTE, "v2 stages"], [RED, "TG-LiteNet v2.1 (66K)"], [INK, "v2.1 references"], ["#f0b4a8", "v2.1 ablations"]]);
+    function draw() {
+      svg.innerHTML = "";
+      const W = 900, H = 460, mg = { l: 70, r: 24, t: 20, b: 56 }, iw = W - mg.l - mg.r, ih = H - mg.t - mg.b;
+      const pts = S.models.filter((m) => (show === "all" || m.kind !== "ablation") && m[MET[metric][1]] != null);
+      const ys = pts.map((m) => m[MET[metric][1]]), lo = Math.min(...ys), hi = Math.max(...ys), pad = (hi - lo) * 0.2 + 0.002;
+      let y0 = lo - pad, y1 = hi + pad; if (axis === "params" && metric !== "raw") y1 = Math.max(y1, 0.82);
+      const [, [xl, xh], xf] = AX[axis], lx0 = Math.log10(xl), lx1 = Math.log10(xh);
+      const X = (v) => mg.l + ((Math.log10(v) - lx0) / (lx1 - lx0)) * iw, Y = (v) => mg.t + ih - ((v - y0) / (y1 - y0)) * ih;
+      niceTicks(y0, y1, 5).forEach((t) => { svg.appendChild(h("line", { x1: mg.l, x2: W - mg.r, y1: Y(t), y2: Y(t), class: "gridline" })); svg.appendChild(h("text", { x: mg.l - 8, y: Y(t) + 4, "text-anchor": "end" }, t.toFixed(3))); });
+      for (let e = Math.ceil(lx0); e <= Math.floor(lx1); e++) {
+        [1, 3].forEach((mult) => { const v = mult * Math.pow(10, e); if (v >= xl && v <= xh) { svg.appendChild(h("line", { x1: X(v), x2: X(v), y1: mg.t, y2: mg.t + ih, class: "gridline" })); svg.appendChild(h("text", { x: X(v), y: mg.t + ih + 20, "text-anchor": "middle" }, v >= 1e6 ? v / 1e6 + "M" : v >= 1e3 ? v / 1e3 + "K" : v)); } });
+      }
+      svg.appendChild(h("line", { x1: mg.l, x2: W - mg.r, y1: mg.t + ih, y2: mg.t + ih, class: "axis" }));
+      svg.appendChild(h("text", { x: mg.l + iw / 2, y: H - 10, "text-anchor": "middle" }, AX[axis][0]));
+      svg.appendChild(h("text", { transform: `translate(16 ${mg.t + ih / 2}) rotate(-90)`, "text-anchor": "middle" }, MET[metric][0]));
+      if (axis === "params" && metric !== "raw") {
+        const sx = X(78e3), sy = Y(0.812);
+        svg.appendChild(h("path", { d: `M${sx} ${sy - 11} l3 8 9 .5 -7 6 2.5 9 -7.5 -5 -7.5 5 2.5 -9 -7 -6 9 -.5z`, fill: "#7a4fd0", stroke: INK, "stroke-width": 1 }));
+        svg.appendChild(h("text", { x: sx + 14, y: sy + 4, style: "font-weight:700" }, "DSAE-Net, 0.812 (published, other protocol)"));
+      }
+      const labelled = new Set(["H_tglite70k[det]", "A_unet[det]", "C_unet_topo_dg[det]", "E_tglitenet[det]", "R_lite_w16[det]"]);
+      pts.slice().sort((a, b) => b.params - a.params).forEach((m) => {
+        const cx = X(xf(m)), cy = Y(m[MET[metric][1]]), r = m.kind === "headline" ? 11 : 8, ens = m.kind === "ensemble";
+        const node = ens ? h("rect", { x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, transform: `rotate(45 ${cx} ${cy})`, fill: colour(m), stroke: "#fff", "stroke-width": 1.5, class: "dot" })
+          : h("circle", { cx, cy, r, fill: colour(m), stroke: "#fff", "stroke-width": 1.5, class: "dot" + (m.key === pinned ? " on" : "") });
+        const html = `<b>${m.label}</b><br>${m.params >= 1e6 ? (m.params / 1e6).toFixed(2) + " M" : Math.round(m.params / 1e3) + " K"} parameters, ${m.cpu_ms.toFixed(0)} ms CPU<br>unseen Dice ${f3(m[MET[metric][1]])}`;
+        node.addEventListener("mousemove", (e) => { showTip(html, e.clientX, e.clientY); detail(m); });
+        node.addEventListener("mouseleave", () => { hideTip(); detail(model(pinned)); });
+        node.addEventListener("click", () => { pinned = m.key; draw(); detail(m); });
+        svg.appendChild(node);
+        if (labelled.has(m.key)) svg.appendChild(h("text", { x: cx + (m.key === "H_tglite70k[det]" ? 15 : 12), y: cy + (m.key === "A_unet[det]" ? 18 : -10), style: "fill:#101512;font-weight:800;font-size:12px" }, m.key === "H_tglite70k[det]" ? "66K" : m.label.split("  ")[0].replace("Depthwise 212K (size-rule headline)", "Depthwise 212K").replace("TG-LiteNet v2 (486K)", "E")));
       });
+      $("#xCap").textContent = `${MET[metric][0]} against ${AX[axis][0].replace(" (log scale)", "")}`;
+      detail(model(pinned));
     }
-    add(rowM, MAIN, false); add(rowT, TRAIN, true);
-    function pick(id) {
-      nodes.forEach(([k, b]) => b.setAttribute("aria-pressed", String(k === id)));
-      const n = nodes.find((x) => x[0] === id);
-      info.innerHTML = `<div class="w-12 h-12 shrink-0 rounded-2xl grid place-items-center bg-white/10"><i class="ph-bold ${n[5]} text-2xl text-coral"></i></div><div><div class="flex flex-wrap items-center gap-3"><h4 class="text-xl font-black tracking-tight">${n[2]}</h4><span class="text-xs rounded-full px-3 py-1 ${n[4] ? "bg-white/10 text-white/70" : "bg-coral text-[#0b0e13] font-bold"}">${n[4] ? "training only" : "test time"}</span></div><p class="mt-2 text-white/70 leading-relaxed max-w-3xl">${n[3]}</p></div>`;
+    function detail(m) {
+      const bars = [["DRIVE", m.drive], ["STARE", m.stare], ["CHASE_DB1", m.chase], ["HRF", m.hrf], ["FIVES", m.fives]].map(([n, v]) => `<div class="mb-2"><div class="flex justify-between text-xs font-bold text-black/60"><span>${n}</span><span>${f3(v)}</span></div><div class="bar-mini"><i class="${n === "HRF" ? "hot" : ""}" style="width:${Math.max(2, ((v - 0.65) / 0.25) * 100)}%"></i></div></div>`).join("");
+      $("#xDetail").innerHTML = `<div class="flex items-center gap-2 text-xs font-bold"><span class="rounded-full px-3 py-1 ${m.version === "v2.1" ? "bg-vermilion text-white" : "bg-black/10"}">${m.version}</span><span class="text-black/50">${m.n} seed${m.n > 1 ? "s" : ""}</span></div>
+        <h3 class="mt-3 text-2xl font-black tracking-tight leading-tight">${m.label}</h3>
+        <div class="grid grid-cols-3 gap-2 mt-4 text-center"><div class="rounded-2xl bg-black/5 py-3"><b class="block text-lg font-black">${m.params >= 1e6 ? (m.params / 1e6).toFixed(2) + "M" : Math.round(m.params / 1e3) + "K"}</b><span class="text-[11px] font-semibold text-black/55">params</span></div><div class="rounded-2xl bg-black/5 py-3"><b class="block text-lg font-black">${m.gflops}</b><span class="text-[11px] font-semibold text-black/55">GFLOPs</span></div><div class="rounded-2xl bg-black/5 py-3"><b class="block text-lg font-black">${m.cpu_ms.toFixed(0)}</b><span class="text-[11px] font-semibold text-black/55">ms CPU</span></div></div>
+        <div class="mt-5 text-sm font-bold text-black/60 mb-2">Dice per dataset (tuned threshold)</div>${bars}
+        <div class="grid grid-cols-2 gap-2 mt-4 text-sm"><div>Unseen raw <b>${f3(m.raw)}</b></div><div>Unseen tuned <b>${f3(m.tuned)}</b></div><div>+ scale sel. <b>${f3(m.sel)}</b></div><div>clDice <b>${f3(m.cldice)}</b></div><div>Betti-0 raw <b>${m.betti_raw.toFixed(1)}</b></div><div>Betti-0 clean <b>${m.betti_clean.toFixed(1)}</b></div></div>`;
     }
-    pick("net");
-  })();
-
-  /* ---------------------------------------------------------------- stage stepper */
-  (function stages() {
-    const text = {
-      A: ["Plain U-Net", "The standard baseline: a 31-million-parameter network trained with an overlap loss. Everything else is compared against this."],
-      B: ["Add the topology loss", "Adds the centreline loss and a second output that predicts vessel centrelines. Goal: fewer gaps and fewer broken pieces."],
-      C: ["Add DG augmentation", "Adds messy-photo augmentation and a consistency loss. Goal: stay accurate on other cameras."],
-      D: ["Swap in the compact backbone", "Replaces the 31 M network with a tiny depthwise-separable one (0.21 M parameters). Goal: run on cheap hardware."],
-      E: ["Add dropout: TG-LiteNet", "Adds dropout so the model can also say how unsure it is. This is the full TG-LiteNet."],
-    };
-    const order = ["A", "B", "C", "D", "E"];
-    group($("#stageTabs"), order.map((t) => [t, `${t}  ${stageBy(t).label}`]), "A", render);
-    function bar(name, val, frac, hot, note) { return `<div class="bar-row"><div class="top"><span>${name}</span><b>${val}</b></div><div class="track"><div class="fill ${hot ? "hot" : ""}" style="width:${Math.max(2, Math.min(100, frac * 100))}%"></div></div><div class="note">${note}</div></div>`; }
-    function render(tag) {
-      const s = stageBy(tag), i = order.indexOf(tag), p = i > 0 ? stageBy(order[i - 1]) : null;
-      const d = (a, b, dd = 3) => (p ? ` (${a - b >= 0 ? "+" : "-"}${Math.abs(a - b).toFixed(dd)} vs ${order[i - 1]})` : "");
-      $("#stageText").innerHTML = `<div class="text-coral font-bold text-sm">Stage ${tag}</div><h4 class="text-3xl font-black tracking-tight mt-2">${text[tag][0]}</h4><p class="mt-4 text-white/70 leading-relaxed">${text[tag][1]}</p>
-        <p class="mt-6 text-sm text-white/50">${s.seeds} seeds, ${s.params_m.toFixed(2)} M parameters, ${s.gflops} GFLOPs, ${s.cpu_ms.toFixed(0)} ms on a laptop CPU</p>`;
-      $("#stageBars").innerHTML =
-        bar("Dice (overlap), higher is better", f3(s.unseen_dice) + d(s.unseen_dice, p ? p.unseen_dice : 0), (s.unseen_dice - 0.7) / 0.1, tag === "E", "bar scale starts at 0.70") +
-        bar("clDice (connectivity), higher is better", f3(s.unseen_cldice) + d(s.unseen_cldice, p ? p.unseen_cldice : 0), (s.unseen_cldice - 0.8) / 0.08, tag === "E", "bar scale starts at 0.80") +
-        bar("Broken pieces (Betti-0), lower is better", s.unseen_betti0_err.toFixed(1) + d(s.unseen_betti0_err, p ? p.unseen_betti0_err : 0, 1), s.unseen_betti0_err / 90, tag === "E", "full bar is 90 pieces") +
-        bar("Gap between DRIVE and unseen, lower is better", f3(s.gap) + d(s.gap, p ? p.gap : 0), s.gap / 0.1, tag === "E", "full bar is 0.10");
-    }
+    draw();
   })();
 
   /* ---------------------------------------------------------------- live viewer */
   (function viewer() {
     const cv = $("#vCanvas"), ctx = cv.getContext("2d", { willReadFrequently: true });
-    const MODELS = [["A", "A  U-Net"], ["C", "C  Topology + DG"], ["E", "E  TG-LiteNet"]];
-    const MODES = [["err", "Errors"], ["pred", "Prediction"], ["gt", "Ground truth"], ["photo", "Photo"], ["unc", "Uncertainty"]];
-    const cache = {};
-    let ds = "drive", model = "A", mode = "err", pending = false;
+    const MODELS = [["v21_H_tglite70k", "66K (v2.1)"], ["v21_H_tglite70k_scalesel", "66K + scale selection"], ["v21_R_lite_w16", "Depthwise 212K"], ["v21_Z_v2recipe", "66K, v2 recipe"], ["v2_E_tglitenet", "TG-LiteNet v2 (486K)"], ["v2_C_unet_topo_dg", "v2 stage C (31M)"]];
+    const MODES = [["err", "Errors"], ["pred", "Prediction"], ["prob", "Probability"], ["gt", "Ground truth"], ["photo", "Photo"]];
+    const cache = {}, order = ["drive", "stare", "chase_db1", "hrf", "fives"];
+    let ds = "hrf", mdl = "v21_H_tglite70k", mode = "err", pending = false;
     const load = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
-    const pixels = (img) => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0); return x.getImageData(0, 0, c.width, c.height).data; };
+    const pix = (img) => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0); return x.getImageData(0, 0, c.width, c.height).data; };
     async function ensure(d) {
       if (cache[d]) return cache[d];
-      const b = `${ASSET}${d}_`;
-      const [img, gt, fov, pA, pC, pE, unc] = await Promise.all([load(b + "img.jpg"), load(b + "gt.png"), load(b + "fov.png"), load(b + "prob_A.png"), load(b + "prob_C.png"), load(b + "prob_E.png"), load(b + "unc_E.png")]);
-      const w = img.width, hh = img.height, ch = (im) => { const p = pixels(im), o = new Uint8Array(w * hh); for (let i = 0; i < o.length; i++) o[i] = p[i * 4]; return o; };
-      const c = { w, h: hh, photo: pixels(img), gt: ch(gt), fov: ch(fov), prob: { A: ch(pA), C: ch(pC), E: ch(pE) }, unc: ch(unc) };
+      const base = `assets/${d}/`;
+      const imgs = await Promise.all([load(base + "image.jpg"), load(base + "gt.png"), load(base + "fov.png"), ...MODELS.map(([k]) => load(`${base}prob_${k}.png`))]);
+      const w = imgs[0].width, hh = imgs[0].height, ch = (im) => { const p = pix(im), o = new Uint8Array(w * hh); for (let i = 0; i < o.length; i++) o[i] = p[i * 4]; return o; };
+      const c = { w, h: hh, photo: pix(imgs[0]), gt: ch(imgs[1]), fov: ch(imgs[2]), prob: {} };
+      MODELS.forEach(([k], i) => (c.prob[k] = ch(imgs[3 + i])));
       c.gtb = new Uint8Array(w * hh); for (let i = 0; i < c.gtb.length; i++) c.gtb[i] = c.gt[i] > 127 && c.fov[i] > 127 ? 1 : 0;
       c.gtPieces = label(c.gtb, w, hh).n;
       return (cache[d] = c);
     }
-    function label(mask, w, hh) {   // 8-connected components
+    function label(mask, w, hh) {
       const lab = new Int32Array(w * hh), stack = new Int32Array(w * hh), sizes = [0]; let n = 0;
       for (let s = 0; s < mask.length; s++) {
         if (!mask[s] || lab[s]) continue;
@@ -313,203 +244,153 @@
       }
       return { lab, n, sizes };
     }
+    const chosen = () => S.viewer[ds].maps[mdl].threshold;
     function update() {
       pending = false;
       const c = cache[ds]; if (!c) return;
       const thr = +$("#thr").value, minsz = +$("#minsz").value;
       $("#thrOut").textContent = thr.toFixed(2); $("#minszOut").textContent = minsz + " px";
-      const t = thr * 255, w = c.w, hh = c.h, p = c.prob[model], pred = new Uint8Array(w * hh);
+      const t = thr * 255, w = c.w, hh = c.h, p = c.prob[mdl], pred = new Uint8Array(w * hh);
       for (let i = 0; i < pred.length; i++) pred[i] = p[i] >= t && c.fov[i] > 127 ? 1 : 0;
       const L = label(pred, w, hh); let pieces = L.n;
       if (minsz > 0) { for (let i = 0; i < pred.length; i++) if (pred[i] && L.sizes[L.lab[i]] < minsz) pred[i] = 0; pieces = L.sizes.reduce((a, s, k) => a + (k > 0 && s >= minsz ? 1 : 0), 0); }
       let tp = 0, fp = 0, fn = 0;
       for (let i = 0; i < pred.length; i++) { const g = c.gtb[i]; if (pred[i] && g) tp++; else if (pred[i]) fp++; else if (g) fn++; }
-      const dice = (2 * tp) / Math.max(1, 2 * tp + fp + fn), rec = tp / Math.max(1, tp + fn), pre = tp / Math.max(1, tp + fp), thin = c.gtPieces > 100;
-      $("#rDice").textContent = dice.toFixed(3); $("#rPieces").textContent = pieces; $("#rGt").textContent = c.gtPieces;
-      $("#rExtra").textContent = thin ? "n/a" : Math.abs(pieces - c.gtPieces); $("#rRec").textContent = rec.toFixed(2); $("#rPre").textContent = pre.toFixed(2);
-      const name = MODELS.find((m) => m[0] === model)[1].replace(/^\w\s+/, "");
-      $("#vInsight").innerHTML = thin
-        ? `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> predicted vessel pieces. The ground-truth count (${c.gtPieces}) is not meaningful here: the thin labels of this dataset split into many fragments when resized to the working scale, which is why the paper counts pieces at full resolution.`
-        : `<b>${name}</b> on ${DS_NAME[ds]}: <b>${pieces}</b> vessel pieces against <b>${c.gtPieces}</b> in the ground truth` + (minsz === 0 && pieces > 3 * c.gtPieces ? ". Most of the extra pieces are tiny specks: drag the fragment slider up." : minsz > 0 ? ` after deleting fragments under ${minsz} px.` : ".");
+      const dice = (2 * tp) / Math.max(1, 2 * tp + fp + fn);
+      $("#rDice").textContent = dice.toFixed(3); $("#rPieces").textContent = pieces; $("#rRec").textContent = (tp / Math.max(1, tp + fn)).toFixed(2); $("#rPre").textContent = (tp / Math.max(1, tp + fp)).toFixed(2);
+      const name = MODELS.find((m) => m[0] === mdl)[1], thin = c.gtPieces > 100;
+      $("#vInsight").innerHTML = `<b>${name}</b> on ${DSN[ds]}: <b>${pieces}</b> predicted vessel pieces` + (thin ? ". The ground-truth piece count is not meaningful here: thin labels split into many fragments at the working scale." : ` against <b>${c.gtPieces}</b> in the ground truth` + (minsz === 0 && pieces > 3 * c.gtPieces ? ". Most extra pieces are tiny specks: drag the fragment slider up." : "."))
+        + (mdl === "v21_H_tglite70k_scalesel" ? ` The scale rule chose ${S.viewer[ds].selected_scale === 1 ? "scale 1 (unchanged)" : "scale " + S.viewer[ds].selected_scale} for this image.` : "");
       cv.width = w; cv.height = hh;
       const out = ctx.createImageData(w, hh), o = out.data;
       for (let i = 0; i < pred.length; i++) {
-        const k = i * 4; let r = 0, g = 0, b = 0;
+        const k = i * 4; let r = 242, g = 238, b = 230;
         if (mode === "photo") { r = c.photo[k]; g = c.photo[k + 1]; b = c.photo[k + 2]; }
-        else if (mode === "gt") r = g = b = c.gtb[i] ? 255 : 0;
-        else if (mode === "pred") r = g = b = pred[i] ? 255 : 0;
-        else if (mode === "unc") { const u = Math.min(1, c.unc[i] / 150); r = 10 + u * 245; g = 10 + u * (u > 0.65 ? 190 : 40); b = 14 + u * 70; }
-        else { const base = 0.4 * (c.photo[k] + c.photo[k + 1] + c.photo[k + 2]) / 3; r = g = b = base; if (c.fov[i] > 127) { if (pred[i] && c.gtb[i]) r = g = b = 255; else if (pred[i]) { r = 255; g = 77; b = 58; } else if (c.gtb[i]) { r = 59; g = 130; b = 246; } } }
+        else if (mode === "gt") { const v = c.gtb[i] ? 16 : c.fov[i] > 127 ? 255 : 220; r = g = b = v; }
+        else if (mode === "pred") { const v = pred[i] ? 16 : c.fov[i] > 127 ? 255 : 220; r = g = b = v; }
+        else if (mode === "prob") { const v = 255 - p[i]; r = g = b = c.fov[i] > 127 ? v : 220; }
+        else {
+          if (c.fov[i] <= 127) { r = g = b = 220; }
+          else if (pred[i] && c.gtb[i]) { r = 16; g = 21; b = 18; }
+          else if (pred[i]) { r = 228; g = 67; b = 44; }
+          else if (c.gtb[i]) { r = 59; g = 130; b = 246; }
+          else { r = g = b = 255; }
+        }
         o[k] = r; o[k + 1] = g; o[k + 2] = b; o[k + 3] = 255;
       }
       ctx.putImageData(out, 0, 0);
     }
-    const sched = () => { if (!pending) { pending = true; requestAnimationFrame(update); } };
-    async function setDs(d) {
-      ds = d;
-      try { await ensure(d); update(); } catch (e) {
-        cv.width = 640; cv.height = 200; ctx.fillStyle = "#05070a"; ctx.fillRect(0, 0, 640, 200); ctx.fillStyle = "#fff"; ctx.font = "16px sans-serif";
-        ctx.fillText("Open this page through a web server", 24, 90); ctx.fillText("(python -m http.server in docs/) or GitHub Pages.", 24, 118);
-      }
-    }
-    group($("#vDs"), DS.map((d) => [d, DS_NAME[d]]), "drive", setDs);
-    group($("#vModel"), MODELS, "A", (m) => { model = m; sched(); });
-    group($("#vMode"), MODES, "err", (m) => { mode = m; sched(); });
-    $("#thr").addEventListener("input", sched); $("#minsz").addEventListener("input", sched);
+    const sched = () => { if (!pending) { pending = true; setTimeout(update, 0); } };   // setTimeout: also runs while the tab is in the background
+    const reset = () => { $("#thr").value = chosen(); sched(); };
+    async function setDs(d) { ds = d; try { await ensure(d); reset(); } catch (e) { cv.width = 640; cv.height = 200; ctx.fillStyle = "#0b0f0c"; ctx.fillRect(0, 0, 640, 200); ctx.fillStyle = "#fff"; ctx.font = "16px sans-serif"; ctx.fillText("Open this page through a web server (python -m http.server in docs/) or GitHub Pages.", 20, 100); } }
+    group($("#vDs"), order.map((d) => [d, DSN[d]]), "hrf", setDs);
+    group($("#vModel"), MODELS, "v21_H_tglite70k", (k) => { mdl = k; reset(); });
+    group($("#vMode"), MODES, "err", (k) => { mode = k; sched(); });
+    $("#thr").addEventListener("input", sched); $("#minsz").addEventListener("input", sched); $("#vReset").addEventListener("click", reset);
   })();
 
-  /* ---------------------------------------------------------------- results explorer */
-  (function results() {
-    const stages = ["A", "B", "C", "D", "E"].map(stageBy);
-    const METRICS = { dice: ["Dice", "higher is better"], cldice: ["clDice", "higher is better"], betti0_err: ["Betti-0 error", "lower is better"] };
-    let metric = "dice", dsel = "unseen";
-    key($("#rKey"), stages.map((s) => [COL[s.tag], `${s.tag}  ${s.label}`]));
-    group($("#rMetric"), Object.entries(METRICS).map(([k, v]) => [k, v[0]]), "dice", (m) => { metric = m; draw(); });
-    group($("#rDs"), [["unseen", "Unseen average"], ...DS.map((d) => [d, DS_NAME[d]])], "unseen", (d) => { dsel = d; draw(); });
+  /* ---------------------------------------------------------------- scale rule: compare slider + chart */
+  (function scaleRule() {
+    const order = ["hrf", "fives", "stare", "chase_db1", "drive"];
+    const A = $("#cmpA"), B = $("#cmpB"), cmp = $("#cmp"), range = $("#cmpRange");
+    range.addEventListener("input", () => cmp.style.setProperty("--cut", range.value + "%"));
+    group($("#cDs"), order.map((d) => [d, DSN[d]]), "hrf", (d) => {
+      A.src = `assets/${d}/err_v21_H_tglite70k.png`; B.src = `assets/${d}/err_v21_H_tglite70k_scalesel.png`;
+      const v = S.viewer[d], a = v.maps.v21_H_tglite70k.dice_normalised, b = v.maps.v21_H_tglite70k_scalesel.dice_normalised, sh = S.scale_share[d];
+      const pick = Object.entries(sh).sort((x, y) => y[1] - x[1])[0];
+      $("#cmpCap").innerHTML = `${DSN[d]}: Dice ${a.toFixed(3)} at scale 1, ${b.toFixed(3)} with the rule (this image). Across the dataset the rule keeps scale ${pick[0]} for ${Math.round(100 * pick[1])}% of images.`;
+    });
+    const sets = [["H_tglite70k[det]", "66K", RED], ["R_lite_w16[det]", "Depthwise 212K", INK], ["E_tglitenet[det]", "v2 stage E", "#8f8a7c"], ["C_unet_topo_dg[det]", "v2 stage C (31M)", GREEN]];
+    key($("#sKey"), sets.map(([, l, c]) => [c, l]));
+    const d4 = ["stare", "chase_db1", "hrf", "fives"];
+    barChart($("#sChart"), { W: 520, H: 300, bottom: 40, cats: d4.map((d) => DSN[d]), yMin: -0.14, yMax: 0.05, fmtVal: (v) => sgn(v, 3), fmtTick: (t) => t.toFixed(2),
+      series: sets.map(([k, l, c]) => ({ name: l, vals: d4.map((d) => S.scale_delta[k][d]), color: () => c })), valLabels: false });
+  })();
+
+  /* ---------------------------------------------------------------- novelties: stacking cards */
+  function stackUpdate() {
+    if (typeof gsap === "undefined" || reduce) return;
+    stackCards.forEach((c, i) => {
+      const next = stackCards[i + 1]; if (!next) return;
+      const top = parseFloat(getComputedStyle(c).top) || 0, nTop = next.getBoundingClientRect().top;
+      const t = Math.min(1, Math.max(0, 1 - (nTop - top) / (innerHeight * 0.55)));
+      gsap.set(c, { scale: 1 - 0.05 * t, filter: `brightness(${1 - 0.08 * t})`, y: -6 * t });
+    });
+  }
+  (function novelties() {
+    const root = $("#stack"), A = S.ablations, n1 = S.novelty1;
+    const abl = (run, m) => { const v = A[run][m]; return `${sgn(v.delta, m === "betti" ? 1 : 4)} [±${v.ci.toFixed(m === "betti" ? 1 : 4)}] ${v.clear ? "clear" : "not clear"}`; };
+    const cards = [
+      { id: "N1", bg: "var(--paper2)", fg: INK, title: "Connectivity reliability score", verdict: ["mid", "Promising lead", "ph-lightbulb"],
+        idea: "Flag an unreliable prediction by counting how fragmented it is: label-free, single pass, no extra cost.",
+        res: [`Against MC-dropout entropy (stage E): ${sgn(n1.E_vs_mc.delta)} [±${n1.E_vs_mc.ci.toFixed(3)}], clear.`, `Against single-pass entropy (stage E): ${sgn(n1.E_det.delta)}, not clear.`, `For the 66K model, entropy is the stronger score: ${sgn(n1.H.delta)} [±${n1.H.ci.toFixed(3)}].`],
+        note: "Two secondary connectivity scores (end-point density, small-fragment share) ranked failures better than entropy for most models. A promising lead for follow-up work." },
+      { id: "N2", bg: INK, fg: "#fff", title: "Calibre-guided scale selection", verdict: ["ok", "Supported", "ph-check-circle"],
+        idea: "Run each image at four scales and keep the one whose predicted vessel width matches what the model saw on DRIVE.",
+        res: [`Unseen Dice, 66K model: ${S.scale_unseen["H_tglite70k[det]"].text}.`, `HRF ${sgn(S.scale_delta["H_tglite70k[det]"].hrf)}, STARE and CHASE_DB1 unchanged.`, `FIVES ${sgn(S.scale_delta["H_tglite70k[det]"].fives)}: on thick vessels the default scale is already the better choice.`],
+        note: "The rule was set on DRIVE only, and it passed its validation safety check for every model." },
+      { id: "N3", bg: "var(--card)", fg: INK, title: "Topology-aware distillation", verdict: ["mid", "Open question", "ph-compass"],
+        idea: "Let the small student copy a large teacher's soft centrelines, not only its pixels.",
+        res: [`Dice ${abl("Z_no_kdskel", "dice")}.`, `clDice ${abl("Z_no_kdskel", "cldice")}.`, `Betti-0 ${abl("Z_no_kdskel", "betti")} (fewer pieces, but not clear).`],
+        note: "With 3 seeds the test has modest power; more seeds would settle it." },
+      { id: "N4", bg: "#e7ece0", fg: INK, title: "Skeleton-level consistency", verdict: ["mid", "Dice trade-off", "ph-scales"],
+        idea: "Ask the augmented view to reproduce the clean view's centrelines instead of its pixels.",
+        res: [`Dice ${abl("Z_pixcons", "dice")}: a clear Dice trade-off against plain pixel consistency.`, `clDice ${abl("Z_pixcons", "cldice")}.`, `Betti-0 ${abl("Z_pixcons", "betti")}.`],
+        note: "Pixel-level consistency stays the recommended choice, which narrows the design space for future work." },
+    ];
+    cards.forEach((c, i) => {
+      const art = el("article", { class: "stack-card", style: `--i:${i}; background:${c.bg}; color:${c.fg}` });
+      art.innerHTML = `<div class="flex flex-wrap items-start justify-between gap-6"><div class="big-n" style="color:${c.fg === "#fff" ? "#e4432c" : "#e4432c"}">${c.id}</div><span class="verdict ${c.verdict[0]}"><i class="ph-bold ${c.verdict[2]} text-base"></i>${c.verdict[1]}</span></div>
+        <h3 class="mt-6 text-3xl md:text-4xl font-black tracking-tight leading-tight">${c.title}</h3>
+        <p class="mt-3 text-lg max-w-2xl" style="opacity:.78">${c.idea}</p>
+        <ul class="mt-6 space-y-2 text-[15.5px] font-semibold max-w-3xl">${c.res.map((r) => `<li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>${r}</span></li>`).join("")}</ul>
+        <p class="mt-6 text-sm max-w-2xl" style="opacity:.65">${c.note}</p>`;
+      root.appendChild(art); stackCards.push(art);
+    });
+    root.appendChild(el("div", { style: "height: 12vh" }));
+  })();
+
+  /* ---------------------------------------------------------------- controls: stage explorer, factorial, bars */
+  (function controls() {
+    const tags = ["A", "B", "C", "D", "E"], COLS = { A: "#9a9a90", B: "#6d9bc7", C: GREEN, D: "#e8a13a", E: RED };
+    const MET = { dice: ["Dice", "higher is better"], cldice: ["clDice", "higher is better"], betti0_err: ["Betti-0 error", "lower is better"] };
+    let mode = "raw", metric = "dice", dsel = "unseen";
+    key($("#kKey"), tags.map((t) => [COLS[t], S.stage_labels[t]]));
+    group($("#kMode"), [["raw", "Raw (threshold 0.5)"], ["clean", "Clean (delete fragments)"], ["tuned", "Tuned threshold"]], "raw", (v) => { mode = v; draw(); });
+    group($("#kMetric"), Object.entries(MET).map(([k, v]) => [k, v[0]]), "dice", (v) => { metric = v; draw(); });
+    group($("#kDs"), ["unseen", "drive", "stare", "chase_db1", "hrf", "fives"].map((d) => [d, DSN[d]]), "unseen", (v) => { dsel = v; draw(); });
     function draw() {
-      const vals = stages.map((s) => s[`${dsel}_${metric}`]), errs = stages.map((s) => s[`${dsel}_${metric}_std`]);
+      const vals = tags.map((t) => S.stages[mode][t][`${dsel}_${metric}`][0]), errs = tags.map((t) => S.stages[mode][t][`${dsel}_${metric}`][1]);
       const lo = Math.min(...vals.map((v, i) => v - errs[i])), hi = Math.max(...vals.map((v, i) => v + errs[i]));
       let yMin, yMax;
-      if (metric === "betti0_err") { yMin = 0; yMax = Math.ceil((hi * 1.12) / 10) * 10; }
-      else { const span = Math.max(0.02, hi - lo); yMin = Math.floor((lo - span * 0.6) * 100) / 100; yMax = Math.ceil((hi + span * 0.35) * 100) / 100; }
-      barChart($("#stageChart"), { cats: stages.map((s) => [s.tag, s.label]), series: [{ name: METRICS[metric][0], vals, err: errs, color: (i) => COL[stages[i].tag] }], yMin, yMax,
+      if (metric === "betti0_err") { yMin = 0; yMax = Math.ceil((hi * 1.15) / 10) * 10; } else { const span = Math.max(0.02, hi - lo); yMin = Math.floor((lo - span * 0.6) * 100) / 100; yMax = Math.ceil((hi + span * 0.35) * 100) / 100; }
+      barChart($("#kChart"), { cats: tags.map((t) => [t, S.stage_labels[t].replace(/^\w\s+/, "")]), series: [{ name: MET[metric][0], vals, err: errs, color: (i) => COLS[tags[i]] }], yMin, yMax,
         fmtVal: (v) => (metric === "betti0_err" ? v.toFixed(1) : v.toFixed(3)), fmtTick: (t) => (metric === "betti0_err" ? t : t.toFixed(2)) });
-      $("#rCap").textContent = `${METRICS[metric][0]}, ${DS_NAME[dsel]}, ${METRICS[metric][1]}` + (metric !== "betti0_err" ? `. Axis starts at ${yMin.toFixed(2)}` : "");
+      $("#kCap").textContent = `${MET[metric][0]}, ${DSN[dsel]}, ${mode}, ${MET[metric][1]}` + (metric !== "betti0_err" ? `. Axis starts at ${yMin.toFixed(2)}` : "");
       const best = vals.indexOf(metric === "betti0_err" ? Math.min(...vals) : Math.max(...vals));
-      $("#rInsight").innerHTML = `<b>Best here: stage ${stages[best].tag} (${stages[best].label})</b>, ${metric === "betti0_err" ? vals[best].toFixed(1) : vals[best].toFixed(3)}. ` +
-        (dsel === "unseen" && metric === "dice" ? "At the standard 0.5 threshold the plain U-Net has the best Dice, so the topology and compact stages cost a little overlap. The checks below explain why."
-          : dsel === "unseen" && metric === "betti0_err" ? "Topology-trained stages cut the broken pieces by more than half, but see the clean-up check below."
-          : dsel === "hrf" ? "HRF is the hardest: huge images with thin labels. The compact stages (D, E) lose the most here." : "Hover a bar for exact numbers.");
+      let msg = `<b>Best here: stage ${tags[best]}</b> (${metric === "betti0_err" ? vals[best].toFixed(1) : vals[best].toFixed(3)}). `;
+      if (metric === "betti0_err" && dsel === "unseen") msg += mode === "raw" ? "The topology loss roughly halves the broken pieces (about 73 to 34)." : "After deleting fragments, every stage sits at about 4.5 pieces, the plain U-Net included. Raw fragment counts are not a reliable topology measure.";
+      else if (metric === "dice" && dsel === "unseen") msg += mode === "tuned" ? "With the threshold chosen on validation images the topology-trained stages gain 0.013 to 0.027 Dice while the plain U-Net does not: much of the Dice 'cost' of topology at 0.5 is calibration." : "At the threshold-0.5 headline the stages are within about 0.012 Dice of each other.";
+      else msg += "Hover a bar for exact values.";
+      $("#kInsight").innerHTML = msg;
     }
-  })();
-
-  (function checks() {
-    const C = R.controls;
-    const names = { A_unet: ["A", "U-Net"], B_unet_topo: ["B", "+ topology"], C_unet_topo_dg: ["C", "+ DG aug."], D_lite_topo_dg: ["D", "compact"], E_tglitenet: ["E", "TG-LiteNet"], X_unet_dg: ["U-Net", "DG only"], S_unet_b8: ["U-Net", "base 8"], S_unet_b16: ["U-Net", "base 16"], X_lite_dg: ["compact", "DG only"] };
-    const cats = C.map((c) => names[c.exp]);
-    const MODES = {
-      pieces: { label: "Broken pieces", a: "fixed", b: "clean", an: "as predicted", bn: "after deleting fragments", met: "betti0_err", log: true, yMin: 3, yMax: 150, ticks: [3, 10, 30, 100], fmt: (v) => (v < 10 ? v.toFixed(1) : v.toFixed(0)), cap: "Betti-0 error on unseen data (log scale, lower is better)" },
-      dice: { label: "Dice vs threshold", a: "fixed", b: "tuned", an: "threshold 0.5", bn: "threshold tuned on validation", met: "dice", yMin: 0.74, yMax: 0.795, fmt: (v) => v.toFixed(3), cap: "Dice on unseen data (higher is better). Axis starts at 0.74" },
-      cldice: { label: "Connectivity", a: "fixed", b: "clean", an: "as predicted", bn: "after deleting fragments", met: "cldice", yMin: 0.8, yMax: 0.86, fmt: (v) => v.toFixed(3), cap: "clDice on unseen data (higher is better). Axis starts at 0.80" },
-    };
-    group($("#cMode"), Object.entries(MODES).map(([k, v]) => [k, v.label]), "pieces", (k) => {
-      const m = MODES[k];
-      key($("#cKey"), [[MUTE, m.an], [CORAL, m.bn]]);
-      barChart($("#checkChart"), { H: 380, bottom: 60, cats, yMin: m.yMin, yMax: m.yMax, log: !!m.log, ticks: m.ticks, fmtVal: m.fmt, fmtTick: (t) => (m.log ? t : t.toFixed(2)),
-        series: [{ name: m.an, vals: C.map((c) => c[m.a][m.met]), color: () => MUTE }, { name: m.bn, vals: C.map((c) => c[m.b][m.met]), color: () => CORAL }] });
-      $("#cCap").textContent = m.cap;
-    });
-  })();
-
-  (function factorial() {
-    const chips = [["unet", "U-Net"], ["lite", "Compact"], ["topo", "Topology loss"], ["dg", "DG augmentation"]];
-    const on = new Set(), root = $("#facChips"), tag = { A_unet: "A", B_unet_topo: "B", C_unet_topo_dg: "C", D_lite_topo_dg: "D" };
-    chips.forEach(([k, t]) => { const b = el("button", { class: "chip", type: "button", "aria-pressed": "false" }, t); b.addEventListener("click", () => { on.has(k) ? on.delete(k) : on.add(k); b.setAttribute("aria-pressed", String(on.has(k))); draw(); }); root.appendChild(b); });
-    function draw() {
-      const rows = R.factorial.slice().sort((a, b) => (a.backbone === b.backbone ? 0 : a.backbone === "unet" ? -1 : 1) || a.topology - b.topology || a.dg - b.dg);
-      const hit = (r) => on.size && [...on].every((k) => (k === "unet" ? r.backbone === "unet" : k === "lite" ? r.backbone === "lite" : k === "topo" ? r.topology : r.dg));
-      $("#facTable").innerHTML = `<tr><th>Backbone</th><th>Topology</th><th>DG aug.</th><th>Dice</th><th>clDice</th><th>Betti-0</th><th>Gap</th><th>Stage</th></tr>` +
-        rows.map((r) => `<tr class="${hit(r) ? "hl" : ""}"><td>${r.backbone === "unet" ? "U-Net" : "Compact"}</td><td>${r.topology ? "yes" : "-"}</td><td>${r.dg ? "yes" : "-"}</td><td>${r.dice.toFixed(3)}</td><td>${r.cldice.toFixed(3)}</td><td>${r.betti0.toFixed(1)}</td><td>${r.gap.toFixed(3)}</td><td>${tag[r.exp] || ""}</td></tr>`).join("");
+    // factorial
+    const chips = [["unet", "U-Net"], ["compact", "Compact"], ["topo", "Topology loss"], ["dg", "DG augmentation"]], on = new Set(), root = $("#fChips");
+    chips.forEach(([k, t]) => { const b = el("button", { class: "chip", type: "button", "aria-pressed": "false" }, t); b.addEventListener("click", () => { on.has(k) ? on.delete(k) : on.add(k); b.setAttribute("aria-pressed", String(on.has(k))); fdraw(); }); root.appendChild(b); });
+    function fdraw() {
+      const hit = (r) => on.size && [...on].every((k) => (k === "unet" ? r.backbone === "U-Net" : k === "compact" ? r.backbone === "Compact" : k === "topo" ? r.topology : r.dg));
+      $("#fTable").innerHTML = `<tr><th>Backbone</th><th>Topology</th><th>DG aug.</th><th>Seeds</th><th>Dice (raw)</th><th>clDice</th><th>Betti-0</th><th>Dice (tuned)</th><th>Gap (tuned)</th></tr>` +
+        S.factorial.map((r) => `<tr class="${hit(r) ? "hl" : ""}"><td>${r.backbone}</td><td>${r.topology ? "yes" : "-"}</td><td>${r.dg ? "yes" : "-"}</td><td>${r.n}</td><td>${f3(r.dice_raw)}</td><td>${f3(r.cldice_raw)}</td><td>${r.betti_raw.toFixed(1)}</td><td>${f3(r.dice_tuned)}</td><td>${f3(r.gap_tuned)}</td></tr>`).join("");
     }
-    draw();
-  })();
-
-  /* ---------------------------------------------------------------- findings carousel */
-  (function carousel() {
-    const slides = $$("#slides .slide"), nav = $("#dotNav"); let i = 0;
-    const dots = slides.map((_, k) => { const b = el("button", { class: "dot-nav", type: "button", role: "tab", "aria-label": `Finding ${k + 1}` }); b.addEventListener("click", () => go(k)); nav.appendChild(b); return b; });
-    function go(k) { i = (k + slides.length) % slides.length; slides.forEach((s, j) => s.classList.toggle("on", j === i)); dots.forEach((d, j) => { d.classList.toggle("on", j === i); d.setAttribute("aria-selected", String(j === i)); }); }
-    $("#prevSlide").addEventListener("click", () => go(i - 1)); $("#nextSlide").addEventListener("click", () => go(i + 1));
-    $("#slides").addEventListener("keydown", (e) => { if (e.key === "ArrowRight") go(i + 1); if (e.key === "ArrowLeft") go(i - 1); });
-    let x0 = null;
-    $("#slides").addEventListener("touchstart", (e) => (x0 = e.touches[0].clientX), { passive: true });
-    $("#slides").addEventListener("touchend", (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1)); x0 = null; });
-    go(0);
-  })();
-
-  /* ---------------------------------------------------------------- cost scatter */
-  (function tradeoff() {
-    let score = "dice", show = "main"; const svg = $("#tradeChart");
-    group($("#tScore"), [["dice", "Dice (overlap)"], ["cldice", "clDice (connectivity)"]], "dice", (s) => { score = s; draw(); });
-    group($("#tShow"), [["main", "Main models"], ["all", "All configurations"]], "main", (s) => { show = s; draw(); });
-    function draw() {
-      svg.innerHTML = "";
-      const W = 900, H = 440, m = { l: 70, r: 30, t: 20, b: 58 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-      const pts = R.tradeoff.filter((p) => show === "all" || p.main), ys = pts.map((p) => p[score]);
-      const lo = Math.min(...ys), hi = Math.max(...ys), pad = (hi - lo) * 0.18 + 0.002, y0 = lo - pad, y1 = hi + pad, x0 = Math.log10(45), x1 = Math.log10(7000);
-      const X = (v) => m.l + ((Math.log10(v) - x0) / (x1 - x0)) * iw, Y = (v) => m.t + ih - ((v - y0) / (y1 - y0)) * ih;
-      niceTicks(y0, y1, 5).forEach((t) => { svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), class: "gridline" })); svg.appendChild(h("text", { x: m.l - 8, y: Y(t) + 4, "text-anchor": "end" }, t.toFixed(3))); });
-      [50, 100, 200, 500, 1000, 2000].forEach((t) => { svg.appendChild(h("line", { x1: X(t), x2: X(t), y1: m.t, y2: m.t + ih, class: "gridline" })); svg.appendChild(h("text", { x: X(t), y: m.t + ih + 20, "text-anchor": "middle" }, t)); });
-      svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: m.t + ih, y2: m.t + ih, class: "axis" }));
-      svg.appendChild(h("text", { x: m.l + iw / 2, y: H - 10, "text-anchor": "middle" }, "CPU time per image, ms (log scale)"));
-      svg.appendChild(h("text", { transform: `translate(16 ${m.t + ih / 2}) rotate(-90)`, "text-anchor": "middle" }, score === "dice" ? "Unseen Dice" : "Unseen clDice"));
-      const col = { A_unet: COL.A, B_unet_topo: COL.B, C_unet_topo_dg: COL.C, D_lite_topo_dg: COL.D, E_tglitenet: COL.E };
-      const lab = { A_unet: [1, -9, "A  U-Net, 31 M"], B_unet_topo: [1, 4, "B"], C_unet_topo_dg: [1, 12, "C"], D_lite_topo_dg: [-1, 14, "D"], E_tglitenet: [1, 14, "E  TG-LiteNet, 0.21 M"], S_unet_b8: [0, 0, "plain U-Net, base 8"], S_unet_b16: [-1, -46, "plain U-Net, base 16"] };
-      pts.slice().sort((a, b) => b.params_m - a.params_m).forEach((p) => {
-        const r = 7 + 5 * Math.log10(1 + 30 * p.params_m);
-        const c = h("circle", { cx: X(p.cpu_ms), cy: Y(p[score]), r, fill: col[p.exp] || "#2a303a", stroke: p.main ? "#fff" : "rgba(255,255,255,.4)", "stroke-width": p.main ? 1.5 : 1, class: "dot" });
-        const html = `<b>${p.name}</b><br>${p.params_m} M parameters<br>${p.cpu_ms} ms per image<br>Dice ${p.dice.toFixed(3)}, clDice ${p.cldice.toFixed(3)}<br>Broken pieces ${p.betti0}`;
-        c.addEventListener("mousemove", (e) => showTip(html, e.clientX, e.clientY)); c.addEventListener("mouseleave", hideTip);
-        svg.appendChild(c);
-        const l = lab[p.exp];
-        if (l) svg.appendChild(h("text", { x: X(p.cpu_ms) + l[0] * (r + 6), y: Y(p[score]) + l[1] + (l[0] === 0 ? -r - 8 : 4), "text-anchor": l[0] > 0 ? "start" : l[0] < 0 ? "end" : "middle", style: "fill:#fff;font-weight:700;font-size:12.5px" }, l[2]));
-      });
-    }
-    draw();
-  })();
-
-  /* ---------------------------------------------------------------- uncertainty */
-  (function uncertainty() {
-    const svg = $("#riskChart"), RK = R.risk;
-    const LINES = { drive: ["#e8e6e1", ""], stare: ["#e8e6e1", "7 5"], chase_db1: ["#8b93a1", ""], hrf: [CORAL, ""] };
-    group($("#uMode"), [["pixel", "pixels"], ["image", "images"]], "pixel", draw);
-    function draw(mode) {
-      svg.innerHTML = "";
-      const cov = mode === "pixel" ? RK.pixel_cov : RK.image_cov;
-      const W = 900, H = 360, m = { l: 70, r: 20, t: 16, b: 54 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-      const all = DS.flatMap((d) => RK.datasets[d][mode]), y1 = mode === "pixel" ? Math.ceil(Math.max(...all) * 100 + 0.5) / 100 : Math.ceil(Math.max(...all) * 20) / 20 + 0.02;
-      const X = (c) => m.l + ((1 - c) / 0.5) * iw, Y = (v) => m.t + ih - (v / y1) * ih;
-      niceTicks(0, y1, 5).forEach((t) => { svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), class: "gridline" })); svg.appendChild(h("text", { x: m.l - 8, y: Y(t) + 4, "text-anchor": "end" }, mode === "pixel" ? (t * 100).toFixed(0) + "%" : t.toFixed(2))); });
-      [1, 0.9, 0.8, 0.7, 0.6, 0.5].forEach((c) => svg.appendChild(h("text", { x: X(c), y: m.t + ih + 20, "text-anchor": "middle" }, Math.round(c * 100) + "%")));
-      svg.appendChild(h("line", { x1: m.l, x2: W - m.r, y1: m.t + ih, y2: m.t + ih, class: "axis" }));
-      svg.appendChild(h("text", { x: m.l + iw / 2, y: H - 10, "text-anchor": "middle" }, "share kept (most uncertain removed first)"));
-      svg.appendChild(h("text", { transform: `translate(16 ${m.t + ih / 2}) rotate(-90)`, "text-anchor": "middle" }, mode === "pixel" ? "pixel error rate" : "average 1 - Dice of kept images"));
-      DS.forEach((d) => {
-        const v = RK.datasets[d][mode], [c, dash] = LINES[d];
-        if (mode === "image") svg.appendChild(h("line", { x1: X(1), x2: X(0.5), y1: Y(v[0]), y2: Y(v[0]), stroke: c, "stroke-width": 1, "stroke-dasharray": "2 5", opacity: 0.55 }));
-        svg.appendChild(h("polyline", { points: cov.map((cc, i) => `${X(cc)},${Y(v[i])}`).join(" "), fill: "none", stroke: c, "stroke-width": 2.8, "stroke-dasharray": dash, "stroke-linejoin": "round", "stroke-linecap": "round" }));
-        cov.forEach((cc, i) => { const dot = h("circle", { cx: X(cc), cy: Y(v[i]), r: 5, fill: c, stroke: "#06080b", "stroke-width": 2, class: "dot" }); dot.addEventListener("mousemove", (e) => showTip(`<b>${DS_NAME[d]}</b><br>keep ${Math.round(cc * 100)}%<br>${mode === "pixel" ? (v[i] * 100).toFixed(2) + "% error" : "1 - Dice " + v[i].toFixed(3)}`, e.clientX, e.clientY)); dot.addEventListener("mouseleave", hideTip); svg.appendChild(dot); });
-      });
-      key($("#uKey"), DS.map((d) => [LINES[d][0], `${DS_NAME[d]} (correlation ${mode === "pixel" ? RK.datasets[d].rho_px : RK.datasets[d].rho_img})`]));
-      $("#uCap").textContent = mode === "pixel" ? "Good uncertainty: the lines fall steeply as uncertain pixels are removed. They do." : "Good uncertainty: the lines fall as uncertain images are removed (dotted: random removal). They do not.";
-    }
-  })();
-
-  /* ---------------------------------------------------------------- failure analysis */
-  (function failures() {
-    const F = R.failure || [];
-    const get = (exp, kind, grp) => { const r = F.find((x) => x.exp === exp && x.kind === kind && x.group === grp); return r ? r.value : null; };
-    const EX = [["A_unet", "A", "A  U-Net"], ["B_unet_topo", "B", "B  + topology"], ["C_unet_topo_dg", "C", "C  + DG aug."], ["D_lite_topo_dg", "D", "D  compact"], ["E_tglitenet", "E", "E  TG-LiteNet"]];
-    const thin = F.filter((x) => x.kind === "recall_by_width" && x.group.startsWith("thin")).map((x) => x.value), wide = F.filter((x) => x.kind === "recall_by_width" && !x.group.startsWith("thin")).map((x) => x.value);
-    const far = F.filter((x) => x.kind === "fp_share_far").map((x) => x.value), sA = get("A_unet", "stray_pieces_per_image", "pieces touching no true vessel"), sB = get("B_unet_topo", "stray_pieces_per_image", "pieces touching no true vessel");
-    const rng = (a) => (a.length ? `${(Math.min(...a) * 100).toFixed(0)}-${(Math.max(...a) * 100).toFixed(0)}%` : "-");
-    $("#failStats").innerHTML = [
-      [rng(thin), "of the thinnest vessels (2 px or less) are found", "ph-line-segment"], [rng(wide), "of wider vessels are found", "ph-line-segments"],
-      [far.length ? `${(100 - Math.max(...far) * 100).toFixed(0)}-${(100 - Math.min(...far) * 100).toFixed(0)}%` : "-", "of false-alarm pixels sit within 2 px of a real vessel", "ph-ruler"],
-      [sA ? `${sA.toFixed(0)} to ${sB.toFixed(0)}` : "-", "stray pieces per image, U-Net to topology loss", "ph-scribble-loop"],
-    ].map(([b, t, ic]) => `<div class="spot glass rounded-[24px] p-6"><i class="ph-bold ${ic} text-2xl text-coral"></i><div class="text-4xl font-black tracking-tight mt-3">${b}</div><p class="text-sm text-white/65 mt-1 leading-snug">${t}</p></div>`).join("");
-    const KINDS = {
-      width: { label: "Vessel width", kind: "recall_by_width", groups: ["thin  (<= 2 px)", "medium (2-4 px)", "thick (> 4 px)"], cats: ["Thin, 2 px or less", "Medium, 2 to 4 px", "Thick, over 4 px"], yMax: 1, fmt: (v) => (v * 100).toFixed(0) + "%", cap: "Share of true vessel pixels found, by vessel width (higher is better)" },
-      zone: { label: "Image zone", kind: "recall_by_zone", groups: ["centre", "middle", "edge"], cats: ["Centre", "Middle", "Edge"], yMax: 1, fmt: (v) => (v * 100).toFixed(0) + "%", cap: "Share of true vessel pixels found, by distance from the image centre (higher is better)" },
-      fp: { label: "False alarms", kind: "fp_rate_by_zone", groups: ["centre", "middle", "edge"], cats: ["Centre", "Middle", "Edge"], yMax: 0.07, fmt: (v) => (v * 100).toFixed(1) + "%", cap: "False-positive pixels as a share of all pixels in the zone (lower is better)" },
-    };
-    key($("#fKey"), EX.map(([, t, l]) => [COL[t], l]));
-    group($("#fKind"), Object.entries(KINDS).map(([k, v]) => [k, v.label]), "width", (k) => {
-      const K = KINDS[k];
-      barChart($("#failChart"), { H: 340, cats: K.cats, yMin: k === "fp" ? 0 : 0.6, yMax: K.yMax, fmtVal: K.fmt, fmtTick: (t) => (t * 100).toFixed(0) + "%",
-        series: EX.map(([exp, t, l]) => ({ name: l, vals: K.groups.map((g) => get(exp, K.kind, g)), color: () => COL[t] })) });
-      $("#fCap").textContent = K.cap + (k === "fp" ? "" : ". Axis starts at 60%");
-    });
+    // cpu bars and uncertainty bars
+    const E = S.efficiency, H = model("H_tglite70k[det]");
+    const cpu = [["31 M U-Net (stage A)", E.A_unet.cpu_4t, 0], ["Depthwise 212K", E.K_lite_w16.cpu_4t, 0], ["Plain U-Net 1.9 M", E.K_unet_w16.cpu_4t, 0], ["Plain U-Net 486K (v2)", E.K_unet_w8.cpu_4t, 0], ["TG-LiteNet v2.1 (66K)", H.cpu_ms, 1]];
+    $("#cpuBars").innerHTML = cpu.map(([n, v, hot]) => `<div><div class="flex justify-between text-sm font-bold"><span>${n}</span><span>${v.toFixed(0)} ms</span></div><div class="bar-mini mt-1"><i class="${hot ? "hot" : ""}" style="width:${Math.max(2, (v / E.A_unet.cpu_4t) * 100)}%"></i></div></div>`).join("");
+    const U = S.uncertainty, Ee = U["E_tglitenet[det]"], Em = U["E_tglitenet[mc]"];
+    const rows = [["Pixel error vs uncertainty (stage E)", Ee.rho_px], ["Image error vs uncertainty, single pass", Ee.rho_img], ["Image error vs uncertainty, MC dropout", Em.rho_img]];
+    $("#uncBars").innerHTML = rows.map(([n, v]) => `<div><div class="flex justify-between text-sm font-bold"><span>${n}</span><span>ρ ${sgn(v, 2)}</span></div><div class="bar-mini mt-1"><i class="${v < 0 ? "hot" : ""}" style="width:${Math.max(2, Math.abs(v) * 100 * 2.2)}%"></i></div></div>`).join("") +
+      `<p class="text-sm text-black/55">Calibration (ECE): ${Ee.ece.toFixed(3)} raw, ${Ee.ece_ts.toFixed(3)} after temperature scaling fitted on DRIVE validation.</p>`;
+    draw(); fdraw();
   })();
 
   /* ---------------------------------------------------------------- copy buttons */
