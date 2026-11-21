@@ -162,7 +162,21 @@ The rule is best suited to thin-vessel data, and a thick-vessel guard is a natur
 Entropy is a helpful pixel-level signal (Spearman rho about **0.34** with the error map; rejecting the 10% most uncertain pixels lowers the pixel error from 5.9% to 2.4%).
 Ranking whole images by reliability, and carrying calibration from DRIVE to other cameras, are the next open challenges. Ensembles (5x) and MC dropout (20x) cost much more than a single pass.
 
-### 6. Pixel-level classification metrics (66K model)
+### 6. Explainability: where is the model unsure?
+
+The 66K model's probability map tells us not only what it predicts but where it hesitates. The right-hand column shows the per-pixel **uncertainty** (binary entropy of the probability, bright = unsure) next to the error map (red: false alarm, blue: missed).
+
+<p align="center"><img src="docs/img/fig_uncertainty.png" width="62%" alt="Image, error map and uncertainty map for the 66K model on one example image per unseen dataset"></p>
+
+What the maps show:
+
+* **Uncertainty sits where the errors are.** On the example images, the 10% most uncertain pixels hold 63% (STARE), 47% (CHASE_DB1), 48% (HRF) and 73% (FIVES) of all errors. Across each whole dataset, rejecting those pixels cuts the pixel error from 5.4% to 2.0% (STARE), 6.9% to 3.2% (CHASE_DB1), 7.1% to 3.5% (HRF) and 4.5% to 1.6% (FIVES).
+* **It highlights thin vessel borders**, where one pixel of boundary shift matters most, and on FIVES it lights up the pathological region, which is also where most of the false alarms are.
+* **A usable reliability signal at pixel level.** The Spearman correlation between uncertainty and error is about 0.29–0.36 on the four datasets. Ranking whole images by reliability remains the open challenge (see N1).
+
+Regenerate with `python scripts/make_readme_figs.py`.
+
+### 7. Pixel-level classification metrics (66K model)
 
 Vessel segmentation is a binary classification of every pixel in the field of view, so the usual classification metrics apply. Positive (+) is vessel. Each matrix shows the confusion matrix in % of field-of-view pixels (rows: true class, columns: prediction); the grey margins give recall, specificity, precision and accuracy, and F1 equals Dice (tuned threshold, native resolution, mean over images and 5 seeds).
 

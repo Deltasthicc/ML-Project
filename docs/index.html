@@ -11,7 +11,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Satoshi', 'system-ui', 'sans-serif'] }, colors: { vermilion: '#e4432c' } } } };</script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-<link rel="stylesheet" href="style.css?v=3g">
+<link rel="stylesheet" href="style.css?v=3h">
 </head>
 <body class="antialiased">
 
@@ -272,6 +272,19 @@
         <div class="mt-5 space-y-3" id="uncBars"></div>
       </div>
     </div>
+
+    <div class="card p-7 mt-5 reveal" id="explain">
+      <h3 class="font-black text-2xl tracking-tight flex items-center gap-3"><i class="ph-bold ph-eye text-vermilion"></i>Where is the model unsure?</h3>
+      <p class="mt-3 text-black/65 leading-relaxed max-w-3xl">The 66K model's probability map shows where it hesitates. The right-hand column is the per-pixel uncertainty (binary entropy, bright = unsure) next to the error map (red: false alarm, blue: missed). It lights up along thin vessel borders and, on FIVES, over the pathological region, which is also where most false alarms sit.</p>
+      <div class="mt-6 grid lg:grid-cols-[1.1fr_1fr] gap-8 items-center">
+        <img src="img/fig_uncertainty.png?v=3h" alt="Image, error map and uncertainty map of the 66K model on one example image from each unseen dataset" class="w-full rounded-2xl border border-black/10" loading="lazy">
+        <div class="space-y-4">
+          <div><div class="text-5xl font-black tracking-tight">47&ndash;73%</div><p class="text-sm font-semibold text-black/60 mt-1 leading-snug">of a test image's errors fall inside its 10% most uncertain pixels (STARE 63%, CHASE_DB1 47%, HRF 48%, FIVES 73%, example images)</p></div>
+          <div><div class="text-5xl font-black tracking-tight text-vermilion">&minus;58%</div><p class="text-sm font-semibold text-black/60 mt-1 leading-snug">pixel error, on average over the four datasets, after rejecting those pixels (for example 5.4% to 2.0% on STARE)</p></div>
+          <p class="text-sm text-black/55 leading-relaxed">Pixel-level uncertainty is a usable reliability signal (Spearman rho about 0.29&ndash;0.36). Ranking whole images by reliability is the next open challenge.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -364,7 +377,7 @@ python scripts/make_site_data.py</pre>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="data/site.js?v=3g"></script>
-<script src="app.js?v=3g"></script>
+<script src="data/site.js?v=3h"></script>
+<script src="app.js?v=3h"></script>
 </body>
 </html>

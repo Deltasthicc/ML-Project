@@ -1,6 +1,6 @@
 """Figures used by README.md (all values read from results/, nothing typed by hand).
 
-    python scripts/make_readme_figs.py   # -> docs/img/fig_headline.png, fig_size.png, fig_method.png, fig_scale_mech.png, fig_qualitative.png, fig_confusion.png
+    python scripts/make_readme_figs.py   # -> docs/img/fig_headline.png, fig_size.png, fig_method.png, fig_scale_mech.png, fig_qualitative.png, fig_confusion.png, fig_uncertainty.png
 """
 from __future__ import annotations
 
@@ -84,6 +84,62 @@ def size_bars() -> None:
     plt.close(fig)
 
 
+def uncertainty_maps() -> None:
+    """Interpretation figure: image, error map and per-pixel uncertainty (binary entropy of the 66K probability map).
+
+    Numbers under each row: share of the image's errors that fall inside its 10% most uncertain pixels (from the saved
+    example maps), and the dataset-level pixel error before / after rejecting those pixels (per-image records, 66K model)."""
+    import json
+
+    from PIL import Image
+
+    meta = json.loads((ROOT / "docs" / "assets" / "assets.json").read_text())["datasets"]
+    pi = pd.read_csv(R21 / "per_image_all.csv.gz")
+    h = pi[pi["model"] == "H_tglite70k[det]"]
+    rows = [("stare", "STARE"), ("chase_db1", "CHASE_DB1"), ("hrf", "HRF"), ("fives", "FIVES")]
+    ratios = []
+    for d, _ in rows:
+        hh_, ww_ = np.asarray(Image.open(ROOT / "docs" / "assets" / d / "gt.png")).shape[:2]
+        ratios.append(hh_ / ww_)
+    colw = 2.3
+    fig, axes = plt.subplots(len(rows), 3, figsize=(3 * colw + 0.45, colw * sum(ratios) + 0.42 * len(rows) + 0.3),
+                             gridspec_kw={"wspace": 0.02, "hspace": 0.0, "height_ratios": [r_ + 0.18 for r_ in ratios]})
+    for r, (d, nm) in enumerate(rows):
+        a = ROOT / "docs" / "assets" / d
+        p = np.asarray(Image.open(a / "prob_v21_H_tglite70k.png")).astype(float) / 255
+        g = np.asarray(Image.open(a / "gt.png")) > 127
+        f = np.asarray(Image.open(a / "fov.png")) > 127
+        thr = meta[d]["maps"]["v21_H_tglite70k"]["threshold"]
+        err = ((p > thr) != g) & f
+        pc = np.clip(p, 1e-6, 1 - 1e-6)
+        ent = -(pc * np.log2(pc) + (1 - pc) * np.log2(1 - pc))
+        top = (ent >= np.quantile(ent[f], 0.90)) & f
+        share = 100 * (err & top).sum() / max(err.sum(), 1)
+        s = h[h["dataset"] == d]
+        e100, e90 = 100 * s["px_err@100"].mean(), 100 * s["px_err@90"].mean()
+        shown = np.where(f, ent, np.nan)
+        for c, (im, lab) in enumerate(((np.asarray(Image.open(a / "image.jpg").convert("RGB")), "Image"),
+                                       (np.asarray(Image.open(a / "err_v21_H_tglite70k.png").convert("RGB")), "Errors\n(red: false alarm, blue: missed)"),
+                                       (None, "Uncertainty\n(bright = unsure)"))):
+            ax = axes[r, c]
+            if im is not None:
+                ax.imshow(im)
+            else:
+                ax.imshow(np.full(f.shape, 0.92), cmap="gray", vmin=0, vmax=1)
+                ax.imshow(shown, cmap="magma", vmin=0, vmax=1)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for sp in ax.spines.values():
+                sp.set_visible(False)
+            if r == 0:
+                ax.set_title(lab, fontsize=8, color=INK)
+        axes[r, 0].set_ylabel(nm, fontsize=10, fontweight="bold", color=INK)
+        axes[r, 1].set_xlabel(f"10% most uncertain pixels hold {share:.0f}% of the errors;  dataset error {e100:.1f}% → {e90:.1f}% after rejecting them",
+                              fontsize=7.6, color=MUTE, labelpad=3)
+    fig.savefig(IMG / "fig_uncertainty.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
 def method_diagram() -> None:
     """Render paper/overview.tex (TikZ) to a PNG when pdflatex and pdftoppm are available."""
     if not (shutil.which("pdflatex") and shutil.which("pdftoppm")):
@@ -104,6 +160,7 @@ def main() -> None:
     IMG.mkdir(parents=True, exist_ok=True)
     headline()
     size_bars()
+    uncertainty_maps()
     method_diagram()
     for f in ("fig_scale_mech", "fig_qualitative", "fig_confusion"):
         src = ROOT / "paper" / "figures" / f"{f}.png"
