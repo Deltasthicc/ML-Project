@@ -25,7 +25,8 @@ A pre-registered study with **114 trained models**, a **109 KB** INT8 network an
 
 </div>
 
-CSD361 *Introduction to Machine Learning*, final project, Shiv Nadar Institution of Eminence.
+CSD361 *Introduction to Machine Learning*, final project, **Group 22**, Shiv Nadar Institution of Eminence.
+Project title: *TG-LiteNet: Efficient Topology-Aware Domain-Generalized Vessel Segmentation*.
 **Abhiraj Agarwal** (2510110002, Topology), **Tanish Shitanshu** (2510110008, Generalisation), **Shashwat Rajan** (2510111019, Lite).
 
 ---
@@ -289,10 +290,10 @@ Reading the results with the right context:
 
 ```bibtex
 @misc{tglitenet2026,
-  title        = {TG-LiteNet: compact, topology-aware retinal vessel segmentation under dataset shift},
+  title        = {TG-LiteNet: Efficient Topology-Aware Domain-Generalized Vessel Segmentation},
   author       = {Agarwal, Abhiraj and Rajan, Shashwat and Shitanshu, Tanish},
   year         = {2026},
-  howpublished = {CSD361 final project, Shiv Nadar Institution of Eminence},
+  howpublished = {CSD361 final project (Group 22), Shiv Nadar Institution of Eminence},
   url          = {https://github.com/Deltasthicc/ML-Project}
 }
 ```

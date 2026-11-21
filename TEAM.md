@@ -1,6 +1,7 @@
 # Team and responsibilities
 
-CSD361 *Introduction to Machine Learning*, Department of CSE, Shiv Nadar Institution of Eminence.
+CSD361 *Introduction to Machine Learning*, Group 22, Department of CSE, Shiv Nadar Institution of Eminence.
+Project: *TG-LiteNet: Efficient Topology-Aware Domain-Generalized Vessel Segmentation*.
 
 The project is split into three equal parts, one for each part of the name **TG-LiteNet**: **T**opology, **G**eneralisation and **Lite**.
 Each person owns the ML work, experiments, code, paper sections and website sections for their part, across all three versions (v1, v2 and v2.1).
