@@ -11,7 +11,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Satoshi', 'system-ui', 'sans-serif'] }, colors: { vermilion: '#e4432c' } } } };</script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-<link rel="stylesheet" href="style.css?v=3e">
+<link rel="stylesheet" href="style.css?v=3f">
 </head>
 <body class="antialiased">
 
@@ -36,6 +36,7 @@
       <a href="#novelties" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Novelties</a>
       <a href="#controls" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Controls</a>
       <a href="#honesty" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Scope</a>
+      <a href="#team" class="nav-link px-3 py-2 text-[13.5px] font-semibold text-black/65 hover:text-black rounded-full hover:bg-black/5 transition">Team</a>
     </div>
     <a href="paper.pdf" class="ml-1 inline-flex items-center gap-2 rounded-full bg-[#101512] text-white px-4 py-2 text-[13.5px] font-bold hover:bg-vermilion transition"><i class="ph-bold ph-file-pdf"></i><span>Paper</span></a>
     <a href="https://github.com/Deltasthicc/ML-Project" aria-label="GitHub repository" class="ml-1 w-9 h-9 grid place-items-center rounded-full hover:bg-black/5 transition"><i class="ph ph-github-logo text-xl"></i></a>
@@ -289,6 +290,47 @@
   </div>
 </section>
 
+<!-- ============================================================ TEAM -->
+<section id="team" class="relative px-6 py-32 md:py-48 rule mesh">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-black tracking-[-0.035em] leading-[1.04] max-w-4xl" style="font-size: clamp(2rem, 3.9vw, 3.7rem)">Three parts of one name: Topology, Generalisation, Lite.</h2>
+    <p class="mt-4 text-black/65 max-w-3xl text-lg">TG-LiteNet is split into three equal parts, one for each part of its name. Each of us owns the ML work, experiments, code, paper sections and website sections for one part, across all three versions of the study.</p>
+    <div class="mt-14 grid lg:grid-cols-3 gap-5">
+      <article class="card spot p-8 flex flex-col gap-5 reveal">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-full bg-[#101512] text-white grid place-items-center font-black text-xl">T</div>
+          <div><div class="font-black text-xl tracking-tight">Abhiraj Agarwal</div><div class="text-sm font-semibold text-black/55">2510110002 &middot; Person 1</div></div>
+        </div>
+        <div><h3 class="text-2xl font-black tracking-tight leading-tight">Topology and reliability</h3><p class="mt-2 text-black/65">Do vessels stay connected, and can we tell when a prediction is unreliable?</p></div>
+        <ul class="space-y-2 text-[15px] leading-relaxed"><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Topology losses: soft-clDice, skeleton head, cbDice, Skeleton Recall</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Topology metrics (clDice, Betti errors) and the raw, clean and tuned evaluation modes</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Uncertainty and calibration: MC dropout, ensembles, entropy</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Statistics: paired intervals over seeds, Holm correction, bootstrap</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Novelty <b>N1</b>: the label-free connectivity reliability score</span></li></ul>
+        <div class="flex flex-wrap gap-2"><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">Stage B</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">Stage E</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">N1</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">metrics and statistics</span></div>
+        <p class="mt-auto pt-2 text-sm text-black/60"><b class="text-black/80">On this page:</b> threshold viewer, N1 card, Scope</p>
+      </article>
+      <article class="card spot p-8 flex flex-col gap-5 reveal">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-full bg-[#101512] text-white grid place-items-center font-black text-xl">G</div>
+          <div><div class="font-black text-xl tracking-tight">Tanish Shitanshu</div><div class="text-sm font-semibold text-black/55">2510110008 &middot; Person 2</div></div>
+        </div>
+        <div><h3 class="text-2xl font-black tracking-tight leading-tight">Data and generalisation</h3><p class="mt-2 text-black/65">Does the model still work on cameras it never saw?</p></div>
+        <ul class="space-y-2 text-[15px] leading-relaxed"><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Data pipeline: field of view, scale normalisation, green channel, CLAHE</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Augmentation that imitates other cameras, and the consistency loss</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Novelty <b>N2</b>: calibre-guided scale selection, the supported idea</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Novelty <b>N4</b>: consistency on vessel centrelines instead of pixels</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>The pre-registered protocol that locks the test sets until every decision is made</span></li></ul>
+        <div class="flex flex-wrap gap-2"><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">Stage C</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">factorial study</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">N2</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">N4</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">protocol</span></div>
+        <p class="mt-auto pt-2 text-sm text-black/60"><b class="text-black/80">On this page:</b> scale rule, controls, versions, N2 and N4 cards</p>
+      </article>
+      <article class="card spot p-8 flex flex-col gap-5 reveal">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-full bg-[#101512] text-white grid place-items-center font-black text-xl">L</div>
+          <div><div class="font-black text-xl tracking-tight">Shashwat Rajan</div><div class="text-sm font-semibold text-black/55">2510111019 &middot; Person 3</div></div>
+        </div>
+        <div><h3 class="text-2xl font-black tracking-tight leading-tight">Model size, speed and training</h3><p class="mt-2 text-black/65">How small and fast can the model get without losing accuracy?</p></div>
+        <ul class="space-y-2 text-[15px] leading-relaxed"><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Backbones, model-selection rules and the final 66K U-Net</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Novelty <b>N3</b>: distillation from an ensemble of five large U-Nets</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>Cost measurement: parameters, FLOPs, CPU and GPU speed; INT8 quantisation</span></li><li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>The training system: optimiser, schedule, resumable runs and the suite</span></li></ul>
+        <div class="flex flex-wrap gap-2"><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">Stage D</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">66K model</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">N3</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">INT8</span><span class="rounded-full bg-black/[.06] px-3 py-1 text-xs font-bold">training suite</span></div>
+        <p class="mt-auto pt-2 text-sm text-black/60"><b class="text-black/80">On this page:</b> hero snapshot, model explorer, N3 card, reproduce, site-data builder</p>
+      </article>
+    </div>
+    <p class="mt-8 max-w-4xl text-black/60 leading-relaxed">How the parts connect: Tanish's cleaned data and locked test sets feed everyone; his stage-C models are the teacher for Shashwat's distillation; Abhiraj's tuned threshold and fragment size are applied after the scale selection; Abhiraj's and Tanish's loss terms run inside Shashwat's training loop; and Shashwat's trained models and cost numbers appear in every table and chart.</p>
+  </div>
+</section>
+
 <!-- ============================================================ ACTION -->
 <section id="reproduce" class="relative px-6 pt-32 md:pt-48 pb-16 overflow-hidden grain mesh rule">
   <div class="relative max-w-6xl mx-auto">
@@ -312,7 +354,7 @@ python scripts/make_site_data.py</pre>
     </div>
     <footer class="mt-24 pt-10 border-t border-black/15 flex flex-wrap gap-8 justify-between items-start text-black/60 text-sm">
       <div class="flex items-center gap-3 text-black"><svg class="w-9 h-9"><use href="#logo"/></svg><div><div class="font-black text-lg tracking-tight">TG-LiteNet</div><div class="text-black/55">CSD361 Introduction to Machine Learning</div></div></div>
-      <div class="space-y-1 font-semibold text-black/80"><div>Abhiraj Agarwal, 2510110002</div><div>Shashwat Rajan, 2510111019</div><div>Tanish Shitanshu, 2510110008</div></div>
+      <div class="space-y-1 font-semibold text-black/80"><div>Abhiraj Agarwal, 2510110002 &middot; Topology</div><div>Tanish Shitanshu, 2510110008 &middot; Generalisation</div><div>Shashwat Rajan, 2510111019 &middot; Lite</div></div>
       <div class="space-y-1"><div>Department of CSE, Shiv Nadar Institution of Eminence</div><div>MIT licence, 2026. Datasets keep their own licences.</div></div>
     </footer>
   </div>
@@ -322,7 +364,7 @@ python scripts/make_site_data.py</pre>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="data/site.js?v=3e"></script>
-<script src="app.js?v=3e"></script>
+<script src="data/site.js?v=3f"></script>
+<script src="app.js?v=3f"></script>
 </body>
 </html>

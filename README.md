@@ -26,13 +26,13 @@ A pre-registered study with **114 trained models**, a **109 KB** INT8 network an
 </div>
 
 CSD361 *Introduction to Machine Learning*, final project, Shiv Nadar Institution of Eminence.
-**Abhiraj Agarwal** (2510110002), **Shashwat Rajan** (2510111019), **Tanish Shitanshu** (2510110008).
+**Abhiraj Agarwal** (2510110002, Topology), **Tanish Shitanshu** (2510110008, Generalisation), **Shashwat Rajan** (2510111019, Lite).
 
 ---
 
 ## Contents
 
-[At a glance](#at-a-glance) · [The idea](#the-idea) · [Results](#results) · [The four new ideas](#the-four-new-ideas) · [Versions](#versions-and-branches) · [Data](#data) · [Quick start](#quick-start) · [Reproduce](#reproduce-everything) · [Repository map](#repository-map) · [Scope](#scope-and-limitations) · [Cite and licence](#cite-and-licence)
+[At a glance](#at-a-glance) · [The idea](#the-idea) · [Team](#team-and-responsibilities) · [Results](#results) · [The four new ideas](#the-four-new-ideas) · [Versions](#versions-and-branches) · [Data](#data) · [Quick start](#quick-start) · [Reproduce](#reproduce-everything) · [Repository map](#repository-map) · [Scope](#scope-and-limitations) · [Cite and licence](#cite-and-licence)
 
 ---
 
@@ -72,6 +72,26 @@ STARE, CHASE_DB1, HRF and FIVES are touched only after `protocol/decisions.json`
 <p align="center"><img src="docs/img/fig_method.png" width="98%" alt="TG-LiteNet v2.1 training and test-time pipeline"></p>
 
 *Top: training uses a robustness-augmented second view, a skeleton head and a teacher, and all of these are dropped at test time (dashed boxes). Bottom: the same network is applied at several scales, and the scale whose predicted vessel calibre matches DRIVE is kept (**N2**).*
+
+---
+
+## Team and responsibilities
+
+The project is split into three equal parts, one for each part of the name **TG-LiteNet**: **T**opology, **G**eneralisation and **Lite**.
+Each person owns the ML work, experiments, code, paper sections and website sections for their part, across all three versions (v1, v2 and v2.1). The full breakdown is in [`TEAM.md`](TEAM.md).
+
+| | **Person 1: Topology (T)** | **Person 2: Generalisation (G)** | **Person 3: Lite** |
+|---|---|---|---|
+| **Owner** | **Abhiraj Agarwal** (2510110002) | **Tanish Shitanshu** (2510110008) | **Shashwat Rajan** (2510111019) |
+| Core question | Do vessels stay connected, and can we tell when a prediction is unreliable? | Does the model still work on cameras it never saw? | How small and fast can the model get without losing accuracy? |
+| Step in the A–E ladder | **B** topology loss, **E** dropout and uncertainty | **C** augmentation + consistency | **D** compact backbone |
+| Novelties | **N1** connectivity reliability score | **N2** calibre-guided scale selection, **N4** skeleton consistency | **N3** topology-aware distillation, plus INT8 quantisation |
+| Owns | topology losses (soft-clDice, skeleton head, cbDice, Skeleton Recall), topology metrics, evaluation modes, uncertainty and calibration, statistics | data pipeline, augmentation, consistency loss, the pre-registered protocol | backbones, model-selection rules, distillation, cost measurement, INT8, the training system |
+| Main code | `losses.py` (topology), `metrics.py`, `inference.py`, `selection.py`, N1 and statistics in `eval21.py` / `report.py` | `data/`, consistency losses, scale selection in `eval21.py`, `prepare_data.py`, `check_scale_rule.py`, `protocol/` | `models.py`, `train.py`, distillation losses, `efficiency.py`, `int8.py`, `suite.py`, `suite21.py`, `configs/`, run scripts |
+| Paper | topology related work, problem setup, topology and uncertainty methods, metrics and statistics, their results | introduction, domain-generalisation related work, preprocessing and N2 method, datasets and protocol, N2/N4 and factorial results | lightweight-network related work, network and distillation methods, training, cost and 66K results, N3, conclusion |
+| Website | threshold viewer, N1 card, Scope | scale rule, controls, versions, N2 and N4 cards | hero snapshot, model explorer, N3 card, reproduce, site-data builder |
+
+How the parts connect: Person 2's cleaned data and locked test sets feed everyone; Person 2's stage-C models are the teacher for Person 3's distillation; Person 1's tuned threshold and fragment size are applied after Person 2's scale selection; Persons 1 and 2 supply the loss terms that run inside Person 3's training loop; and Person 3's trained models and cost numbers appear in every table and chart.
 
 ---
 
@@ -148,12 +168,12 @@ Ranking whole images by reliability, and carrying calibration from DRIVE to othe
 
 The success criteria were fixed (hashed) before training. Ablations use 3 seeds, so a result that is not yet clear is an **open question**, not a closed one.
 
-| | Idea | Outcome | What it gives us |
-|---|---|---|---|
-| **N2** | Calibre-guided test-time scale selection | **Supported** | +0.011 Dice overall (clear), +0.034 on HRF; no labels, no retraining |
-| **N1** | Connectivity reliability score (fragment density) | **Promising lead** | secondary connectivity scores (end-point density, small-fragment share) rank failures better than entropy for most models |
-| **N3** | Topology-aware distillation (5x 31M teacher) | **Open question** | no clear effect at 3 seeds; more seeds and data would settle it |
-| **N4** | Skeleton-level consistency | **Dice trade-off** | pixel-level consistency stays the recommended choice, which narrows the design space |
+| | Idea | Owner | Outcome | What it gives us |
+|---|---|---|---|---|
+| **N2** | Calibre-guided test-time scale selection | Tanish Shitanshu | **Supported** | +0.011 Dice overall (clear), +0.034 on HRF; no labels, no retraining |
+| **N1** | Connectivity reliability score (fragment density) | Abhiraj Agarwal | **Promising lead** | the primary target was not met, but secondary connectivity scores (end-point density, small-fragment share) rank failures better than entropy for most models |
+| **N3** | Topology-aware distillation (5x 31M teacher) | Shashwat Rajan | **Open question** | no clear effect at 3 seeds; more seeds and data would settle it |
+| **N4** | Skeleton-level consistency | Tanish Shitanshu | **Dice trade-off** | pixel-level consistency stays the recommended choice (-0.009 Dice for N4), which narrows the design space |
 
 ---
 
@@ -233,6 +253,7 @@ Only the trained weights and saved probability maps (about 14 GB) are not commit
 ## Repository map
 
 ```
+TEAM.md       who owns what (Topology / Generalisation / Lite), see "Team and responsibilities"
 configs/      base.yaml (all hyper-parameters), experiments.yaml (v2 runs), v21.yaml (v2.1 runs)
 protocol/     PROTOCOL.md, PROTOCOL_v2.1.md, decisions*.json (budget, backbone, size rule, freeze records with SHA-256)
 src/tglite/   data/ (prepare, preprocess, augment, dataset), models, losses, train, inference, selection, evaluate, metrics,

@@ -321,26 +321,26 @@
     const root = $("#stack"), A = S.ablations, n1 = S.novelty1;
     const abl = (run, m) => { const v = A[run][m]; return `${sgn(v.delta, m === "betti" ? 1 : 4)} [±${v.ci.toFixed(m === "betti" ? 1 : 4)}] ${v.clear ? "clear" : "not clear"}`; };
     const cards = [
-      { id: "N1", bg: "var(--paper2)", fg: INK, title: "Connectivity reliability score", verdict: ["mid", "Promising lead", "ph-lightbulb"],
+      { id: "N1", owner: "Abhiraj Agarwal", bg: "var(--paper2)", fg: INK, title: "Connectivity reliability score", verdict: ["mid", "Promising lead", "ph-lightbulb"],
         idea: "Flag an unreliable prediction by counting how fragmented it is: label-free, single pass, no extra cost.",
         res: [`Against MC-dropout entropy (stage E): ${sgn(n1.E_vs_mc.delta)} [±${n1.E_vs_mc.ci.toFixed(3)}], clear.`, `Against single-pass entropy (stage E): ${sgn(n1.E_det.delta)}, not clear.`, `For the 66K model, entropy is the stronger score: ${sgn(n1.H.delta)} [±${n1.H.ci.toFixed(3)}].`],
         note: "Two secondary connectivity scores (end-point density, small-fragment share) ranked failures better than entropy for most models. A promising lead for follow-up work." },
-      { id: "N2", bg: INK, fg: "#fff", title: "Calibre-guided scale selection", verdict: ["ok", "Supported", "ph-check-circle"],
+      { id: "N2", owner: "Tanish Shitanshu", bg: INK, fg: "#fff", title: "Calibre-guided scale selection", verdict: ["ok", "Supported", "ph-check-circle"],
         idea: "Run each image at four scales and keep the one whose predicted vessel width matches what the model saw on DRIVE.",
         res: [`Unseen Dice, 66K model: ${S.scale_unseen["H_tglite70k[det]"].text}.`, `HRF ${sgn(S.scale_delta["H_tglite70k[det]"].hrf)}, STARE and CHASE_DB1 unchanged.`, `FIVES ${sgn(S.scale_delta["H_tglite70k[det]"].fives)}: on thick vessels the default scale is already the better choice.`],
         note: "The rule was set on DRIVE only, and it passed its validation safety check for every model." },
-      { id: "N3", bg: "var(--card)", fg: INK, title: "Topology-aware distillation", verdict: ["mid", "Open question", "ph-compass"],
+      { id: "N3", owner: "Shashwat Rajan", bg: "var(--card)", fg: INK, title: "Topology-aware distillation", verdict: ["mid", "Open question", "ph-compass"],
         idea: "Let the small student copy a large teacher's soft centrelines, not only its pixels.",
         res: [`Dice ${abl("Z_no_kdskel", "dice")}.`, `clDice ${abl("Z_no_kdskel", "cldice")}.`, `Betti-0 ${abl("Z_no_kdskel", "betti")} (fewer pieces, but not clear).`],
         note: "With 3 seeds the test has modest power; more seeds would settle it." },
-      { id: "N4", bg: "#e7ece0", fg: INK, title: "Skeleton-level consistency", verdict: ["mid", "Dice trade-off", "ph-scales"],
+      { id: "N4", owner: "Tanish Shitanshu", bg: "#e7ece0", fg: INK, title: "Skeleton-level consistency", verdict: ["mid", "Dice trade-off", "ph-scales"],
         idea: "Ask the augmented view to reproduce the clean view's centrelines instead of its pixels.",
         res: [`Dice ${abl("Z_pixcons", "dice")}: a clear Dice trade-off against plain pixel consistency.`, `clDice ${abl("Z_pixcons", "cldice")}.`, `Betti-0 ${abl("Z_pixcons", "betti")}.`],
         note: "Pixel-level consistency stays the recommended choice, which narrows the design space for future work." },
     ];
     cards.forEach((c, i) => {
       const art = el("article", { class: "stack-card", style: `--i:${i}; background:${c.bg}; color:${c.fg}` });
-      art.innerHTML = `<div class="flex flex-wrap items-start justify-between gap-6"><div class="big-n" style="color:${c.fg === "#fff" ? "#e4432c" : "#e4432c"}">${c.id}</div><span class="verdict ${c.verdict[0]}"><i class="ph-bold ${c.verdict[2]} text-base"></i>${c.verdict[1]}</span></div>
+      art.innerHTML = `<div class="flex flex-wrap items-start justify-between gap-6"><div><div class="big-n" style="color:#e4432c">${c.id}</div><div class="mt-1 text-sm font-bold" style="opacity:.62">Owner: ${c.owner}</div></div><span class="verdict ${c.verdict[0]}"><i class="ph-bold ${c.verdict[2]} text-base"></i>${c.verdict[1]}</span></div>
         <h3 class="mt-6 text-3xl md:text-4xl font-black tracking-tight leading-tight">${c.title}</h3>
         <p class="mt-3 text-lg max-w-2xl" style="opacity:.78">${c.idea}</p>
         <ul class="mt-6 space-y-2 text-[15.5px] font-semibold max-w-3xl">${c.res.map((r) => `<li class="flex gap-3"><i class="ph-bold ph-caret-right mt-1 text-vermilion"></i><span>${r}</span></li>`).join("")}</ul>
