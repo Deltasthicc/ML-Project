@@ -1,6 +1,6 @@
 """Figures used by README.md (all values read from results/, nothing typed by hand).
 
-    python scripts/make_readme_figs.py   # -> docs/img/fig_headline.png, fig_size.png, fig_method.png, fig_scale_mech.png, fig_qualitative.png
+    python scripts/make_readme_figs.py   # -> docs/img/fig_headline.png, fig_size.png, fig_method.png, fig_scale_mech.png, fig_qualitative.png, fig_confusion.png
 """
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def main() -> None:
     headline()
     size_bars()
     method_diagram()
-    for f in ("fig_scale_mech", "fig_qualitative"):
+    for f in ("fig_scale_mech", "fig_qualitative", "fig_confusion"):
         src = ROOT / "paper" / "figures" / f"{f}.png"
         if src.exists():
             shutil.copyfile(src, IMG / f"{f}.png")

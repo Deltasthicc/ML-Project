@@ -202,13 +202,13 @@ Fig.~\ref{fig:modes} repeats the finding of an earlier pilot with the pre-regist
 
 \begin{figure}[t]
 \centering
-\safefig{0.86\columnwidth}{fig_modes}
+\safefig{0.72\columnwidth}{fig_modes}
 \caption{Evaluation modes on the unseen datasets. (a) Raw and cleaned Betti-0 error; (b) Dice at threshold 0.5, after fragment removal, and with the validation-tuned threshold. U+DG: U-Net with DG augmentation and no topology loss.}
 \label{fig:modes}
 \end{figure}
 
 \subsection{Discussion}
-At threshold 0.5 every stage over-segments the unseen datasets: precision is only \precRawA--\precRawC\ against sensitivities of \sensRawA--\sensRawC, and the thresholds chosen on DRIVE validation are \thrA\ for the U-Net but \thrB--\thrE\ for the topology-trained models, which are more confident and so more over-segmenting. Raising the threshold lifts precision to \precTunedC\ (stage C) at a cost of about 0.04 sensitivity, which explains why the apparent Dice cost of topology supervision disappears. The remaining gap to DRIVE comes from HRF (unseen Dice 0.70--0.72 for stages A--E against 0.76--0.80 on STARE and CHASE\_DB1), where thin labels, large images and a different annotation style compound the camera shift; FIVES, whose vessels are thick and well contrasted, is the easiest target. These patterns are why a label-free adjustment of the processing scale helps on HRF and why it must not be applied blindly.
+At threshold 0.5 every stage over-segments the unseen datasets: precision is only \precRawA--\precRawC\ against sensitivities of \sensRawA--\sensRawC, and the thresholds chosen on DRIVE validation are \thrA\ for the U-Net but \thrB--\thrE\ for the topology-trained models, which are more confident and so more over-segmenting. Raising the threshold lifts precision to \precTunedC\ (stage C) at a cost of about 0.04 sensitivity, which explains why the apparent Dice cost of topology supervision disappears. The remaining gap to DRIVE comes from HRF (unseen Dice 0.70--0.72 for stages A--E against 0.76--0.80 on STARE and CHASE\_DB1), where thin labels, large images and a different annotation style compound the camera shift; FIVES, whose vessels are thick and well contrasted, is the easiest target. This is why a label-free adjustment of the processing scale helps on HRF.
 
 \subsection{Backbone and cost}
 Depthwise-separable convolutions save parameters but not time: at DRIVE-validation parity, the 212K depthwise network needs \cpuKlite\,ms against \cpuKeight\,ms for the plain 486K U-Net and \cpuKsixteen\,ms for the plain 1.94\,M U-Net (Table~\ref{tab:backbone}). Depthwise layers perform little arithmetic per byte moved, so FLOP counts overstate their benefit on this CPU.
@@ -247,28 +247,26 @@ Table~\ref{tab:models} and Fig.~\ref{fig:cost} summarise v2.1. The \hParamsK K m
 
 \begin{figure}[t]
 \centering
-\safefig{0.88\columnwidth}{fig_scale_mech}
+\safefig{0.80\columnwidth}{fig_scale_mech}
 \caption{Mechanism of calibre-guided scale selection for the 66K model. (a) Mean predicted vessel width at each input scale, per dataset. (b) Share of images assigned to each scale.}
 \label{fig:mech}
 \end{figure}
 
-\begin{table}[t]
+\begin{figure}[t]
 \centering
-\caption{Pixel-level classification metrics of the 66K model (tuned threshold, native resolution, mean over images and 5 seeds). F1 equals the per-image Dice. TP/FP/FN/TN: confusion matrix in \% of field-of-view pixels.}
-\label{tab:conf}
-\footnotesize
-\setlength{\tabcolsep}{2.6pt}
-\begin{adjustbox}{max width=\columnwidth}\input{generated/tab_confusion.tex}\end{adjustbox}
-\end{table}
+\safefig{\columnwidth}{fig_confusion}
+\caption{Pixel-level confusion matrices of the 66K model (tuned threshold, native resolution, mean over images and 5 seeds). Positive (+) is vessel. Cells are \% of field-of-view pixels, rows are the true class and columns the prediction; the grey margins give recall (sensitivity), specificity, precision and accuracy, and F1 equals the per-image Dice.}
+\label{fig:conf}
+\end{figure}
 
-\textbf{Pixel-level classification metrics.} Vessel segmentation is a binary classification of every pixel in the field of view, so Table~\ref{tab:conf} gives accuracy, precision, recall, specificity, F1 and the confusion matrix. Accuracy is high on every dataset but is dominated by the background (\confTnLo--\confTnHi\% of pixels are true negatives), which is why Dice (= F1) is our headline. On STARE, CHASE\_DB1 and HRF recall exceeds precision: the tuned threshold favours sensitivity, so the remaining error is mostly over-segmentation (false positives \confFpLo--\confFpHi\% of pixels against \confFnLo--\confFnHi\% false negatives).
+\textbf{Pixel-level classification metrics.} Vessel segmentation classifies every pixel of the field of view, so Fig.~\ref{fig:conf} gives the confusion matrix with accuracy, precision, recall, specificity and F1. Accuracy is high everywhere but dominated by the background (\confTnLo--\confTnHi\% true negatives), which is why Dice (= F1) is our headline; on STARE, CHASE\_DB1 and HRF recall exceeds precision, so the remaining error is mostly over-segmentation (false positives \confFpLo--\confFpHi\% of pixels against \confFnLo--\confFnHi\% false negatives).
 
 \textbf{Against published work.} The 66K model is within 0.01 of DSAE-Net on STARE but about 0.05 below on CHASE\_DB1 and 0.07 on HRF (\HChase\ and \HHrf\ against 0.815 and 0.801 published). The same gap appears for the 31M U-Net, so it stems from single-dataset training and native-resolution scoring, not from model size.
 
 \begin{figure*}[t]
 \centering
 \safefig{0.66\textwidth}{fig_qualitative}
-\caption{Example predictions, in the normalised-scale space the networks operate in (black: correct vessel, red: false positive, blue: missed). HRF (top) benefits from scale selection; on FIVES (bottom) the default scale is the better choice. Dice values are per image.}
+\caption{Example predictions (black: correct vessel, red: false positive, blue: missed). HRF (top) benefits from scale selection; on FIVES (bottom) the default scale is the better choice. Dice values are per image.}
 \label{fig:qual}
 \end{figure*}
 
@@ -293,11 +291,11 @@ Table~\ref{tab:novel} lists the outcomes. \textbf{N1}: the fragment-density scor
 \setlength{\tabcolsep}{3pt}
 \begin{adjustbox}{max width=\columnwidth}\input{generated/tab_factorial.tex}\end{adjustbox}
 \end{table}
-Table~\ref{tab:factorial} separates the factors. \emph{Topology loss} lowers the raw Betti-0 error in all four pairs and raises clDice by 0.006--0.010, but lowers raw Dice when DG is present (\dXCDice\ $\pm$\ciXCDice, clDice \dXCCl). \emph{DG augmentation} adds 0.006--0.015 raw Dice without topology supervision (U-Net: \dAXDice, $\pm$\ciAXDice) and only 0.002--0.003 with it. The \emph{compact backbone} costs Dice and clDice in every pair (tuned Dice \uDiceTunedC\ against \uDiceTunedD\ for stages C and D). The cbDice and Skeleton Recall variants match soft-clDice at best (unseen Dice 0.736 and 0.726 at 0.5), and removing the skeleton head or the consistency loss changes unseen Dice by less than 0.002. Accuracy saturates at width 16 (tuned Dice 0.786 at $w{=}16$ and $w{=}24$, 0.785 at $w{=}32$, 0.779 at $w{=}8$).
+Table~\ref{tab:factorial} separates the factors. \emph{Topology loss} lowers the raw Betti-0 error in all four pairs and raises clDice by 0.006--0.010, but lowers raw Dice when DG is present (\dXCDice\ $\pm$\ciXCDice, clDice \dXCCl). \emph{DG augmentation} adds 0.006--0.015 raw Dice without topology supervision (U-Net: \dAXDice, $\pm$\ciAXDice) and only 0.002--0.003 with it. The cbDice and Skeleton Recall variants match soft-clDice at best (unseen Dice 0.736 and 0.726 at 0.5), and removing the skeleton head or the consistency loss changes unseen Dice by less than 0.002. Accuracy saturates at width 16 (tuned Dice 0.786 at $w{=}16$ and $w{=}24$, 0.785 at $w{=}32$, 0.779 at $w{=}8$).
 
 % =============================================================================== VIII
 \section{Conclusion and Future Work}
-\textbf{Findings.} Under a pre-registered, single-dataset protocol, soft-clDice with a skeleton head reduces raw fragment counts but not more than a simple clean-up step, and its Dice cost is a threshold-calibration effect. Robustness augmentation helps without topology supervision. A plain compact U-Net is 31$\times$ faster than a 31M U-Net for $\approx$0.01 Dice, and depthwise convolutions are not faster. A \hParamsK K-parameter model reaches \HTuned\ (\HSel\ with calibre-guided scale selection) unseen Dice, 3--4 points below the best published lightweight network evaluated under different protocols. Of four new topology-based ideas, test-time scale selection is clearly supported, the connectivity reliability score yields a promising lead, and distillation and skeleton consistency define what to test next with more seeds and data. \textbf{Objectives.} O1 and O2 were met (\nTrainAll\ trained models, rules fixed before evaluation); O3 was met in size, not in accuracy parity.
+\textbf{Findings.} Under a pre-registered, single-dataset protocol, soft-clDice with a skeleton head reduces raw fragment counts but not more than a simple clean-up step, and its Dice cost is a threshold-calibration effect. Robustness augmentation helps without topology supervision. A plain compact U-Net is 31$\times$ faster than a 31M U-Net for $\approx$0.01 Dice. A \hParamsK K-parameter model reaches \HTuned\ (\HSel\ with calibre-guided scale selection) unseen Dice, 3--4 points below the best published lightweight network evaluated under different protocols. Of four new topology-based ideas, test-time scale selection is clearly supported, the connectivity reliability score yields a promising lead, and distillation and skeleton consistency define what to test next with more seeds and data. \textbf{Objectives.} O1 and O2 were met (\nTrainAll\ trained models, rules fixed before evaluation); O3 was met in size, not in accuracy parity.
 \textbf{Limitations.} (i) Fifteen training images and a single training dataset; (ii) three seeds for ablations give low power, and the ensembles are single instances; (iii) FOV masks are estimated for three datasets and labels come from one observer; (iv) the targets were seen in v1 and are held-out, not untouched; (v) the pre-registered size rule selected the 212K model as the formal headline, and scale selection is best suited to thin-vessel data; (vi) latencies come from one machine and INT8 was slower than FP32 on it; (vii) published numbers are context only. \textbf{Future work:} multi-dataset or patient-split training, a safeguard that disables scale selection on thick-vessel data, topology metrics robust to fragments, and INT8 measurements on an edge CPU. The code, protocol, per-run records and an interactive project page are public at \url{https://github.com/Deltasthicc/ML-Project}.
 
 \section*{Acknowledgment}

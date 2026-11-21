@@ -536,13 +536,39 @@ hc = pi[pi["model"] == "H_tglite70k[det]"].copy()
 hc["fp"], hc["fn"] = hc["tuned/fp_frac"], hc["tuned/fn_frac"]
 hc["tp"] = hc["fp"] * hc["tuned/prec"] / (1 - hc["tuned/prec"])
 hc["tn"] = 1 - hc["tp"] - hc["fp"] - hc["fn"]
-crow = []
-for ds_ in ("stare", "chase_db1", "hrf", "fives"):
+from matplotlib.patches import Rectangle
+
+fig, axes = plt.subplots(2, 2, figsize=(3.45, 2.25), gridspec_kw={"wspace": 0.04, "hspace": 0.20})
+conf_names = {"stare": "STARE", "chase_db1": "CHASE_DB1", "hrf": "HRF", "fives": "FIVES"}
+GOOD, BAD, MARG = "#cfe3d4", "#f2cfc7", "#ececec"
+conf_csv = []
+for ax, ds_ in zip(axes.ravel(), ("stare", "chase_db1", "hrf", "fives")):
     s_ = hc[hc["dataset"] == ds_]
-    v_ = [s_["tuned/acc"].mean(), s_["tuned/prec"].mean(), s_["tuned/sens"].mean(), s_["tuned/spec"].mean(), s_["tuned/dice"].mean()]
-    c_ = [100 * s_[k_].mean() for k_ in ("tp", "fp", "fn", "tn")]
-    crow.append([DSL[ds_]] + [f"{x:.3f}" for x in v_] + [f"{x:.1f}" for x in c_])
-write("tab_confusion.tex", tabular("l ccccc cccc", ["Dataset", "Acc", "Prec", "Rec", "Spec", "F1", "TP", "FP", "FN", "TN"], crow, (3,)))
+    tp_, fp_, fn_, tn_ = [100 * s_[k_].mean() for k_ in ("tp", "fp", "fn", "tn")]
+    acc_, prec_, rec_, spec_, f1_ = [s_[k_].mean() for k_ in ("tuned/acc", "tuned/prec", "tuned/sens", "tuned/spec", "tuned/dice")]
+    conf_csv.append([ds_, tp_, fn_, fp_, tn_, acc_, prec_, rec_, spec_, f1_])
+    ax.set_xlim(-0.85, 3.05)
+    ax.set_ylim(2.95, -0.55)
+    ax.axis("off")
+    cells = [(0, 0, "TP", tp_, GOOD), (1, 0, "FN", fn_, BAD), (0, 1, "FP", fp_, BAD), (1, 1, "TN", tn_, GOOD)]
+    for cx, cy, nm_, v_, col_ in cells:
+        ax.add_patch(Rectangle((cx, cy), 1, 1, facecolor=col_, edgecolor="white", lw=1.2))
+        ax.text(cx + 0.5, cy + 0.5, f"{nm_}\n{v_:.1f}%", ha="center", va="center", fontsize=6.6, fontweight="bold")
+    for cx, lab_ in ((0, "Pred. +"), (1, "Pred. \u2212")):
+        ax.text(cx + 0.5, -0.12, lab_, ha="center", va="center", fontsize=6.2)
+    for cy, lab_ in ((0, "True +"), (1, "True \u2212")):
+        ax.text(-0.06, cy + 0.5, lab_, ha="right", va="center", fontsize=6.2)
+    # margins: recall / specificity (right), precision (bottom), accuracy (corner)
+    for cy, nm_, v_ in ((0, "Recall", rec_), (1, "Spec.", spec_)):
+        ax.add_patch(Rectangle((2, cy), 1, 1, facecolor=MARG, edgecolor="white", lw=1.2))
+        ax.text(2.5, cy + 0.5, f"{nm_}\n{v_:.3f}", ha="center", va="center", fontsize=6.2)
+    ax.add_patch(Rectangle((0, 2), 1, 0.75, facecolor=MARG, edgecolor="white", lw=1.2))
+    ax.text(0.5, 2.375, f"Prec.\n{prec_:.3f}", ha="center", va="center", fontsize=6.2)
+    ax.add_patch(Rectangle((2, 2), 1, 0.75, facecolor=MARG, edgecolor="white", lw=1.2))
+    ax.text(2.5, 2.375, f"Acc.\n{acc_:.3f}", ha="center", va="center", fontsize=6.2)
+    ax.set_title(f"{conf_names[ds_]}  (F1 = {f1_:.3f})", fontsize=7.6, fontweight="bold", pad=1.5, loc="center")
+save(fig, "fig_confusion")
+pd.DataFrame(conf_csv, columns=["dataset", "TP_pct", "FN_pct", "FP_pct", "TN_pct", "accuracy", "precision", "recall", "specificity", "f1"]).to_csv(GEN / "confusion_66k.csv", index=False)
 u3 = hc[hc["dataset"].isin(["stare", "chase_db1", "hrf"])].groupby("dataset")[["fp", "fn", "tuned/acc"]].mean()
 mac("confFpLo", f"{100 * u3['fp'].min():.1f}")
 mac("confFpHi", f"{100 * u3['fp'].max():.1f}")

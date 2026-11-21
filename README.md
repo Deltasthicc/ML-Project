@@ -164,14 +164,16 @@ Ranking whole images by reliability, and carrying calibration from DRIVE to othe
 
 ### 6. Pixel-level classification metrics (66K model)
 
-Vessel segmentation is a binary classification of every pixel in the field of view, so the usual classification metrics apply. F1 equals Dice, and TP/FP/FN/TN is the confusion matrix in % of field-of-view pixels (tuned threshold, native resolution, mean over images and 5 seeds).
+Vessel segmentation is a binary classification of every pixel in the field of view, so the usual classification metrics apply. Positive (+) is vessel. Each matrix shows the confusion matrix in % of field-of-view pixels (rows: true class, columns: prediction); the grey margins give recall, specificity, precision and accuracy, and F1 equals Dice (tuned threshold, native resolution, mean over images and 5 seeds).
 
-| Dataset | Accuracy | Precision | Recall | Specificity | F1 (= Dice) | TP | FP | FN | TN |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| STARE | 0.958 | 0.766 | 0.864 | 0.969 | 0.810 | 9.1 | 2.8 | 1.4 | 86.8 |
-| CHASE_DB1 | 0.945 | 0.676 | 0.882 | 0.952 | 0.765 | 9.1 | 4.3 | 1.2 | 85.4 |
-| HRF | 0.946 | 0.666 | 0.814 | 0.960 | 0.729 | 7.4 | 3.7 | 1.7 | 87.2 |
-| FIVES | 0.966 | 0.806 | 0.825 | 0.979 | 0.810 | 8.2 | 1.9 | 1.5 | 88.4 |
+<p align="center"><img src="docs/img/fig_confusion.png" width="62%" alt="Confusion matrices of the 66K model on the four unseen datasets"></p>
+
+| Dataset | Accuracy | Precision | Recall (sensitivity) | Specificity | F1 (= Dice) |
+|---|---:|---:|---:|---:|---:|
+| STARE | 0.958 | 0.766 | 0.864 | 0.969 | 0.810 |
+| CHASE_DB1 | 0.945 | 0.676 | 0.882 | 0.952 | 0.765 |
+| HRF | 0.946 | 0.666 | 0.814 | 0.960 | 0.729 |
+| FIVES | 0.966 | 0.806 | 0.825 | 0.979 | 0.810 |
 
 Accuracy is high everywhere but is dominated by the background (85–88% of pixels are true negatives), which is why Dice is the headline. On STARE, CHASE_DB1 and HRF recall exceeds precision, so the remaining error is mostly over-segmentation (false positives 2.8–4.3% of pixels against 1.2–1.7% false negatives).
 
