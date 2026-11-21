@@ -156,7 +156,7 @@ Uncertainty is the binary entropy of the mean predicted probability for a single
 % =============================================================================== V
 \section{Experimental Setup}\label{sec:setup}
 \subsection{Datasets and preprocessing}
-Table~\ref{tab:data} lists the data. DRIVE provides 20 training images, split once (seed 2026) into 15 for fitting and 5 for validation, and 20 test images (labels from the PaddleSeg mirror, checked against the official training labels). STARE (20), CHASE\_DB1 (28) and HRF (45) are used for testing only, and FIVES~\cite{jin2022fives} (200 test images) is reported separately and never averaged into ``unseen''. FOV masks are official for DRIVE and HRF and estimated for the others (checked visually). The vessel fraction is 9--13\% everywhere (class ratio about 1:8). The statistics quantify the shift: mean green intensity ranges from 53 (FIVES) to 109 (STARE), and the vessel calibre after FOV normalisation is about 3.5\,px except on HRF, where it is 1.4\,px because its labels are thin; HRF therefore also measures an annotation-style shift. \textbf{Availability:} DRIVE from \url{https://drive.grand-challenge.org} (test labels from the PaddleSeg mirror, SHA-256 pinned), STARE from \url{https://cecas.clemson.edu/~ahoover/stare}, CHASE\_DB1 from the Hugging Face mirror \texttt{MedOtter/CHASE\_DB1} (the Kingston server is offline), HRF from \url{https://www5.cs.fau.de/research/data/fundus-images} and FIVES from \url{https://doi.org/10.6084/m9.figshare.19688169}; checksums are recorded in \texttt{results/data/manifest.json} and no dataset is redistributed.
+Table~\ref{tab:data} lists the data. The prediction target is the binary vessel label of every pixel inside the field of view (FOV); the inputs are raw fundus photographs, so there are no missing values, categorical attributes or feature selection, and pre-processing is limited to the steps of Sec.~IV-A. DRIVE provides 20 training images, split once (seed 2026) into 15 for fitting and 5 for validation, and 20 test images (labels from the PaddleSeg mirror, checked against the official training labels). STARE (20), CHASE\_DB1 (28) and HRF (45) are used for testing only, and FIVES~\cite{jin2022fives} (200 test images) is reported separately and never averaged into ``unseen''. FOV masks are official for DRIVE and HRF and estimated for the others (checked visually). The vessel fraction is 9--13\% everywhere (class ratio about 1:8). The statistics quantify the shift: mean green intensity ranges from 53 (FIVES) to 109 (STARE), and the vessel calibre after FOV normalisation is about 3.5\,px except on HRF, where it is 1.4\,px because its labels are thin; HRF therefore also measures an annotation-style shift. \textbf{Availability:} DRIVE from \url{https://drive.grand-challenge.org} (test labels from the PaddleSeg mirror, SHA-256 pinned), STARE from \url{https://cecas.clemson.edu/~ahoover/stare}, CHASE\_DB1 from the Hugging Face mirror \texttt{MedOtter/CHASE\_DB1} (the Kingston server is offline), HRF from \url{https://www5.cs.fau.de/research/data/fundus-images} and FIVES from \url{https://doi.org/10.6084/m9.figshare.19688169}; checksums are recorded in \texttt{results/data/manifest.json} and no dataset is redistributed.
 
 \begin{table}[t]
 \centering
@@ -189,7 +189,7 @@ Per model, three modes are chosen on DRIVE validation only: \emph{raw} (threshol
 
 \begin{figure*}[t]
 \centering
-\safefig{0.98\textwidth}{fig_stages}
+\safefig{0.86\textwidth}{fig_stages}
 \caption{Stages A--E on each dataset (mean over seeds, whiskers: standard deviation). Betti-0 error is on a log scale; lower is better. FIVES is an additional target.}
 \label{fig:stages}
 \end{figure*}
@@ -202,7 +202,7 @@ Fig.~\ref{fig:modes} repeats the finding of an earlier pilot with the pre-regist
 
 \begin{figure}[t]
 \centering
-\safefig{\columnwidth}{fig_modes}
+\safefig{0.86\columnwidth}{fig_modes}
 \caption{Evaluation modes on the unseen datasets. (a) Raw and cleaned Betti-0 error; (b) Dice at threshold 0.5, after fragment removal, and with the validation-tuned threshold. U+DG: U-Net with DG augmentation and no topology loss.}
 \label{fig:modes}
 \end{figure}
@@ -236,7 +236,7 @@ Table~\ref{tab:unc} shows that entropy ranks erroneous \emph{pixels} moderately 
 
 \begin{figure*}[t]
 \centering
-\safefig{0.98\textwidth}{fig_cost_scale}
+\safefig{0.86\textwidth}{fig_cost_scale}
 \caption{(a, b) Unseen Dice against size and CPU time (v2 grey/orange, v2.1 blue/red; the star is a published number under a different protocol). (c) Change in Dice from calibre-guided scale selection, by dataset.}
 \label{fig:cost}
 \end{figure*}
@@ -247,16 +247,27 @@ Table~\ref{tab:models} and Fig.~\ref{fig:cost} summarise v2.1. The \hParamsK K m
 
 \begin{figure}[t]
 \centering
-\safefig{\columnwidth}{fig_scale_mech}
+\safefig{0.88\columnwidth}{fig_scale_mech}
 \caption{Mechanism of calibre-guided scale selection for the 66K model. (a) Mean predicted vessel width at each input scale, per dataset. (b) Share of images assigned to each scale.}
 \label{fig:mech}
 \end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Pixel-level classification metrics of the 66K model (tuned threshold, native resolution, mean over images and 5 seeds). F1 equals the per-image Dice. TP/FP/FN/TN: confusion matrix in \% of field-of-view pixels.}
+\label{tab:conf}
+\footnotesize
+\setlength{\tabcolsep}{2.6pt}
+\begin{adjustbox}{max width=\columnwidth}\input{generated/tab_confusion.tex}\end{adjustbox}
+\end{table}
+
+\textbf{Pixel-level classification metrics.} Vessel segmentation is a binary classification of every pixel in the field of view, so Table~\ref{tab:conf} gives accuracy, precision, recall, specificity, F1 and the confusion matrix. Accuracy is high on every dataset but is dominated by the background (\confTnLo--\confTnHi\% of pixels are true negatives), which is why Dice (= F1) is our headline. On STARE, CHASE\_DB1 and HRF recall exceeds precision: the tuned threshold favours sensitivity, so the remaining error is mostly over-segmentation (false positives \confFpLo--\confFpHi\% of pixels against \confFnLo--\confFnHi\% false negatives).
 
 \textbf{Against published work.} The 66K model is within 0.01 of DSAE-Net on STARE but about 0.05 below on CHASE\_DB1 and 0.07 on HRF (\HChase\ and \HHrf\ against 0.815 and 0.801 published). The same gap appears for the 31M U-Net, so it stems from single-dataset training and native-resolution scoring, not from model size.
 
 \begin{figure*}[t]
 \centering
-\safefig{0.80\textwidth}{fig_qualitative}
+\safefig{0.66\textwidth}{fig_qualitative}
 \caption{Example predictions, in the normalised-scale space the networks operate in (black: correct vessel, red: false positive, blue: missed). HRF (top) benefits from scale selection; on FIVES (bottom) the default scale is the better choice. Dice values are per image.}
 \label{fig:qual}
 \end{figure*}

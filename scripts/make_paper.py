@@ -531,6 +531,26 @@ ax.legend(frameon=False, fontsize=5.8, ncol=4, loc="upper center", bbox_to_ancho
 title(ax, "(b) Scale chosen")
 save(fig, "fig_scale_mech")
 
+# Table: pixel-level classification metrics and confusion matrix of the 66K model (tuned mode), from the per-image records
+hc = pi[pi["model"] == "H_tglite70k[det]"].copy()
+hc["fp"], hc["fn"] = hc["tuned/fp_frac"], hc["tuned/fn_frac"]
+hc["tp"] = hc["fp"] * hc["tuned/prec"] / (1 - hc["tuned/prec"])
+hc["tn"] = 1 - hc["tp"] - hc["fp"] - hc["fn"]
+crow = []
+for ds_ in ("stare", "chase_db1", "hrf", "fives"):
+    s_ = hc[hc["dataset"] == ds_]
+    v_ = [s_["tuned/acc"].mean(), s_["tuned/prec"].mean(), s_["tuned/sens"].mean(), s_["tuned/spec"].mean(), s_["tuned/dice"].mean()]
+    c_ = [100 * s_[k_].mean() for k_ in ("tp", "fp", "fn", "tn")]
+    crow.append([DSL[ds_]] + [f"{x:.3f}" for x in v_] + [f"{x:.1f}" for x in c_])
+write("tab_confusion.tex", tabular("l ccccc cccc", ["Dataset", "Acc", "Prec", "Rec", "Spec", "F1", "TP", "FP", "FN", "TN"], crow, (3,)))
+u3 = hc[hc["dataset"].isin(["stare", "chase_db1", "hrf"])].groupby("dataset")[["fp", "fn", "tuned/acc"]].mean()
+mac("confFpLo", f"{100 * u3['fp'].min():.1f}")
+mac("confFpHi", f"{100 * u3['fp'].max():.1f}")
+mac("confFnLo", f"{100 * u3['fn'].min():.1f}")
+mac("confFnHi", f"{100 * u3['fn'].max():.1f}")
+mac("confTnLo", f"{100 * hc.groupby('dataset')['tn'].mean().min():.0f}")
+mac("confTnHi", f"{100 * hc.groupby('dataset')['tn'].mean().max():.0f}")
+
 # qualitative figure from the exported example assets (HRF: selection helps, FIVES: it hurts)
 A = ROOT / "results" / "v21" / "assets"
 fig, axes = plt.subplots(2, 5, figsize=(7.1, 3.2), gridspec_kw={"wspace": 0.03, "hspace": 0.12})
